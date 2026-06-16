@@ -16,7 +16,6 @@ import { mapNotificationDoc } from './mappers';
 import { Notification, PaginatedResult, CreateNotificationData } from '@/types';
 import { NOTIFICATIONS_PAGE_SIZE } from '@/constants/theme';
 import { deriveActivityFromSources, isDerivedActivityId, mergeActivityItems } from './activityFeed';
-import { getIncomingFollowRequests } from './followRequests';
 import { computeActivityBadgeCount } from '@/utils/activityBadge';
 import {
   applyPersistedReadState,
@@ -26,7 +25,6 @@ import {
 } from './activityReadState';
 import { getActivityReadKey } from '@/utils/activityRead';
 import { getUserById } from './users';
-import { dispatchPushForNotification } from '@/utils/pushNotifications';
 
 async function queryNotificationsByRecipient(recipientId: string): Promise<Notification[]> {
   const db = getFirebaseDb();
@@ -164,6 +162,7 @@ export async function getUnreadCount(recipientId: string): Promise<number> {
   const { items } = await getNotifications(recipientId, 200);
   const readKeys = await loadReadActivityKeys(recipientId);
   const itemsWithRead = applyPersistedReadState(items, readKeys);
+  const { getIncomingFollowRequests } = await import('./followRequests');
   const pendingRequests = await getIncomingFollowRequests(recipientId);
   return computeActivityBadgeCount(itemsWithRead, pendingRequests.length);
 }
@@ -199,14 +198,16 @@ export async function createFollowReceivedNotification(
 
   try {
     const docRef = await addDoc(collection(db, 'notifications'), notificationData);
-    void dispatchPushForNotification({
-      recipientId: followingId,
-      actorId: followerId,
-      actorUsername: actor.username,
-      actorDisplayName: actor.displayName,
-      actorPhotoURL: actor.photoURL,
-      type: 'follow',
-    });
+    void import('@/utils/pushDelivery').then(({ dispatchPushForNotification }) =>
+      dispatchPushForNotification({
+        recipientId: followingId,
+        actorId: followerId,
+        actorUsername: actor.username,
+        actorDisplayName: actor.displayName,
+        actorPhotoURL: actor.photoURL,
+        type: 'follow',
+      }),
+    );
     return docRef.id;
   } catch (error: unknown) {
     const firebaseError = error as { code?: string; message?: string };
@@ -274,7 +275,9 @@ export async function createNotification(data: CreateNotificationData): Promise<
       createdAt: '(serverTimestamp)',
     });
 
-    void dispatchPushForNotification(data);
+    void import('@/utils/pushDelivery').then(({ dispatchPushForNotification }) =>
+      dispatchPushForNotification(data),
+    );
 
     return docRef.id;
   } catch (error: unknown) {

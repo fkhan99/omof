@@ -6,7 +6,7 @@ import * as Device from 'expo-device';
 import { useAuthStore } from '@/store/authStore';
 import { deleteAccount } from '@/services/firebase/accountDeletion';
 import { exportUserData } from '@/services/firebase/dataExport';
-import { clearPushToken, registerForPushNotifications } from '@/utils/pushNotifications';
+import { clearPushToken, registerForPushNotifications } from '@/utils/pushRegistration';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';

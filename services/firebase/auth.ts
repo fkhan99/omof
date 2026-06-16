@@ -24,6 +24,7 @@ import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
+import { updateFcmToken } from './pushToken';
 
 function assertFirebaseConfigured(): void {
   if (!isFirebaseConfigured()) {
@@ -192,12 +193,4 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
   return !snap.exists();
 }
 
-export async function updateFcmToken(userId: string, token: string | null): Promise<void> {
-  if (!isFirebaseConfigured()) return;
-  const db = getFirebaseDb();
-  await setDoc(
-    doc(db, 'users', userId),
-    { fcmToken: token, updatedAt: serverTimestamp() },
-    { merge: true },
-  );
-}
+export { updateFcmToken } from './pushToken';

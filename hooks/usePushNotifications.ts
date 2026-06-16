@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
@@ -7,19 +8,22 @@ import { getUnreadCount } from '@/services/firebase/notifications';
 import { isFirebaseConfigured } from '@/services/firebase/config';
 import {
   getRouteForPushData,
+  isPushSupportedPlatform,
   registerForPushNotifications,
   PushNotificationData,
-} from '@/utils/pushNotifications';
+} from '@/utils/pushRegistration';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export function usePushNotifications() {
   const { firebaseUser } = useAuthStore();
@@ -28,7 +32,18 @@ export function usePushNotifications() {
   const handledResponseIds = useRef(new Set<string>());
 
   useEffect(() => {
-    if (!firebaseUser || !isFirebaseConfigured()) return;
+    if (!firebaseUser || !isFirebaseConfigured() || Platform.OS === 'web') return;
+
+    function handleNotificationResponse(response: Notifications.NotificationResponse) {
+      const id = response.notification.request.identifier;
+      if (handledResponseIds.current.has(id)) return;
+      handledResponseIds.current.add(id);
+
+      const data = (response.notification.request.content.data ?? {}) as PushNotificationData;
+      const route = getRouteForPushData(data);
+      console.log('[push] notification tapped', { route, data });
+      router.push(route as never);
+    }
 
     void registerForPushNotifications(firebaseUser.uid);
     void refreshUnreadCount();
@@ -38,26 +53,14 @@ export function usePushNotifications() {
     });
 
     const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const id = response.notification.request.identifier;
-      if (handledResponseIds.current.has(id)) return;
-      handledResponseIds.current.add(id);
-
-      const data = (response.notification.request.content.data ?? {}) as PushNotificationData;
-      const route = getRouteForPushData(data);
-      console.log('[push] notification tapped', { route, data });
-      router.push(route as never);
+      handleNotificationResponse(response);
     });
 
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (!response) return;
-      const id = response.notification.request.identifier;
-      if (handledResponseIds.current.has(id)) return;
-      handledResponseIds.current.add(id);
-
-      const data = (response.notification.request.content.data ?? {}) as PushNotificationData;
-      const route = getRouteForPushData(data);
-      router.push(route as never);
-    });
+    if (isPushSupportedPlatform()) {
+      void Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (response) handleNotificationResponse(response);
+      });
+    }
 
     return () => {
       receivedSub.remove();
@@ -69,7 +72,9 @@ export function usePushNotifications() {
     if (!firebaseUser) return;
     const count = await getUnreadCount(firebaseUser.uid);
     setUnreadCount(count);
-    await Notifications.setBadgeCountAsync(count);
+    if (Platform.OS !== 'web') {
+      await Notifications.setBadgeCountAsync(count);
+    }
   }
 
   return { refreshUnreadCount };
