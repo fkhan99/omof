@@ -6,8 +6,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { MoodTagBadge } from '@/components/ui/MoodTagBadge';
 import { PostMedia } from '@/components/posts/PostMedia';
 import { PromotedLabel } from '@/components/posts/PromotedLabel';
+import { ReactionBar } from '@/components/reactions/ReactionBar';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { usePostReaction } from '@/hooks/usePostReaction';
 import { formatRelativeTime, formatReactionCount } from '@/utils';
 import { trackPromotionClick, trackPromotionImpression } from '@/services/firebase/promotions';
 

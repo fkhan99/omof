@@ -1,0 +1,33 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getUserReaction, setReaction } from '@/services/firebase/reactions';
+import { useAuthStore } from '@/store/authStore';
+import { ReactionType } from '@/types';
+
+export function usePostReaction(postId: string) {
+  const { profile } = useAuthStore();
+  const queryClient = useQueryClient();
+  const userId = profile?.id;
+
+  const { data: userReaction } = useQuery({
+    queryKey: ['reaction', postId, userId],
+    queryFn: () => getUserReaction(postId, userId!),
+    enabled: !!postId && !!userId,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (type: ReactionType) => setReaction(postId, userId!, type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+      queryClient.invalidateQueries({ queryKey: ['reaction', postId] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+    },
+  });
+
+  return {
+    userReaction: userReaction?.type ?? null,
+    react: (type: ReactionType) => {
+      if (userId) mutation.mutate(type);
+    },
+    isReacting: mutation.isPending,
+  };
+}
