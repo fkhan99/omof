@@ -1,4 +1,5 @@
 import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import type { ReactElement } from 'react';
 import { ReactionType } from '@/types';
 
 interface ReactionIconProps {
@@ -97,7 +98,7 @@ function SendingSupportIcon({ size, color }: { size: number; color: string }) {
 
 const ICONS: Record<
   ReactionType,
-  (props: { size: number; color: string }) => React.JSX.Element
+  (props: { size: number; color: string }) => ReactElement
 > = {
   relate: RelateIcon,
   been_there: BeenThereIcon,
