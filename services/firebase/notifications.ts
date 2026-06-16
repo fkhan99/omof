@@ -25,6 +25,8 @@ import {
   markActivityKeysRead,
 } from './activityReadState';
 import { getActivityReadKey } from '@/utils/activityRead';
+import { getUserById } from './users';
+import { dispatchPushForNotification } from '@/utils/pushNotifications';
 
 async function queryNotificationsByRecipient(recipientId: string): Promise<Notification[]> {
   const db = getFirebaseDb();
@@ -197,6 +199,14 @@ export async function createFollowReceivedNotification(
 
   try {
     const docRef = await addDoc(collection(db, 'notifications'), notificationData);
+    void dispatchPushForNotification({
+      recipientId: followingId,
+      actorId: followerId,
+      actorUsername: actor.username,
+      actorDisplayName: actor.displayName,
+      actorPhotoURL: actor.photoURL,
+      type: 'follow',
+    });
     return docRef.id;
   } catch (error: unknown) {
     const firebaseError = error as { code?: string; message?: string };
@@ -263,6 +273,8 @@ export async function createNotification(data: CreateNotificationData): Promise<
       ...notificationData,
       createdAt: '(serverTimestamp)',
     });
+
+    void dispatchPushForNotification(data);
 
     return docRef.id;
   } catch (error: unknown) {
