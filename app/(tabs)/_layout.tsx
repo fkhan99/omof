@@ -49,6 +49,7 @@ export default function TabLayout() {
           fontSize: 18,
         },
         headerShadowVisible: false,
+        headerRight: () => <OmofWordmark />,
         sceneStyle: { backgroundColor: colors.background },
       }}
     >
@@ -56,7 +57,6 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Feed',
-          headerRight: () => <OmofLogoMark />,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? TAB_ICONS.index.active : TAB_ICONS.index.inactive}
