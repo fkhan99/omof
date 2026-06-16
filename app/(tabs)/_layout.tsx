@@ -4,7 +4,7 @@ import { Platform, StyleSheet } from 'react-native';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useTheme } from '@/hooks/useTheme';
 import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge';
-import { OmofLogoMark } from '@/components/branding/OmofLogoMark';
+import { OmofWordmark } from '@/components/branding/OmofWordmark';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
