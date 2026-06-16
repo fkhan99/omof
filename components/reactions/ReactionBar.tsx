@@ -1,15 +1,9 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { REACTION_TYPES, REACTION_LABELS, ReactionType } from '@/types';
-import { SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
+import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
-
-const REACTION_ICONS: Record<ReactionType, keyof typeof Ionicons.glyphMap> = {
-  relate: 'heart-outline',
-  been_there: 'hand-left-outline',
-  sending_support: 'paper-plane-outline',
-};
+import { ReactionIcon } from '@/components/reactions/ReactionIcon';
 
 interface ReactionBarProps {
   userReaction: ReactionType | null;
@@ -24,6 +18,8 @@ export function ReactionBar({ userReaction, onReact }: ReactionBarProps) {
     <View style={styles.container}>
       {REACTION_TYPES.map((type) => {
         const isActive = userReaction === type;
+        const iconColor = isActive ? colors.primary : colors.textSecondary;
+
         return (
           <TouchableOpacity
             key={type}
@@ -33,11 +29,13 @@ export function ReactionBar({ userReaction, onReact }: ReactionBarProps) {
             accessibilityLabel={REACTION_LABELS[type]}
             accessibilityState={{ selected: isActive }}
           >
-            <Ionicons
-              name={REACTION_ICONS[type]}
-              size={22}
-              color={isActive ? colors.primary : colors.textSecondary}
-            />
+            <ReactionIcon type={type} size={22} color={iconColor} />
+            <Text
+              style={[styles.label, isActive && styles.labelActive]}
+              numberOfLines={1}
+            >
+              {REACTION_LABELS[type]}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -53,15 +51,28 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: SPACING.xs,
     },
     reaction: {
+      flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      width: 40,
-      height: 40,
-      borderRadius: BORDER_RADIUS.full,
+      minHeight: 56,
+      paddingHorizontal: SPACING.xs,
+      paddingVertical: SPACING.sm,
+      borderRadius: BORDER_RADIUS.md,
       backgroundColor: colors.surfaceMuted,
+      gap: SPACING.xs,
     },
     reactionActive: {
       backgroundColor: colors.accentSoft,
+    },
+    label: {
+      fontSize: FONT_SIZES.xs,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    labelActive: {
+      color: colors.primary,
+      fontWeight: '600',
     },
   });
 }
