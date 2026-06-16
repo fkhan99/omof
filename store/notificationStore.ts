@@ -17,9 +17,13 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   setUnreadCount: (unreadCount) => set({ unreadCount }),
   setActivityItems: (activityItems) => set({ activityItems }),
   upsertActivityItem: (item) =>
-    set((state) => ({
-      activityItems: upsertActivityNotification(state.activityItems, item),
-    })),
+    set((state) => {
+      const activityItems = upsertActivityNotification(state.activityItems, item);
+      const unreadCount = activityItems.filter(
+        (entry) => !entry.read && entry.type !== 'follow_request',
+      ).length;
+      return { activityItems, unreadCount };
+    }),
 }));
 
 export function getActivityReadKeys(items: Notification[]): Set<string> {
