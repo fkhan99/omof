@@ -21,6 +21,9 @@ export function usePostReaction(postId: string) {
       queryClient.invalidateQueries({ queryKey: ['reaction', postId] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
+    onError: (error) => {
+      console.error('[reactions] failed to save reaction', error);
+    },
   });
 
   return {

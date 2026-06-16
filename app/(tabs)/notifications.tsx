@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View, Text, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,36 +23,23 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Notification } from '@/types';
 import { computeActivityBadgeCount } from '@/utils/activityBadge';
 import { adjustFollowCountsOptimistically } from '@/utils/followCache';
+import { upsertActivityNotification } from '@/services/firebase/activityFeed';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-
-const EMPTY_NOTIFICATIONS: Notification[] = [];
 
 export default function ActivityScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { firebaseUser } = useAuthStore();
-  const { setUnreadCount } = useNotificationStore();
+  const notifications = useNotificationStore((state) => state.activityItems);
+  const setActivityItems = useNotificationStore((state) => state.setActivityItems);
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
-
-  const { data: notifications = EMPTY_NOTIFICATIONS, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['activity', authUid],
-    queryFn: async () => {
-      if (!authUid) return [];
-      return loadActivityFeed(authUid);
-    },
-    enabled: !!authUid,
-    staleTime: 0,
-  });
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!authUid) return;
-      void queryClient.invalidateQueries({ queryKey: ['activity', authUid] });
-    }, [authUid, queryClient]),
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const followRequestCountRef = useRef(0);
 
   const { data: followRequests = [] } = useQuery({
     queryKey: ['followRequests', authUid],
@@ -61,12 +48,33 @@ export default function ActivityScreen() {
     staleTime: Infinity,
   });
 
+  followRequestCountRef.current = followRequests.length;
+
+  const loadActivity = useCallback(async () => {
+    if (!authUid) return;
+    setLoadError(null);
+    try {
+      const items = await loadActivityFeed(authUid);
+      setActivityItems(items);
+      setUnreadCount(computeActivityBadgeCount(items, followRequestCountRef.current));
+      queryClient.setQueryData(['activity', authUid], items);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Couldn't load activity.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authUid, queryClient, setActivityItems, setUnreadCount]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!authUid) return;
+      void loadActivity();
+    }, [authUid, loadActivity]),
+  );
+
   const updateBadgeCount = useCallback(
     (items: Notification[]) => {
-      const count = computeActivityBadgeCount(items, followRequests.length);
-      if (useNotificationStore.getState().unreadCount !== count) {
-        setUnreadCount(count);
-      }
+      setUnreadCount(computeActivityBadgeCount(items, followRequests.length));
     },
     [followRequests.length, setUnreadCount],
   );
@@ -74,14 +82,11 @@ export default function ActivityScreen() {
   const markReadMutation = useMutation({
     mutationFn: markNotificationRead,
     onSuccess: (_data, notification) => {
-      queryClient.setQueryData<Notification[]>(['activity', authUid], (old) => {
-        if (!old) return old;
-        const next = old.map((item) =>
-          item.id === notification.id ? { ...item, read: true } : item,
-        );
-        updateBadgeCount(next);
-        return next;
-      });
+      const next = useNotificationStore.getState().activityItems.map((item) =>
+        item.id === notification.id ? { ...item, read: true } : item,
+      );
+      setActivityItems(next);
+      updateBadgeCount(next);
     },
   });
 
@@ -124,16 +129,14 @@ export default function ActivityScreen() {
         createdAt: new Date(),
       };
 
-      queryClient.setQueryData<Notification[]>(['activity', authUid], (old) => {
-        const existing = old ?? [];
-        const hasFollow = existing.some(
-          (item) => item.type === 'follow' && item.actorId === requesterId,
-        );
-        if (hasFollow) return existing;
-        const next = [followNotification, ...existing];
+      const hasFollow = notifications.some(
+        (item) => item.type === 'follow' && item.actorId === requesterId,
+      );
+      if (!hasFollow) {
+        const next = upsertActivityNotification(notifications, followNotification);
+        setActivityItems(next);
         updateBadgeCount(next);
-        return next;
-      });
+      }
     },
     onSettled: () => {
       setActiveRequestId(null);
@@ -166,14 +169,11 @@ export default function ActivityScreen() {
 
   const markAllRead = useCallback(async () => {
     if (!authUid) return;
-    const current = queryClient.getQueryData<Notification[]>(['activity', authUid]) ?? notifications;
-    await markAllNotificationsRead(authUid, current);
-    queryClient.setQueryData<Notification[]>(['activity', authUid], (old) => {
-      const next = old?.map((item) => ({ ...item, read: true })) ?? [];
-      updateBadgeCount(next);
-      return next;
-    });
-  }, [authUid, notifications, followRequests.length, queryClient, updateBadgeCount]);
+    await markAllNotificationsRead(authUid, notifications);
+    const next = notifications.map((item) => ({ ...item, read: true }));
+    setActivityItems(next);
+    updateBadgeCount(next);
+  }, [authUid, notifications, setActivityItems, updateBadgeCount]);
 
   const handlePress = async (notification: Notification) => {
     if (!notification.read) {
@@ -195,21 +195,14 @@ export default function ActivityScreen() {
     return <LoadingState message="Loading activity..." />;
   }
 
-  if (isError) {
+  if (loadError && notifications.length === 0 && followRequests.length === 0) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : "Couldn't load activity."}
-        onRetry={() => refetch()}
-      />
-    );
-  }
-
-  if (notifications.length === 0 && followRequests.length === 0) {
-    return (
-      <EmptyState
-        icon="notifications-outline"
-        title="No activity yet"
-        message="When someone follows, comments, or reacts to your posts, you'll see it here."
+        message={loadError}
+        onRetry={() => {
+          setIsLoading(true);
+          void loadActivity();
+        }}
       />
     );
   }
@@ -248,6 +241,15 @@ export default function ActivityScreen() {
           <ActivityItem notification={item} onPress={() => handlePress(item)} />
         )}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          followRequests.length === 0 ? (
+            <EmptyState
+              icon="notifications-outline"
+              title="No activity yet"
+              message="When someone follows, comments, or reacts to your posts, you'll see it here."
+            />
+          ) : null
+        }
       />
     </View>
   );
@@ -295,6 +297,7 @@ function createStyles(colors: ThemeColors) {
       letterSpacing: 0.5,
     },
     list: {
+      flexGrow: 1,
       paddingBottom: SPACING.lg,
     },
   });

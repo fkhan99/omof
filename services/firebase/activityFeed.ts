@@ -60,7 +60,7 @@ export async function reactionDocToNotification(
   };
 }
 
-async function deriveReactionsForRecipient(recipientId: string): Promise<Notification[]> {
+export async function deriveReactionsForRecipient(recipientId: string): Promise<Notification[]> {
   const db = getFirebaseDb();
   const items: Notification[] = [];
 
