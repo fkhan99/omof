@@ -11,7 +11,7 @@ import {
   reactionDocToNotification,
   upsertActivityNotification,
 } from '@/services/firebase/activityFeed';
-import { applyPersistedReadState } from '@/utils/activityRead';
+import { applyPersistedReadState, getActivityReadKey } from '@/utils/activityRead';
 import { computeActivityBadgeCount } from '@/utils/activityBadge';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
