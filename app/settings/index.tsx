@@ -122,6 +122,21 @@ export default function SettingsScreen() {
         onPress={() => router.push('/settings/community-guidelines')}
       />
       <SettingsItem
+        icon="shield-checkmark-outline"
+        title="Privacy & Data"
+        onPress={() => router.push('/settings/privacy')}
+      />
+      <SettingsItem
+        icon="document-outline"
+        title="Privacy Policy"
+        onPress={() => router.push('/settings/privacy-policy')}
+      />
+      <SettingsItem
+        icon="reader-outline"
+        title="Terms of Service"
+        onPress={() => router.push('/settings/terms')}
+      />
+      <SettingsItem
         icon="ban-outline"
         title="Blocked Users"
         onPress={() => router.push('/settings/blocked')}

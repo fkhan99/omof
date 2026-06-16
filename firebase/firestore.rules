@@ -63,13 +63,15 @@ service cloud.firestore {
         || isOwnerGamificationUpdate()
         || (isAuthenticated() && isFollowCountOnlyUpdate())
         || isGamificationAwardUpdate();
-      allow delete: if false;
+      allow delete: if isOwner(userId);
     }
 
     match /usernames/{username} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update, delete: if false;
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow update: if false;
     }
 
     match /posts/{postId} {

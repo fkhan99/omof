@@ -39,6 +39,9 @@ function RootLayoutNav() {
         <Stack.Screen name="profile/followers" options={{ title: 'Followers' }} />
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
         <Stack.Screen name="settings/subscription" options={{ title: 'OMOF Plus' }} />
+        <Stack.Screen name="settings/privacy" options={{ title: 'Privacy & Data' }} />
+        <Stack.Screen name="settings/privacy-policy" options={{ title: 'Privacy Policy' }} />
+        <Stack.Screen name="settings/terms" options={{ title: 'Terms of Service' }} />
         <Stack.Screen name="settings/blocked" options={{ title: 'Blocked Users' }} />
         <Stack.Screen
           name="settings/community-guidelines"

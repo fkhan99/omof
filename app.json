@@ -13,6 +13,7 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "OMOF needs access to your photos and videos to set a profile picture and share posts.",
         "NSCameraUsageDescription": "OMOF needs camera access to take photos and videos for posts and your profile.",
+        "NSMicrophoneUsageDescription": "OMOF needs microphone access when you record videos with sound for posts.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

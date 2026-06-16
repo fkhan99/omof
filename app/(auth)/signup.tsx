@@ -5,27 +5,42 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, SignupFormData } from '@/utils/validation';
 import { signUp } from '@/services/firebase/auth';
+import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { MINIMUM_AGE } from '@/constants/legal';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 export default function SignupScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { setPendingSignupCompliance } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '' },
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      acceptedTerms: false,
+      confirmedAge: false,
+    },
   });
 
   const onSubmit = async (data: SignupFormData) => {
     setError(null);
     try {
+      setPendingSignupCompliance({
+        acceptedTerms: data.acceptedTerms,
+        confirmedAge: data.confirmedAge,
+      });
       await signUp(data.email, data.password);
       router.replace('/');
     } catch (err) {
+      setPendingSignupCompliance(null);
       setError(err instanceof Error ? err.message : 'Failed to create account');
     }
   };
@@ -91,6 +106,39 @@ export default function SignupScreen() {
           )}
         />
 
+        <Controller
+          control={control}
+          name="confirmedAge"
+          render={({ field: { value, onChange } }) => (
+            <Checkbox
+              checked={value}
+              onToggle={() => onChange(!value)}
+              error={errors.confirmedAge?.message}
+              label={`I confirm I am at least ${MINIMUM_AGE} years old.`}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="acceptedTerms"
+          render={({ field: { value, onChange } }) => (
+            <Checkbox
+              checked={value}
+              onToggle={() => onChange(!value)}
+              error={errors.acceptedTerms?.message}
+              label={
+                <Text style={styles.legalText}>
+                  I agree to the{' '}
+                  <Link href="/settings/terms" style={styles.linkText}>Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link href="/settings/privacy-policy" style={styles.linkText}>Privacy Policy</Link>.
+                </Text>
+              }
+            />
+          )}
+        />
+
         {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
 
         <Button title="Create Account" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
@@ -143,6 +191,11 @@ function createStyles(colors: ThemeColors) {
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
     },
+    legalText: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
     error: {
       color: colors.danger,
       fontSize: FONT_SIZES.sm,
@@ -159,8 +212,8 @@ function createStyles(colors: ThemeColors) {
     },
     linkText: {
       color: colors.primary,
-      fontSize: FONT_SIZES.md,
-      fontWeight: '500',
+      fontSize: FONT_SIZES.sm,
+      fontWeight: '600',
     },
   });
 }

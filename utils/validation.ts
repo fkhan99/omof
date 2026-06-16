@@ -26,6 +26,12 @@ export const signupSchema = z
     email: emailSchema,
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
+    acceptedTerms: z.boolean().refine((value) => value === true, {
+      message: 'You must accept the Terms of Service and Privacy Policy',
+    }),
+    confirmedAge: z.boolean().refine((value) => value === true, {
+      message: 'You must confirm you meet the minimum age requirement',
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

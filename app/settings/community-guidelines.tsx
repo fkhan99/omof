@@ -45,8 +45,8 @@ export default function CommunityGuidelinesScreen() {
 
       <Text style={styles.sectionTitle}>Report violations</Text>
       <Text style={styles.text}>
-        Use the report feature on posts and comments. Our team reviews reports and takes action
-        when guidelines are violated.
+        Use the report feature on posts and comments. Email safety@omof.app for urgent moderation
+        issues. Our team reviews reports and takes action when guidelines are violated.
       </Text>
     </ScrollView>
   );

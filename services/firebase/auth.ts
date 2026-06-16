@@ -20,6 +20,7 @@ import {
   FirebaseNotConfiguredError,
 } from './config';
 import { mapUserDoc, getDefaultUserFields } from './mappers';
+import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
@@ -116,7 +117,13 @@ export async function loadAuthUserProfile(uid: string): Promise<User | null> {
 export async function createUserProfile(
   userId: string,
   email: string,
-  data: { username: string; displayName: string; bio?: string; photoURL?: string | null },
+  data: {
+    username: string;
+    displayName: string;
+    bio?: string;
+    photoURL?: string | null;
+    compliance?: { acceptedTerms: boolean; confirmedAge: boolean };
+  },
 ): Promise<User> {
   assertFirebaseConfigured();
   const db = getFirebaseDb();
@@ -128,6 +135,8 @@ export async function createUserProfile(
   }
 
   const usernameLower = data.username.toLowerCase();
+  const now = serverTimestamp();
+  const hasCompliance = data.compliance?.acceptedTerms && data.compliance?.confirmedAge;
 
   await runTransaction(db, async (transaction) => {
     const usernameRef = doc(db, 'usernames', usernameLower);
@@ -151,9 +160,13 @@ export async function createUserProfile(
       fcmToken: null,
       isPrivate: false,
       onboardingComplete: true,
+      termsAcceptedAt: hasCompliance ? now : null,
+      privacyPolicyVersion: hasCompliance ? PRIVACY_POLICY_VERSION : null,
+      termsVersion: hasCompliance ? TERMS_VERSION : null,
+      ageConfirmedAt: hasCompliance ? now : null,
       ...getDefaultUserFields(),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: now,
+      updatedAt: now,
     });
   });
 

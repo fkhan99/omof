@@ -25,7 +25,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 export default function OnboardingScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { firebaseUser, setProfile } = useAuthStore();
+  const { firebaseUser, setProfile, pendingSignupCompliance } = useAuthStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +98,7 @@ export default function OnboardingScreen() {
         displayName: data.displayName,
         bio: data.bio,
         photoURL,
+        compliance: pendingSignupCompliance ?? undefined,
       });
 
       setProfile(profile);

@@ -96,6 +96,10 @@ export interface User {
   fcmToken: string | null;
   isPrivate: boolean;
   onboardingComplete: boolean;
+  termsAcceptedAt: Date | null;
+  privacyPolicyVersion: string | null;
+  termsVersion: string | null;
+  ageConfirmedAt: Date | null;
   plan: UserPlan;
   promotionCredits: number;
   stats: UserStats;

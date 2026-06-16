@@ -47,6 +47,10 @@ export function mapUserDoc(id: string, data: DocumentData): User {
     fcmToken: data.fcmToken ?? null,
     isPrivate: data.isPrivate ?? false,
     onboardingComplete: data.onboardingComplete ?? hasProfileFields,
+    termsAcceptedAt: data.termsAcceptedAt ? timestampToDate(data.termsAcceptedAt) : null,
+    privacyPolicyVersion: data.privacyPolicyVersion ?? null,
+    termsVersion: data.termsVersion ?? null,
+    ageConfirmedAt: data.ageConfirmedAt ? timestampToDate(data.ageConfirmedAt) : null,
     plan: (data.plan as UserPlan) ?? 'free',
     promotionCredits: data.promotionCredits ?? 0,
     stats: {
