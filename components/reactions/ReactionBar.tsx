@@ -26,7 +26,9 @@ export function ReactionBar({ userReaction, onReact }: ReactionBarProps) {
             style={[styles.reaction, isActive && styles.reactionActive]}
             onPress={() => onReact(type)}
             accessibilityRole="button"
-            accessibilityLabel={REACTION_LABELS[type]}
+            accessibilityLabel={
+              isActive ? `Remove ${REACTION_LABELS[type]}` : REACTION_LABELS[type]
+            }
             accessibilityState={{ selected: isActive }}
           >
             <ReactionIcon type={type} size={22} color={iconColor} />

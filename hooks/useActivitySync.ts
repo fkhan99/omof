@@ -86,7 +86,31 @@ export function useActivitySync() {
       if (item) upsertActivity(item);
     };
 
+    const removeReactionActivity = async (data: DocumentData) => {
+      if (data.userId === authUid) return;
+
+      const postAuthorId =
+        data.postAuthorId ?? (data.postId ? (await getPost(data.postId))?.authorId : null);
+      if (postAuthorId !== authUid) return;
+
+      const key = `reaction:${data.userId}:${data.postId}`;
+      const next = useNotificationStore
+        .getState()
+        .activityItems.filter((item) => getActivityReadKey(item) !== key);
+      publishActivity(
+        authUid,
+        applyPersistedReadState(next, readKeysRef.current),
+        pendingFollowRequestCountRef.current,
+        queryClient,
+      );
+    };
+
     const handleReactionChange = async (change: DocumentChange) => {
+      if (change.type === 'removed') {
+        await removeReactionActivity(change.doc.data());
+        return;
+      }
+
       if (change.type !== 'added' && change.type !== 'modified') return;
       await ingestReaction(change.doc.id, change.doc.data());
     };
