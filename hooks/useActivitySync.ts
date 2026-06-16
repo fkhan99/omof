@@ -5,10 +5,11 @@ import { getFirebaseDb, isFirebaseConfigured } from '@/services/firebase/config'
 import { mapFollowRequestDoc, mapNotificationDoc } from '@/services/firebase/mappers';
 import { enrichFollowRequests } from '@/services/firebase/followRequests';
 import { loadActivityFeed } from '@/services/firebase/notifications';
-import { loadReadActivityKeys } from '@/services/firebase/activityReadState';
+import { loadReadActivityKeys, clearActivityKeyRead } from '@/services/firebase/activityReadState';
 import {
   deriveReactionsForRecipient,
   reactionDocToNotification,
+  reactionDocToNotificationSync,
   upsertActivityNotification,
 } from '@/services/firebase/activityFeed';
 import { applyPersistedReadState, getActivityReadKey } from '@/utils/activityRead';
@@ -52,11 +53,37 @@ export function useActivitySync() {
 
     const db = getFirebaseDb();
 
-    const upsertActivity = (incoming: Notification) => {
+    const upsertActivity = (incoming: Notification, bumpUnread = false) => {
+      const key = getActivityReadKey(incoming);
+      if (bumpUnread) {
+        readKeysRef.current.delete(key);
+        void clearActivityKeyRead(authUid, key);
+        incoming = { ...incoming, read: false };
+      }
+
       const current = useNotificationStore.getState().activityItems;
       const merged = upsertActivityNotification(current, incoming);
       const withReadState = applyPersistedReadState(merged, readKeysRef.current);
       publishActivity(authUid, withReadState, pendingFollowRequestCountRef.current, queryClient);
+    };
+
+    const ingestReaction = (reactionId: string, data: DocumentData, bumpUnread: boolean) => {
+      if (data.postAuthorId && data.postAuthorId !== authUid) return;
+
+      const syncItem = reactionDocToNotificationSync(reactionId, data, authUid);
+      if (syncItem) {
+        upsertActivity(syncItem, bumpUnread);
+        return;
+      }
+
+      void (async () => {
+        const postAuthorId =
+          data.postAuthorId ?? (data.postId ? (await getPost(data.postId))?.authorId : null);
+        if (postAuthorId !== authUid) return;
+
+        const item = await reactionDocToNotification(reactionId, data, authUid);
+        if (item) upsertActivity(item, bumpUnread);
+      })();
     };
 
     const refreshActivity = async () => {
@@ -75,15 +102,6 @@ export function useActivitySync() {
       } catch (error) {
         console.warn('[ActivitySync] refresh failed', error);
       }
-    };
-
-    const ingestReaction = async (reactionId: string, data: DocumentData) => {
-      const postAuthorId =
-        data.postAuthorId ?? (data.postId ? (await getPost(data.postId))?.authorId : null);
-      if (postAuthorId !== authUid) return;
-
-      const item = await reactionDocToNotification(reactionId, data, authUid);
-      if (item) upsertActivity(item);
     };
 
     const removeReactionActivity = async (data: DocumentData) => {
@@ -105,14 +123,15 @@ export function useActivitySync() {
       );
     };
 
-    const handleReactionChange = async (change: DocumentChange) => {
+    const handleReactionChange = (change: DocumentChange) => {
       if (change.type === 'removed') {
-        await removeReactionActivity(change.doc.data());
+        void removeReactionActivity(change.doc.data());
         return;
       }
 
       if (change.type !== 'added' && change.type !== 'modified') return;
-      await ingestReaction(change.doc.id, change.doc.data());
+      const bumpUnread = change.type === 'modified';
+      ingestReaction(change.doc.id, change.doc.data(), bumpUnread);
     };
 
     void loadReadActivityKeys(authUid).then((keys) => {
@@ -124,7 +143,7 @@ export function useActivitySync() {
       query(collection(db, 'reactions'), where('postAuthorId', '==', authUid)),
       (snap) => {
         snap.docChanges().forEach((change) => {
-          void handleReactionChange(change);
+          handleReactionChange(change);
         });
       },
       (error) => {
@@ -162,7 +181,8 @@ export function useActivitySync() {
         snap.docChanges().forEach((change) => {
           if (change.type !== 'added' && change.type !== 'modified') return;
           const item = mapNotificationDoc(change.doc.id, change.doc.data());
-          upsertActivity(item);
+          const bumpUnread = change.type === 'modified' && item.type === 'reaction';
+          upsertActivity(item, bumpUnread);
         });
       },
       (error) => {

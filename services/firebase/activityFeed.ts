@@ -1,6 +1,7 @@
 import { collection, getDocs, query, where, limit, DocumentData } from 'firebase/firestore';
 import { getFirebaseDb } from './config';
 import { mapFollowDoc, timestampToDate } from './mappers';
+import { reactionActivityTimestamp } from './reactionActivity';
 import { Notification, ReactionType } from '@/types';
 import { getActivityReadKey } from '@/utils/activityRead';
 import { getPostsByAuthor, getPost } from './posts';
@@ -11,37 +12,18 @@ export function isDerivedActivityId(id: string): boolean {
   return id.startsWith('derived_');
 }
 
-/** Merge Firestore notifications with derived activity, avoiding duplicates. */
-export function mergeActivityItems(
-  collectionItems: Notification[],
-  derivedItems: Notification[],
-): Notification[] {
-  const seen = new Set(collectionItems.map(getActivityReadKey));
-  const merged = [...collectionItems];
-
-  for (const item of derivedItems) {
-    const key = getActivityReadKey(item);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(item);
-  }
-
-  merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  return merged;
-}
-
-export async function reactionDocToNotification(
+function buildReactionNotification(
   reactionId: string,
   data: DocumentData,
   recipientId: string,
-): Promise<Notification | null> {
-  if (data.userId === recipientId) return null;
-
-  const actor = await getUserById(data.userId);
-  if (!actor) return null;
-
-  const post = data.postId ? await getPost(data.postId) : null;
-
+  actor: {
+    id: string;
+    username: string;
+    displayName: string;
+    photoURL: string | null;
+  },
+  postImageURL: string | null,
+): Notification {
   return {
     id: `derived_reaction_${reactionId}`,
     recipientId,
@@ -51,13 +33,87 @@ export async function reactionDocToNotification(
     actorPhotoURL: actor.photoURL,
     type: 'reaction',
     postId: data.postId ?? null,
-    postImageURL: post?.imageURL ?? null,
+    postImageURL,
     commentText: null,
     commentId: null,
     reactionType: (data.type as ReactionType) ?? null,
     read: false,
-    createdAt: timestampToDate(data.createdAt ?? data.updatedAt),
+    createdAt: reactionActivityTimestamp(data),
   };
+}
+
+/** Fast path when reaction doc has denormalized actor fields (no network). */
+export function reactionDocToNotificationSync(
+  reactionId: string,
+  data: DocumentData,
+  recipientId: string,
+): Notification | null {
+  if (data.userId === recipientId) return null;
+  if (!data.actorUsername || !data.userId) return null;
+
+  return buildReactionNotification(
+    reactionId,
+    data,
+    recipientId,
+    {
+      id: data.userId,
+      username: data.actorUsername,
+      displayName: data.actorDisplayName ?? data.actorUsername,
+      photoURL: data.actorPhotoURL ?? null,
+    },
+    data.postImageURL ?? null,
+  );
+}
+
+/** Merge Firestore notifications with derived activity, keeping the newest row per key. */
+export function mergeActivityItems(
+  collectionItems: Notification[],
+  derivedItems: Notification[],
+): Notification[] {
+  const byKey = new Map<string, Notification>();
+
+  for (const item of collectionItems) {
+    byKey.set(getActivityReadKey(item), item);
+  }
+
+  for (const item of derivedItems) {
+    const key = getActivityReadKey(item);
+    const existing = byKey.get(key);
+    if (!existing || item.createdAt.getTime() >= existing.createdAt.getTime()) {
+      byKey.set(key, item);
+    }
+  }
+
+  return [...byKey.values()].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export async function reactionDocToNotification(
+  reactionId: string,
+  data: DocumentData,
+  recipientId: string,
+): Promise<Notification | null> {
+  const syncItem = reactionDocToNotificationSync(reactionId, data, recipientId);
+  if (syncItem) return syncItem;
+
+  if (data.userId === recipientId) return null;
+
+  const actor = await getUserById(data.userId);
+  if (!actor) return null;
+
+  const post = data.postId ? await getPost(data.postId) : null;
+
+  return buildReactionNotification(
+    reactionId,
+    data,
+    recipientId,
+    {
+      id: actor.id,
+      username: actor.username,
+      displayName: actor.displayName,
+      photoURL: actor.photoURL,
+    },
+    post?.imageURL ?? data.postImageURL ?? null,
+  );
 }
 
 export async function deriveReactionsForRecipient(recipientId: string): Promise<Notification[]> {
@@ -182,6 +238,17 @@ export function upsertActivityNotification(
   incoming: Notification,
 ): Notification[] {
   const key = getActivityReadKey(incoming);
+  const existing = items.find((item) => getActivityReadKey(item) === key);
+
+  if (existing && incoming.createdAt.getTime() < existing.createdAt.getTime()) {
+    return items;
+  }
+
+  const nextItem =
+    existing && incoming.createdAt.getTime() >= existing.createdAt.getTime()
+      ? { ...incoming, read: false }
+      : incoming;
+
   const filtered = items.filter((item) => getActivityReadKey(item) !== key);
-  return [incoming, ...filtered].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return [nextItem, ...filtered].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }

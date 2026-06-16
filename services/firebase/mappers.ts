@@ -148,7 +148,7 @@ export function mapNotificationDoc(id: string, data: DocumentData): Notification
     commentId: data.commentId ?? null,
     reactionType: (data.reactionType as ReactionType) ?? null,
     read: data.read ?? false,
-    createdAt: timestampToDate(data.createdAt),
+    createdAt: timestampToDate(data.activityAt ?? data.createdAt),
   };
 }
 

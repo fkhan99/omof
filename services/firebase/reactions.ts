@@ -13,7 +13,7 @@ import { Reaction, ReactionType } from '@/types';
 import { getReactionDocId } from '@/utils';
 import { getPost } from './posts';
 import { getUserById } from './users';
-import { createNotification } from './notifications';
+import { upsertReactionNotification } from './notifications';
 import { onReactionGiven, onReactionReceived } from './gamification';
 
 async function notifyPostAuthorOfReaction(
@@ -21,15 +21,17 @@ async function notifyPostAuthorOfReaction(
   userId: string,
   type: ReactionType,
   postAuthorId: string,
+  actor: {
+    username: string;
+    displayName: string;
+    photoURL: string | null;
+  },
+  postImageURL: string | null,
 ): Promise<void> {
   if (postAuthorId === userId) return;
 
-  const actor = await getUserById(userId);
-  const post = await getPost(postId);
-  if (!actor || !post) return;
-
   const authUid = getFirebaseAuth().currentUser?.uid ?? null;
-  const notificationId = await createNotification({
+  const notificationId = await upsertReactionNotification({
     recipientId: postAuthorId,
     actorId: userId,
     actorUsername: actor.username,
@@ -37,12 +39,12 @@ async function notifyPostAuthorOfReaction(
     actorPhotoURL: actor.photoURL,
     type: 'reaction',
     postId,
-    postImageURL: post.imageURL,
+    postImageURL,
     reactionType: type,
   });
 
   if (!notificationId) {
-    console.warn('[reactions] activity notification was not created', {
+    console.warn('[reactions] activity notification was not upserted', {
       postId,
       actorId: userId,
       authUid,
@@ -52,33 +54,6 @@ async function notifyPostAuthorOfReaction(
   }
 
   void onReactionReceived(postAuthorId);
-}
-
-async function dispatchReactionActivityUpdate(
-  postId: string,
-  userId: string,
-  type: ReactionType,
-  postAuthorId: string,
-): Promise<void> {
-  if (postAuthorId === userId) return;
-
-  const actor = await getUserById(userId);
-  const post = await getPost(postId);
-  if (!actor || !post) return;
-
-  void import('@/utils/pushDelivery').then(({ dispatchPushForNotification }) =>
-    dispatchPushForNotification({
-      recipientId: postAuthorId,
-      actorId: userId,
-      actorUsername: actor.username,
-      actorDisplayName: actor.displayName,
-      actorPhotoURL: actor.photoURL,
-      type: 'reaction',
-      postId,
-      postImageURL: post.imageURL,
-      reactionType: type,
-    }),
-  );
 }
 
 export async function removeReaction(postId: string, userId: string): Promise<void> {
@@ -102,14 +77,23 @@ export async function setReaction(
   type: ReactionType,
 ): Promise<Reaction> {
   const db = getFirebaseDb();
-  const post = await getPost(postId);
+  const [post, actor] = await Promise.all([getPost(postId), getUserById(userId)]);
   if (!post) {
     throw new Error('Post not found');
+  }
+  if (!actor) {
+    throw new Error('User not found');
   }
 
   const reactionId = getReactionDocId(postId, userId);
   const reactionRef = doc(db, 'reactions', reactionId);
   const existing = await getDoc(reactionRef);
+  const denormalized = {
+    actorUsername: actor.username,
+    actorDisplayName: actor.displayName,
+    actorPhotoURL: actor.photoURL ?? null,
+    postImageURL: post.imageURL ?? null,
+  };
 
   if (existing.exists()) {
     const existingData = existing.data();
@@ -124,12 +108,20 @@ export async function setReaction(
       type,
       postAuthorId: post.authorId,
       updatedAt: serverTimestamp(),
+      ...denormalized,
     });
 
     const updated = await getDoc(reactionRef);
     const reaction = mapReactionDoc(reactionId, updated.data()!);
 
-    await dispatchReactionActivityUpdate(postId, userId, type, post.authorId);
+    await notifyPostAuthorOfReaction(
+      postId,
+      userId,
+      type,
+      post.authorId,
+      actor,
+      post.imageURL,
+    );
     void onReactionGiven(userId);
 
     return reaction;
@@ -142,6 +134,7 @@ export async function setReaction(
     type,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    ...denormalized,
   });
 
   await updateDoc(doc(db, 'posts', postId), {
@@ -151,7 +144,14 @@ export async function setReaction(
   const snap = await getDoc(reactionRef);
   const reaction = mapReactionDoc(reactionId, snap.data()!);
 
-  await notifyPostAuthorOfReaction(postId, userId, type, post.authorId);
+  await notifyPostAuthorOfReaction(
+    postId,
+    userId,
+    type,
+    post.authorId,
+    actor,
+    post.imageURL,
+  );
   void onReactionGiven(userId);
 
   return reaction;

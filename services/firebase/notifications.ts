@@ -4,6 +4,7 @@ import {
   addDoc,
   getDocs,
   updateDoc,
+  setDoc,
   query,
   where,
   limit,
@@ -221,6 +222,52 @@ export async function createFollowReceivedNotification(
       message: firebaseError.message ?? String(error),
       followerId,
       followingId,
+    });
+    return null;
+  }
+}
+
+export async function upsertReactionNotification(
+  data: CreateNotificationData & { postId: string },
+): Promise<string | null> {
+  const authUid = getFirebaseAuth().currentUser?.uid ?? null;
+
+  if (data.recipientId === data.actorId) return null;
+  if (!authUid || authUid !== data.actorId) return null;
+  if (!data.postId) return null;
+
+  const db = getFirebaseDb();
+  const docId = `reaction_${data.postId}_${data.actorId}`;
+  const notificationData = {
+    recipientId: data.recipientId,
+    actorId: data.actorId,
+    actorUsername: data.actorUsername,
+    actorDisplayName: data.actorDisplayName,
+    actorPhotoURL: data.actorPhotoURL ?? null,
+    type: 'reaction' as const,
+    postId: data.postId,
+    postImageURL: data.postImageURL ?? null,
+    commentText: null,
+    commentId: null,
+    reactionType: data.reactionType ?? null,
+    read: false,
+    activityAt: serverTimestamp(),
+  };
+
+  try {
+    await setDoc(doc(db, 'notifications', docId), notificationData, { merge: true });
+
+    void import('@/utils/pushDelivery').then(({ dispatchPushForNotification }) =>
+      dispatchPushForNotification(data),
+    );
+
+    return docId;
+  } catch (error: unknown) {
+    const firebaseError = error as { code?: string; message?: string };
+    console.error('reaction notification upsert failed', {
+      code: firebaseError.code ?? 'unknown',
+      message: firebaseError.message ?? String(error),
+      docId,
     });
     return null;
   }
