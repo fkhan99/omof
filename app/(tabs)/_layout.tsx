@@ -4,6 +4,7 @@ import { Platform, StyleSheet } from 'react-native';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useTheme } from '@/hooks/useTheme';
 import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge';
+import { OmofLogoMark } from '@/components/branding/OmofLogoMark';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
@@ -55,6 +56,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Feed',
+          headerRight: () => <OmofLogoMark />,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? TAB_ICONS.index.active : TAB_ICONS.index.inactive}

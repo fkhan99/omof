@@ -24,6 +24,8 @@ function RootLayoutNav() {
           headerTintColor: colors.text,
           headerTitleStyle: { fontWeight: '700', color: colors.text, fontSize: 18 },
           headerShadowVisible: false,
+          headerBackVisible: false,
+          headerLeft: () => <StackBackButton />,
           contentStyle: { backgroundColor: colors.background },
         }}
       >
