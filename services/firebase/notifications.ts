@@ -90,6 +90,11 @@ export async function getNotifications(
   };
 }
 
+export async function loadActivityFeed(recipientId: string): Promise<Notification[]> {
+  const result = await getNotifications(recipientId, 200);
+  return result.items;
+}
+
 /** Activity feed for the signed-in user (recipientId == auth.currentUser.uid). */
 export async function getMyNotifications(
   pageSize: number = NOTIFICATIONS_PAGE_SIZE,
