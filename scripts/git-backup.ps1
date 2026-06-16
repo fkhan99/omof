@@ -80,6 +80,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Set-Content -Path $debounceMarker -Value (Get-Date).ToString('o') -Force
-Write-BackupLog "Pushed to origin/$branch"
+Write-BackupLog ('Pushed to origin/' + $branch)
 
 exit 0
