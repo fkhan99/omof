@@ -21,6 +21,12 @@ async function saveReadActivityKeys(userId: string, keys: Set<string>): Promise<
   await AsyncStorage.setItem(storageKey(userId), JSON.stringify([...keys]));
 }
 
+export async function clearActivityKeyRead(userId: string, key: string): Promise<void> {
+  const keys = await loadReadActivityKeys(userId);
+  if (!keys.delete(key)) return;
+  await saveReadActivityKeys(userId, keys);
+}
+
 export async function markActivityKeyRead(userId: string, key: string): Promise<void> {
   const keys = await loadReadActivityKeys(userId);
   keys.add(key);
