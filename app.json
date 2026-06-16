@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "OMOF",
+    "slug": "omof",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "omof",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.omof.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "OMOF needs access to your photos and videos to set a profile picture and share posts.",
+        "NSCameraUsageDescription": "OMOF needs camera access to take photos and videos for posts and your profile.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.omof.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F6F3",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F6F3"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "OMOF needs access to your photos and videos to share authentic moments."
+        }
+      ],
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#5C6B73"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8954ab95-8d3c-4ea8-a674-b0291808afc3"
+      }
+    },
+    "owner": "khafaexpo"
+  }
+}

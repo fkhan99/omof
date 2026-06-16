@@ -1,0 +1,166 @@
+import { useState } from 'react';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useRouter, Link } from 'expo-router';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signupSchema, SignupFormData } from '@/utils/validation';
+import { signUp } from '@/services/firebase/auth';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+
+export default function SignupScreen() {
+  const styles = useThemedStyles(createStyles);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+
+  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { email: '', password: '', confirmPassword: '' },
+  });
+
+  const onSubmit = async (data: SignupFormData) => {
+    setError(null);
+    try {
+      await signUp(data.email, data.password);
+      router.replace('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create account');
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <Text style={styles.logo} accessibilityRole="header">OMOF</Text>
+          <Text style={styles.subtitle}>Join a community that values authenticity.</Text>
+        </View>
+
+        <View style={styles.formCard}>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Email"
+              placeholder="you@example.com"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.email?.message}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Password"
+              placeholder="At least 6 characters"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.password?.message}
+              secureTextEntry
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="confirmPassword"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Confirm Password"
+              placeholder="Repeat your password"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.confirmPassword?.message}
+              secureTextEntry
+            />
+          )}
+        />
+
+        {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+
+        <Button title="Create Account" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <Link href="/(auth)/login">
+            <Text style={styles.linkText}>Sign in</Text>
+          </Link>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: SPACING.xl,
+    },
+    logo: {
+      fontSize: 44,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: 3,
+      marginBottom: SPACING.sm,
+    },
+    subtitle: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+      maxWidth: 280,
+    },
+    formCard: {
+      backgroundColor: colors.surface,
+      borderRadius: BORDER_RADIUS.lg,
+      padding: SPACING.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    error: {
+      color: colors.danger,
+      fontSize: FONT_SIZES.sm,
+      marginBottom: SPACING.md,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: SPACING.xl,
+    },
+    footerText: {
+      color: colors.textSecondary,
+      fontSize: FONT_SIZES.md,
+    },
+    linkText: {
+      color: colors.primary,
+      fontSize: FONT_SIZES.md,
+      fontWeight: '500',
+    },
+  });
+}

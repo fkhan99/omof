@@ -1,0 +1,235 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isPostAuthor(postId) {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid;
+    }
+
+    function isValidMoodTag(tag) {
+      return tag in ['Frustrated', 'Embarrassed', 'Overwhelmed', 'Lonely', 'Disappointed', 'Exhausted', 'Anxious', 'Other'];
+    }
+
+    function isFollowCountOnlyUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followerCount'])
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followingCount']);
+    }
+
+    function pendingFollowRequestExists(requesterId, targetId) {
+      return exists(/databases/$(database)/documents/followRequests/$(requesterId + '_' + targetId));
+    }
+
+    function isFollowAcceptCreate() {
+      return request.resource.data.followingId == request.auth.uid
+        && request.resource.data.followerId != request.auth.uid
+        && pendingFollowRequestExists(
+          request.resource.data.followerId,
+          request.resource.data.followingId
+        );
+    }
+
+    function isValidPromotionGoal(goal) {
+      return goal in ['views', 'reactions', 'profile_visits'];
+    }
+
+    function isValidPromotionDuration(days) {
+      return days in [1, 3, 7];
+    }
+
+    function isOwnerGamificationUpdate() {
+      return isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['stats', 'badges', 'plan', 'promotionCredits', 'updatedAt']);
+    }
+
+    function isGamificationAwardUpdate() {
+      return isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats', 'badges', 'updatedAt']);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId)
+        || isOwnerGamificationUpdate()
+        || (isAuthenticated() && isFollowCountOnlyUpdate())
+        || isGamificationAwardUpdate();
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.caption.size() <= 280
+        && isValidMoodTag(request.resource.data.moodTag);
+      allow update: if isAuthenticated()
+        && (
+          (
+            resource.data.authorId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caption', 'moodTag'])
+            && request.resource.data.caption.size() <= 280
+            && isValidMoodTag(request.resource.data.moodTag)
+          )
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCounts', 'commentCount'])
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageURL'])
+            && resource.data.mediaType == 'video'
+            && resource.data.videoURL != null
+            && !resource.data.imageURL.matches('.*_thumb.*')
+          )
+        );
+      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.text.size() <= 500;
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.authorId == request.auth.uid
+          || isPostAuthor(resource.data.postId)
+        );
+      allow update: if false;
+    }
+
+    match /reactions/{reactionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type in ['relate', 'been_there', 'sending_support'];
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.type in ['relate', 'been_there', 'sending_support'];
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.userId == request.auth.uid
+          || isPostAuthor(resource.data.postId)
+        );
+    }
+
+    match /follows/{followId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.followerId != request.resource.data.followingId
+        && (
+          request.resource.data.followerId == request.auth.uid
+          || isFollowAcceptCreate()
+        );
+      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /followRequests/{requestId} {
+      // Open read (like follows) so list queries and listeners work reliably.
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.requesterId == request.auth.uid
+        && request.resource.data.requesterId != request.resource.data.targetId;
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.requesterId == request.auth.uid
+          || resource.data.targetId == request.auth.uid
+        );
+      allow update: if false;
+    }
+
+    function isFollowReceivedNotificationCreate() {
+      return request.resource.data.recipientId == request.auth.uid
+        && request.resource.data.type == 'follow'
+        && request.resource.data.read == false
+        && request.resource.data.recipientId != request.resource.data.actorId
+        && exists(/databases/$(database)/documents/follows/$(request.resource.data.actorId + '_' + request.auth.uid));
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow update: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create: if isAuthenticated()
+        && request.resource.data.read == false
+        && request.resource.data.type in ['follow', 'follow_request', 'follow_accepted', 'comment', 'reaction', 'like']
+        && (
+          (
+            request.resource.data.actorId == request.auth.uid
+            && request.resource.data.recipientId != request.auth.uid
+          )
+          || isFollowReceivedNotificationCreate()
+        );
+      allow delete: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if isAuthenticated()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.targetType in ['post', 'comment']
+        && request.resource.data.reason in ['harassment', 'hate_speech', 'spam', 'inappropriate_content', 'self_harm', 'other'];
+      allow update, delete: if false;
+    }
+
+    match /blockedUsers/{blockId} {
+      allow read: if isAuthenticated() && resource.data.blockerId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.blockerId == request.auth.uid
+        && request.resource.data.blockerId != request.resource.data.blockedId;
+      allow delete: if isAuthenticated() && resource.data.blockerId == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /promotions/{promotionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && isValidPromotionGoal(request.resource.data.goal)
+        && isValidPromotionDuration(request.resource.data.durationDays)
+        && request.resource.data.impressions == 0
+        && request.resource.data.clicks == 0;
+      allow update: if isAuthenticated()
+        && (
+          (
+            resource.data.ownerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'expired'
+          )
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['impressions'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks'])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['impressions', 'clicks'])
+        );
+      allow delete: if false;
+    }
+
+    match /transactions_mock/{transactionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.plan == 'plus'
+        && request.resource.data.status == 'mock_completed'
+        && request.resource.data.isTestPurchase == true
+        && request.resource.data.amount == 0;
+      allow update, delete: if false;
+    }
+  }
+}
