@@ -94,12 +94,12 @@ export default function TabLayout() {
         name="notifications"
         options={{
           title: 'Activity',
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadge: undefined,
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
+            <TabBarIconWithBadge
               name={focused ? TAB_ICONS.notifications.active : TAB_ICONS.notifications.inactive}
-              size={26}
               color={color}
+              badgeCount={unreadCount}
             />
           ),
         }}
