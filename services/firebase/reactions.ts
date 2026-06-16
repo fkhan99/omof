@@ -54,6 +54,48 @@ async function notifyPostAuthorOfReaction(
   void onReactionReceived(postAuthorId);
 }
 
+async function dispatchReactionActivityUpdate(
+  postId: string,
+  userId: string,
+  type: ReactionType,
+  postAuthorId: string,
+): Promise<void> {
+  if (postAuthorId === userId) return;
+
+  const actor = await getUserById(userId);
+  const post = await getPost(postId);
+  if (!actor || !post) return;
+
+  void import('@/utils/pushDelivery').then(({ dispatchPushForNotification }) =>
+    dispatchPushForNotification({
+      recipientId: postAuthorId,
+      actorId: userId,
+      actorUsername: actor.username,
+      actorDisplayName: actor.displayName,
+      actorPhotoURL: actor.photoURL,
+      type: 'reaction',
+      postId,
+      postImageURL: post.imageURL,
+      reactionType: type,
+    }),
+  );
+}
+
+export async function removeReaction(postId: string, userId: string): Promise<void> {
+  const db = getFirebaseDb();
+  const reactionId = getReactionDocId(postId, userId);
+  const reactionRef = doc(db, 'reactions', reactionId);
+  const existing = await getDoc(reactionRef);
+
+  if (!existing.exists()) return;
+
+  const oldType = existing.data().type as ReactionType;
+  await deleteDoc(reactionRef);
+  await updateDoc(doc(db, 'posts', postId), {
+    [`reactionCounts.${oldType}`]: increment(-1),
+  });
+}
+
 export async function setReaction(
   postId: string,
   userId: string,
@@ -71,17 +113,7 @@ export async function setReaction(
 
   if (existing.exists()) {
     const existingData = existing.data();
-    if (!existingData.postAuthorId) {
-      await updateDoc(reactionRef, {
-        postAuthorId: post.authorId,
-        updatedAt: serverTimestamp(),
-      });
-    }
-
     const oldType = existingData.type as ReactionType;
-    if (oldType === type) {
-      return mapReactionDoc(reactionId, (await getDoc(reactionRef)).data()!);
-    }
 
     await updateDoc(doc(db, 'posts', postId), {
       [`reactionCounts.${oldType}`]: increment(-1),
@@ -95,7 +127,12 @@ export async function setReaction(
     });
 
     const updated = await getDoc(reactionRef);
-    return mapReactionDoc(reactionId, updated.data()!);
+    const reaction = mapReactionDoc(reactionId, updated.data()!);
+
+    await dispatchReactionActivityUpdate(postId, userId, type, post.authorId);
+    void onReactionGiven(userId);
+
+    return reaction;
   }
 
   await setDoc(reactionRef, {
@@ -120,6 +157,24 @@ export async function setReaction(
   return reaction;
 }
 
+/** Set, change, or remove (tap active reaction again) the user's reaction on a post. */
+export async function toggleReaction(
+  postId: string,
+  userId: string,
+  type: ReactionType,
+): Promise<Reaction | null> {
+  const db = getFirebaseDb();
+  const reactionId = getReactionDocId(postId, userId);
+  const existing = await getDoc(doc(db, 'reactions', reactionId));
+
+  if (existing.exists() && existing.data().type === type) {
+    await removeReaction(postId, userId);
+    return null;
+  }
+
+  return setReaction(postId, userId, type);
+}
+
 export async function getUserReaction(
   postId: string,
   userId: string,
@@ -129,19 +184,4 @@ export async function getUserReaction(
   const snap = await getDoc(doc(db, 'reactions', reactionId));
   if (!snap.exists()) return null;
   return mapReactionDoc(snap.id, snap.data());
-}
-
-export async function removeReaction(postId: string, userId: string): Promise<void> {
-  const db = getFirebaseDb();
-  const reactionId = getReactionDocId(postId, userId);
-  const reactionRef = doc(db, 'reactions', reactionId);
-  const existing = await getDoc(reactionRef);
-
-  if (!existing.exists()) return;
-
-  const oldType = existing.data().type as ReactionType;
-  await deleteDoc(reactionRef);
-  await updateDoc(doc(db, 'posts', postId), {
-    [`reactionCounts.${oldType}`]: increment(-1),
-  });
 }
