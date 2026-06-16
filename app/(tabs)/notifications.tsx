@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View, Text, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -44,8 +44,15 @@ export default function ActivityScreen() {
       return loadActivityFeed(authUid);
     },
     enabled: !!authUid,
-    staleTime: 30_000,
+    staleTime: 0,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!authUid) return;
+      void queryClient.invalidateQueries({ queryKey: ['activity', authUid] });
+    }, [authUid, queryClient]),
+  );
 
   const { data: followRequests = [] } = useQuery({
     queryKey: ['followRequests', authUid],

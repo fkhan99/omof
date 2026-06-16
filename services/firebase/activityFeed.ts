@@ -3,9 +3,8 @@ import { getFirebaseDb } from './config';
 import { mapFollowDoc, timestampToDate } from './mappers';
 import { Notification, ReactionType } from '@/types';
 import { getActivityReadKey } from '@/utils/activityRead';
-import { getPostsByAuthor } from './posts';
+import { getPostsByAuthor, getPost } from './posts';
 import { getUserById } from './users';
-import { getPost } from './posts';
 
 /** True for activity rows built from follows/comments/reactions (not stored in notifications). */
 export function isDerivedActivityId(id: string): boolean {

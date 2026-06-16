@@ -16,12 +16,55 @@ import { getUserById } from './users';
 import { createNotification } from './notifications';
 import { onReactionGiven, onReactionReceived } from './gamification';
 
+async function notifyPostAuthorOfReaction(
+  postId: string,
+  userId: string,
+  type: ReactionType,
+  postAuthorId: string,
+): Promise<void> {
+  if (postAuthorId === userId) return;
+
+  const actor = await getUserById(userId);
+  const post = await getPost(postId);
+  if (!actor || !post) return;
+
+  const authUid = getFirebaseAuth().currentUser?.uid ?? null;
+  const notificationId = await createNotification({
+    recipientId: postAuthorId,
+    actorId: userId,
+    actorUsername: actor.username,
+    actorDisplayName: actor.displayName,
+    actorPhotoURL: actor.photoURL,
+    type: 'reaction',
+    postId,
+    postImageURL: post.imageURL,
+    reactionType: type,
+  });
+
+  if (!notificationId) {
+    console.warn('[reactions] activity notification was not created', {
+      postId,
+      actorId: userId,
+      authUid,
+      recipientId: postAuthorId,
+      reactionType: type,
+    });
+  }
+
+  void onReactionReceived(postAuthorId);
+}
+
 export async function setReaction(
   postId: string,
   userId: string,
   type: ReactionType,
 ): Promise<Reaction> {
   const db = getFirebaseDb();
+  const post = await getPost(postId);
+  if (!post) {
+    throw new Error('Post not found');
+  }
+
   const reactionId = getReactionDocId(postId, userId);
   const reactionRef = doc(db, 'reactions', reactionId);
   const existing = await getDoc(reactionRef);
@@ -39,6 +82,7 @@ export async function setReaction(
 
     await updateDoc(reactionRef, {
       type,
+      postAuthorId: post.authorId,
       updatedAt: serverTimestamp(),
     });
 
@@ -49,6 +93,7 @@ export async function setReaction(
   await setDoc(reactionRef, {
     postId,
     userId,
+    postAuthorId: post.authorId,
     type,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -61,34 +106,7 @@ export async function setReaction(
   const snap = await getDoc(reactionRef);
   const reaction = mapReactionDoc(reactionId, snap.data()!);
 
-  const [post, actor] = await Promise.all([getPost(postId), getUserById(userId)]);
-  if (post && actor && post.authorId !== userId) {
-    const authUid = getFirebaseAuth().currentUser?.uid ?? null;
-    const notificationId = await createNotification({
-      recipientId: post.authorId,
-      actorId: userId,
-      actorUsername: actor.username,
-      actorDisplayName: actor.displayName,
-      actorPhotoURL: actor.photoURL,
-      type: 'reaction',
-      postId,
-      postImageURL: post.imageURL,
-      reactionType: type,
-    });
-
-    if (!notificationId) {
-      console.warn('[reactions] activity notification was not created', {
-        postId,
-        actorId: userId,
-        authUid,
-        recipientId: post.authorId,
-        reactionType: type,
-      });
-    }
-
-    void onReactionReceived(post.authorId);
-  }
-
+  await notifyPostAuthorOfReaction(postId, userId, type, post.authorId);
   void onReactionGiven(userId);
 
   return reaction;

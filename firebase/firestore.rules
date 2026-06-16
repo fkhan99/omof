@@ -116,10 +116,14 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.type in ['relate', 'been_there', 'sending_support'];
+        && request.resource.data.type in ['relate', 'been_there', 'sending_support']
+        && request.resource.data.postAuthorId
+          == get(/databases/$(database)/documents/posts/$(request.resource.data.postId)).data.authorId;
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
-        && request.resource.data.type in ['relate', 'been_there', 'sending_support'];
+        && request.resource.data.type in ['relate', 'been_there', 'sending_support']
+        && request.resource.data.postAuthorId
+          == get(/databases/$(database)/documents/posts/$(resource.data.postId)).data.authorId;
       allow delete: if isAuthenticated()
         && (
           resource.data.userId == request.auth.uid
