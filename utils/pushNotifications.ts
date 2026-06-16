@@ -2,6 +2,8 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { REACTION_LABELS } from '@/types';
+import type { CreateNotificationData, NotificationType } from '@/types';
 import { updateFcmToken } from '@/services/firebase/auth';
 
 export function getExpoProjectId(): string | undefined {

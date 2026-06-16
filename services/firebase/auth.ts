@@ -76,6 +76,16 @@ export async function signIn(email: string, password: string): Promise<FirebaseU
 export async function logOut(): Promise<void> {
   if (!isFirebaseConfigured()) return;
   const auth = getFirebaseAuth();
+  const uid = auth.currentUser?.uid;
+
+  if (uid) {
+    try {
+      await updateFcmToken(uid, null);
+    } catch (error) {
+      console.warn('[push] failed to clear token on logout', error);
+    }
+  }
+
   await signOut(auth);
 }
 

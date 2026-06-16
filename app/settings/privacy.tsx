@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Share, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { useAuthStore } from '@/store/authStore';
 import { deleteAccount } from '@/services/firebase/accountDeletion';
 import { exportUserData } from '@/services/firebase/dataExport';
-import { updateFcmToken } from '@/services/firebase/auth';
+import { clearPushToken, registerForPushNotifications } from '@/utils/pushNotifications';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -22,6 +21,10 @@ export default function PrivacyDataScreen() {
   const authUid = firebaseUser?.uid;
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(!!profile?.fcmToken);
+
+  useEffect(() => {
+    setNotificationsEnabled(!!profile?.fcmToken);
+  }, [profile?.fcmToken]);
 
   const exportMutation = useMutation({
     mutationFn: () => exportUserData(authUid!),
@@ -54,7 +57,7 @@ export default function PrivacyDataScreen() {
 
     if (!enabled) {
       setNotificationsEnabled(false);
-      await updateFcmToken(authUid, null);
+      await clearPushToken(authUid);
       return;
     }
 
@@ -63,21 +66,13 @@ export default function PrivacyDataScreen() {
       return;
     }
 
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
+    const token = await registerForPushNotifications(authUid);
+    if (!token) {
       Alert.alert('Permission required', 'Enable notifications in your device Settings.');
       setNotificationsEnabled(false);
       return;
     }
 
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    await updateFcmToken(authUid, token);
     setNotificationsEnabled(true);
   };
 

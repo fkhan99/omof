@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { sendExpoPushNotification } from './expoPush';
 
 admin.initializeApp();
 
@@ -32,6 +33,50 @@ async function getUser(userId: string): Promise<UserData | null> {
   };
 }
 
+async function dispatchPushNotification(data: {
+  recipientId: string;
+  actorUsername: string;
+  type: 'comment' | 'reaction' | 'follow' | 'like';
+  postId?: string | null;
+  commentText?: string | null;
+  reactionType?: string | null;
+}) {
+  const recipient = await getUser(data.recipientId);
+  if (!recipient?.fcmToken) {
+    functions.logger.info('[push] skipped — recipient has no Expo token', {
+      recipientId: data.recipientId,
+      type: data.type,
+    });
+    return;
+  }
+
+  let body = '';
+  switch (data.type) {
+    case 'comment':
+      body = `${data.actorUsername} commented: ${data.commentText ?? ''}`;
+      break;
+    case 'reaction': {
+      const label = data.reactionType
+        ? REACTION_LABELS[data.reactionType] ?? 'reacted to'
+        : 'reacted to';
+      body = `${data.actorUsername} ${label} your post`;
+      break;
+    }
+    case 'like':
+      body = `${data.actorUsername} liked your post`;
+      break;
+    case 'follow':
+      body = `${data.actorUsername} followed you`;
+      break;
+  }
+
+  await sendExpoPushNotification(recipient.fcmToken, 'OMOF', body, {
+    type: data.type,
+    postId: data.postId ?? '',
+    actorUsername: data.actorUsername,
+  });
+}
+
 async function createNotification(data: {
   recipientId: string;
   actorId: string;
@@ -53,65 +98,15 @@ async function createNotification(data: {
     return;
   }
 
-  const docRef = await db.collection('notifications').add({
+  // In-app notification docs are created on the client; Cloud Functions only deliver push.
+  await dispatchPushNotification({
     recipientId: data.recipientId,
-    actorId: data.actorId,
     actorUsername: data.actorUsername,
-    actorDisplayName: data.actorDisplayName,
-    actorPhotoURL: data.actorPhotoURL ?? null,
     type: data.type,
-    postId: data.postId ?? null,
-    postImageURL: data.postImageURL ?? null,
-    commentText: data.commentText ?? null,
-    commentId: data.commentId ?? null,
-    reactionType: data.reactionType ?? null,
-    read: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    postId: data.postId,
+    commentText: data.commentText,
+    reactionType: data.reactionType,
   });
-
-  functions.logger.info('[Notifications] created', {
-    id: docRef.id,
-    type: data.type,
-    recipientId: data.recipientId,
-    actorId: data.actorId,
-    actorUsername: data.actorUsername,
-    postId: data.postId ?? null,
-  });
-
-  const recipient = await getUser(data.recipientId);
-  if (recipient?.fcmToken) {
-    let body = '';
-    switch (data.type) {
-      case 'comment':
-        body = `${data.actorUsername} commented: ${data.commentText ?? ''}`;
-        break;
-      case 'reaction':
-        body = `${data.actorUsername} reacted to your post`;
-        break;
-      case 'like':
-        body = `${data.actorUsername} liked your post`;
-        break;
-      case 'follow':
-        body = `${data.actorUsername} followed you`;
-        break;
-    }
-
-    try {
-      await admin.messaging().send({
-        token: recipient.fcmToken,
-        notification: {
-          title: 'OMOF',
-          body,
-        },
-        data: {
-          type: data.type,
-          postId: data.postId ?? '',
-        },
-      });
-    } catch (error) {
-      functions.logger.warn('Failed to send push notification', error);
-    }
-  }
 }
 
 export const onCommentCreated = functions.firestore
