@@ -69,7 +69,7 @@ if ($remoteCheck.ExitCode -eq 0 -and $remoteCheck.Output) {
         $retryCheck = Invoke-Git @('remote', 'get-url', 'origin')
         if ($retryCheck.ExitCode -eq 0) {
             Invoke-Git @('remote', 'set-url', 'origin', $RepoUrl) | Out-Null
-            Write-Host "Origin remote already existed — URL confirmed."
+            Write-Host "Origin remote already existed - URL confirmed."
         } else {
             Write-Host "Failed to add origin remote." -ForegroundColor Red
             if ($addRemote.Output) { Write-Host $addRemote.Output }

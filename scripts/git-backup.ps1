@@ -43,13 +43,13 @@ if ($Debounced -and (Test-Path $debounceMarker)) {
 }
 
 if (-not (Test-Path (Join-Path $repoRoot '.git'))) {
-    Write-BackupLog 'Skipped — not a git repository.'
+    Write-BackupLog 'Skipped - not a git repository.'
     exit 0
 }
 
 $remoteUrl = git remote get-url origin 2>$null
 if (-not $remoteUrl) {
-    Write-BackupLog 'Skipped — no origin remote. Run: powershell -File scripts/setup-github-backup.ps1'
+    Write-BackupLog 'Skipped - no origin remote. Run: powershell -File scripts/setup-github-backup.ps1'
     exit 0
 }
 
@@ -67,7 +67,7 @@ if (-not $PushOnly) {
         Write-BackupLog "Commit failed (exit $LASTEXITCODE)."
         exit $LASTEXITCODE
     }
-    Write-BackupLog "Committed — $message"
+    Write-BackupLog "Committed - $message"
 }
 
 $branch = git branch --show-current 2>$null
