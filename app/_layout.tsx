@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '@/components/providers/AppProviders';
+import { StackBackButton } from '@/components/navigation/StackBackButton';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useFollowRelationshipSync } from '@/hooks/useFollowRelationshipSync';
