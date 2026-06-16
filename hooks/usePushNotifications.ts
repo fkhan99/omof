@@ -1,17 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
-import { updateFcmToken } from '@/services/firebase/auth';
 import { useNotificationStore } from '@/store/notificationStore';
 import { getUnreadCount } from '@/services/firebase/notifications';
 import { isFirebaseConfigured } from '@/services/firebase/config';
+import {
+  getRouteForPushData,
+  registerForPushNotifications,
+  PushNotificationData,
+} from '@/utils/pushNotifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    shouldPlaySound: false,
+    shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
     shouldShowList: true,
@@ -21,48 +24,52 @@ Notifications.setNotificationHandler({
 export function usePushNotifications() {
   const { firebaseUser } = useAuthStore();
   const { setUnreadCount } = useNotificationStore();
+  const router = useRouter();
+  const handledResponseIds = useRef(new Set<string>());
 
   useEffect(() => {
     if (!firebaseUser || !isFirebaseConfigured()) return;
 
-    async function register() {
-      if (!Device.isDevice) return;
+    void registerForPushNotifications(firebaseUser.uid);
+    void refreshUnreadCount();
 
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') return;
-
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
-      await updateFcmToken(firebaseUser!.uid, token);
-
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.DEFAULT,
-        });
-      }
-    }
-
-    register();
-    refreshUnreadCount();
-
-    const subscription = Notifications.addNotificationReceivedListener(() => {
-      refreshUnreadCount();
+    const receivedSub = Notifications.addNotificationReceivedListener(() => {
+      void refreshUnreadCount();
     });
 
-    return () => subscription.remove();
-  }, [firebaseUser]);
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const id = response.notification.request.identifier;
+      if (handledResponseIds.current.has(id)) return;
+      handledResponseIds.current.add(id);
+
+      const data = (response.notification.request.content.data ?? {}) as PushNotificationData;
+      const route = getRouteForPushData(data);
+      console.log('[push] notification tapped', { route, data });
+      router.push(route as never);
+    });
+
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (!response) return;
+      const id = response.notification.request.identifier;
+      if (handledResponseIds.current.has(id)) return;
+      handledResponseIds.current.add(id);
+
+      const data = (response.notification.request.content.data ?? {}) as PushNotificationData;
+      const route = getRouteForPushData(data);
+      router.push(route as never);
+    });
+
+    return () => {
+      receivedSub.remove();
+      responseSub.remove();
+    };
+  }, [firebaseUser, router]);
 
   async function refreshUnreadCount() {
     if (!firebaseUser) return;
     const count = await getUnreadCount(firebaseUser.uid);
     setUnreadCount(count);
+    await Notifications.setBadgeCountAsync(count);
   }
 
   return { refreshUnreadCount };
