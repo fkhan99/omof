@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Platform, StyleSheet } from 'react-native';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useTheme } from '@/hooks/useTheme';
+import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
