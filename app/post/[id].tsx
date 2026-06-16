@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { containsProfanity } from '@/utils';
-import { ReactionType, Comment, Post } from '@/types';
+import { Comment, Post } from '@/types';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
@@ -67,19 +67,7 @@ export default function PostDetailScreen() {
     enabled: !!id,
   });
 
-  const { data: userReaction } = useQuery({
-    queryKey: ['reaction', id, profile?.id],
-    queryFn: () => getUserReaction(id!, profile!.id),
-    enabled: !!id && !!profile,
-  });
-
-  const reactionMutation = useMutation({
-    mutationFn: (type: ReactionType) => setReaction(id!, profile!.id, type),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post', id] });
-      queryClient.invalidateQueries({ queryKey: ['reaction', id] });
-    },
-  });
+  const { userReaction, react } = usePostReaction(id!);
 
   const { control, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
@@ -246,10 +234,7 @@ export default function PostDetailScreen() {
             {post.caption}
           </Text>
 
-          <ReactionBar
-            userReaction={userReaction?.type ?? null}
-            onReact={(type) => profile && reactionMutation.mutate(type)}
-          />
+          <ReactionBar userReaction={userReaction} onReact={react} />
         </View>
 
         <View style={styles.commentsSection}>

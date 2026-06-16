@@ -83,6 +83,8 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
           {post.caption}
         </Text>
 
+        <ReactionBar userReaction={userReaction} onReact={react} />
+
         {post.commentCount > 0 ? (
           <TouchableOpacity onPress={openPost} accessibilityRole="button">
             <Text style={styles.viewComments}>
