@@ -23,6 +23,7 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
   const styles = useThemedStyles(createStyles);
   const isFeed = variant === 'feed';
   const impressionTracked = useRef(false);
+  const { userReaction, react } = usePostReaction(post.id);
 
   useEffect(() => {
     if (post.isPromoted && post.promotionId && !impressionTracked.current) {
