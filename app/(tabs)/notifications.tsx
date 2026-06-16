@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import {
-  getMyNotifications,
+  loadActivityFeed,
   markNotificationRead,
   markAllNotificationsRead,
 } from '@/services/firebase/notifications';
@@ -40,11 +40,11 @@ export default function ActivityScreen() {
   const { data: notifications = EMPTY_NOTIFICATIONS, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['activity', authUid],
     queryFn: async () => {
-      const result = await getMyNotifications();
-      return result.items;
+      if (!authUid) return [];
+      return loadActivityFeed(authUid);
     },
     enabled: !!authUid,
-    staleTime: Infinity,
+    staleTime: 30_000,
   });
 
   const { data: followRequests = [] } = useQuery({

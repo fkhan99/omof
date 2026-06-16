@@ -4,9 +4,9 @@ import { useAuthStore } from '@/store/authStore';
 import { ReactionType } from '@/types';
 
 export function usePostReaction(postId: string) {
-  const { profile } = useAuthStore();
+  const { firebaseUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const userId = profile?.id;
+  const userId = firebaseUser?.uid;
 
   const { data: userReaction } = useQuery({
     queryKey: ['reaction', postId, userId],

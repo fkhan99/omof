@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useQueryClient } from '@tanstack/react-query';
 import { getFirebaseDb, isFirebaseConfigured } from '@/services/firebase/config';
-import { mapNotificationDoc, mapFollowRequestDoc } from '@/services/firebase/mappers';
+import { mapFollowRequestDoc } from '@/services/firebase/mappers';
 import { enrichFollowRequests } from '@/services/firebase/followRequests';
-import { getUnreadCount } from '@/services/firebase/notifications';
+import { loadActivityFeed } from '@/services/firebase/notifications';
 import { loadReadActivityKeys } from '@/services/firebase/activityReadState';
 import { applyPersistedReadState } from '@/utils/activityRead';
 import { computeActivityBadgeCount } from '@/utils/activityBadge';
@@ -13,7 +13,7 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { Notification } from '@/types';
 import { FollowRequestWithRequester } from '@/services/firebase/followRequests';
 
-const POLL_INTERVAL_MS = 12_000;
+const POLL_INTERVAL_MS = 8_000;
 
 function setBadgeCount(count: number): void {
   if (useNotificationStore.getState().unreadCount !== count) {
@@ -27,6 +27,7 @@ export function useActivitySync() {
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const refreshInFlight = useRef(false);
 
   useEffect(() => {
     if (!authUid || !isFirebaseConfigured()) {
@@ -35,47 +36,40 @@ export function useActivitySync() {
     }
 
     const db = getFirebaseDb();
-    let notificationItems: Notification[] = [];
     let pendingFollowRequestCount = 0;
-    let readKeys = new Set<string>();
 
-    const updateBadge = () => {
-      const itemsWithRead = applyPersistedReadState(notificationItems, readKeys);
-      setBadgeCount(computeActivityBadgeCount(itemsWithRead, pendingFollowRequestCount));
+    const syncActivity = (items: Notification[]) => {
+      queryClient.setQueryData(['activity', authUid], items);
+      setBadgeCount(computeActivityBadgeCount(items, pendingFollowRequestCount));
     };
 
-    const syncNotifications = (items: Notification[]) => {
-      notificationItems = items;
-      const itemsWithRead = applyPersistedReadState(items, readKeys);
-      queryClient.setQueryData(['activity', authUid], itemsWithRead);
-      updateBadge();
-    };
+    const refreshActivity = async () => {
+      if (refreshInFlight.current) return;
+      refreshInFlight.current = true;
 
-    loadReadActivityKeys(authUid).then((keys) => {
-      readKeys = keys;
-      updateBadge();
-    });
-
-    const refreshFromServer = async () => {
       try {
-        const count = await getUnreadCount(authUid);
-        setBadgeCount(count);
+        const [items, readKeys] = await Promise.all([
+          loadActivityFeed(authUid),
+          loadReadActivityKeys(authUid),
+        ]);
+        syncActivity(applyPersistedReadState(items, readKeys));
       } catch (error) {
-        console.warn('[ActivitySync] poll failed', error);
+        console.warn('[ActivitySync] refresh failed', error);
+      } finally {
+        refreshInFlight.current = false;
       }
     };
 
+    void refreshActivity();
+
     const unsubNotifications = onSnapshot(
       query(collection(db, 'notifications'), where('recipientId', '==', authUid)),
-      (snap) => {
-        const items = snap.docs
-          .map((docSnap) => mapNotificationDoc(docSnap.id, docSnap.data()))
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        syncNotifications(items);
+      () => {
+        void refreshActivity();
       },
       (error) => {
         console.warn('[ActivitySync] notifications listener failed', error);
-        refreshFromServer();
+        void refreshActivity();
       },
     );
 
@@ -91,20 +85,33 @@ export function useActivitySync() {
           ['followRequests', authUid],
           enriched,
         );
-        updateBadge();
+
+        const current = queryClient.getQueryData<Notification[]>(['activity', authUid]) ?? [];
+        setBadgeCount(computeActivityBadgeCount(current, pendingFollowRequestCount));
       },
       (error) => {
         console.warn('[ActivitySync] followRequests listener failed', error);
-        refreshFromServer();
       },
     );
 
-    refreshFromServer();
-    pollRef.current = setInterval(refreshFromServer, POLL_INTERVAL_MS);
+    const unsubPosts = onSnapshot(
+      query(collection(db, 'posts'), where('authorId', '==', authUid)),
+      () => {
+        void refreshActivity();
+      },
+      (error) => {
+        console.warn('[ActivitySync] posts listener failed', error);
+      },
+    );
+
+    pollRef.current = setInterval(() => {
+      void refreshActivity();
+    }, POLL_INTERVAL_MS);
 
     return () => {
       unsubNotifications();
       unsubRequests();
+      unsubPosts();
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [authUid, queryClient]);

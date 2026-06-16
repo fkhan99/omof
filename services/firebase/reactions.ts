@@ -7,7 +7,7 @@ import {
   updateDoc,
   increment,
 } from 'firebase/firestore';
-import { getFirebaseDb } from './config';
+import { getFirebaseDb, getFirebaseAuth } from './config';
 import { mapReactionDoc } from './mappers';
 import { Reaction, ReactionType } from '@/types';
 import { getReactionDocId } from '@/utils';
@@ -63,7 +63,8 @@ export async function setReaction(
 
   const [post, actor] = await Promise.all([getPost(postId), getUserById(userId)]);
   if (post && actor && post.authorId !== userId) {
-    await createNotification({
+    const authUid = getFirebaseAuth().currentUser?.uid ?? null;
+    const notificationId = await createNotification({
       recipientId: post.authorId,
       actorId: userId,
       actorUsername: actor.username,
@@ -74,6 +75,17 @@ export async function setReaction(
       postImageURL: post.imageURL,
       reactionType: type,
     });
+
+    if (!notificationId) {
+      console.warn('[reactions] activity notification was not created', {
+        postId,
+        actorId: userId,
+        authUid,
+        recipientId: post.authorId,
+        reactionType: type,
+      });
+    }
+
     void onReactionReceived(post.authorId);
   }
 
