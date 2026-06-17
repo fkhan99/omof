@@ -40,7 +40,9 @@ jest.mock('@/services/firebase/posts', () => ({
 
 jest.mock('@/services/firebase/config', () => ({
   getFirebaseAuth: () => ({
-    currentUser: mockCurrentUser,
+    get currentUser() {
+      return mockCurrentUser;
+    },
   }),
   getFirebaseDb: () => ({}),
   getFirebaseStorage: () => ({}),

@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
-import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage } from './config';
+import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage, getFirebaseApp } from './config';
 import { getUserProfile, reauthenticateWithPassword, logOut } from './auth';
 import { deletePost } from './posts';
 import { clearPushToken } from '@/utils/pushRegistration';
@@ -167,7 +167,7 @@ async function deleteAuthUserWithPassword(
 async function deleteAuthUserViaFunction(): Promise<boolean> {
   try {
     const { getFunctions, httpsCallable } = await import('firebase/functions');
-    const functions = getFunctions();
+    const functions = getFunctions(getFirebaseApp());
     const deleteMyAuthUser = httpsCallable(functions, 'deleteMyAuthUser');
     await deleteMyAuthUser({});
     return true;
@@ -185,6 +185,12 @@ async function ensureAuthAccountRemoved(
     await deleteAuthUserWithPassword(email, password);
     return;
   } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === 'Enter your password to confirm account deletion.'
+    ) {
+      throw error;
+    }
     console.warn('[compliance] client auth delete failed, trying admin fallback', error);
   }
 
