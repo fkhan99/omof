@@ -50,10 +50,49 @@ async function deleteQueryEither(
   fieldB: string,
   userId: string,
 ): Promise<void> {
-  await Promise.all([
-    deleteQueryBatch(collectionName, fieldA, userId),
-    deleteQueryBatch(collectionName, fieldB, userId),
-  ]);
+  await deleteQueryBatch(collectionName, fieldA, userId);
+  await deleteQueryBatch(collectionName, fieldB, userId);
+}
+
+async function deleteSocialAndAccountData(userId: string): Promise<void> {
+  const steps: { label: string; run: () => Promise<void> }[] = [
+    {
+      label: 'follows',
+      run: () => deleteQueryEither('follows', 'followerId', 'followingId', userId),
+    },
+    {
+      label: 'follow requests',
+      run: () => deleteQueryEither('followRequests', 'requesterId', 'targetId', userId),
+    },
+    {
+      label: 'notifications',
+      run: () => deleteQueryEither('notifications', 'recipientId', 'actorId', userId),
+    },
+    {
+      label: 'blocked users',
+      run: () => deleteQueryEither('blockedUsers', 'blockerId', 'blockedId', userId),
+    },
+    {
+      label: 'reports',
+      run: () => deleteQueryBatch('reports', 'reporterId', userId),
+    },
+    {
+      label: ' promotions',
+      run: () => deleteQueryBatch('prootions', 'ownerId', userId),
+    },
+    {
+      label: 'transactions',
+      run: () => deleteQueryBatch('transactions_mock', 'userId', userId),
+    },
+  ];
+
+  for (const step of steps) {
+    try {
+      await step.run();
+    } catch (error) {
+      throw formatDeletionError(error, `removing ${step.label}`);
+    }
+  }
 }
 
 async function deleteStoragePrefix(prefix: string): Promise<void> {
