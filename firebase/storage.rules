@@ -28,6 +28,7 @@ service firebase.storage {
         && request.auth.uid == userId
         && isImage()
         && isUnder5MB();
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
 
     match /posts/{userId}/{fileName} {
@@ -38,6 +39,7 @@ service firebase.storage {
           (isImage() && isUnder5MB())
           || (isVideo() && isUnder50MB())
         );
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
 
     match /posts/backfill/{fileName} {

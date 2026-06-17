@@ -12,6 +12,7 @@ import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage } from './config';
 import { getUserProfile } from './auth';
 import { deletePost } from './posts';
+import { clearPushToken } from '@/utils/pushRegistration';
 
 const BATCH_SIZE = 400;
 
