@@ -10,7 +10,7 @@ import {
 import { deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage } from './config';
-import { getUserProfile, reauthenticateWithPassword } from './auth';
+import { getUserProfile, reauthenticateWithPassword, logOut } from './auth';
 import { deletePost } from './posts';
 import { clearPushToken } from '@/utils/pushRegistration';
 
