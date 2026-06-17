@@ -11,7 +11,7 @@ const mockDeletePost = jest.fn();
 const mockLogOut = jest.fn();
 const mockClearPushToken = jest.fn();
 
-let mockCurrentUser: { uid: string } | null = { uid: 'user-1' };
+let mockCurrentUser: { uid: string; email?: string } | null = { uid: 'user-1', email: 'test@example.com' };
 
 jest.mock('firebase/auth', () => ({
   deleteUser: (...args: unknown[]) => mockDeleteUser(...args),
@@ -62,7 +62,7 @@ jest.mock('firebase/firestore', () => ({
 describe('deleteAccount', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCurrentUser = { uid: 'user-1' };
+    mockCurrentUser = { uid: 'user-1', email: 'test@example.com' };
     mockGetUserProfile.mockResolvedValue({
       id: 'user-1',
       username: 'testuser',
@@ -112,6 +112,21 @@ describe('deleteAccount', () => {
     expect(mockDeleteUser).toHaveBeenCalled();
     expect(mockLogOut).toHaveBeenCalled();
     expect(mockDeleteObject).toHaveBeenCalled();
+  });
+
+  it('uses auth email when profile email is missing', async () => {
+    mockGetUserProfile.mockResolvedValue({
+      id: 'user-1',
+      username: 'testuser',
+      email: '',
+    });
+
+    await deleteAccount('user-1', 'secret123');
+
+    expect(mockReauthenticateWithPassword).toHaveBeenCalledWith(
+      'test@example.com',
+      'secret123',
+    );
   });
 
   it('maps auth/requires-recent-login to a friendly error', async () => {

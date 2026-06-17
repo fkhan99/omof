@@ -226,7 +226,15 @@ export async function deleteAccount(userId: string, password: string): Promise<v
   const db = getFirebaseDb();
   let shouldSignOut = false;
   let userDocDeleted = false;
-  const profileEmail = profile.email;
+  const authUserEmail = auth.currentUser?.email ?? '';
+  const profileEmail =
+    profile.email.trim() || authUserEmail.trim();
+
+  if (!profileEmail) {
+    throw new Error(
+      'No email found for this account. Sign out, sign in again, then retry deletion.',
+    );
+  }
 
   await reauthenticateWithPassword(profileEmail, password);
 

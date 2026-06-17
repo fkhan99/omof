@@ -119,7 +119,16 @@ export async function reauthenticateWithPassword(
     throw new Error('You must be signed in.');
   }
 
-  const credential = EmailAuthProvider.credential(normalizeEmail(email), password);
+  const resolvedEmail =
+    normalizeEmail(email) || (user.email ? normalizeEmail(user.email) : '');
+
+  if (!resolvedEmail) {
+    throw new Error(
+      'No email found for this account. Sign out, sign in again, then retry deletion.',
+    );
+  }
+
+  const credential = EmailAuthProvider.credential(resolvedEmail, password);
 
   try {
     await reauthenticateWithCredential(user, credential);
