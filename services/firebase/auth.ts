@@ -5,7 +5,7 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
   EmailAuthProvider,
-  reauthenticateWithCredentential,
+  reauthenticateWithCredential,
   User as FirebaseUser,
 } from 'firebase/auth';
 import {
