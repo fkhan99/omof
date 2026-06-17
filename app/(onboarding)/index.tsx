@@ -13,7 +13,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { onboardingSchema, OnboardingFormData } from '@/utils/validation';
-import { createUserProfile, isUsernameAvailable, loadAuthUserProfile } from '@/services/firebase/auth';
+import { createUserProfile, isUsernameAvailable, loadAuthUserProfile, logOut } from '@/services/firebase/auth';
 import { uploadProfilePhoto } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
@@ -25,7 +25,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 export default function OnboardingScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { firebaseUser, setProfile, pendingSignupCompliance } = useAuthStore();
+  const { firebaseUser, setProfile, reset, pendingSignupCompliance } = useAuthStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +53,12 @@ export default function OnboardingScreen() {
       }
     });
   }, [firebaseUser?.uid, router, setProfile]);
+
+  const handleSignInInstead = async () => {
+    await logOut();
+    reset();
+    router.replace('/(auth)/login');
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -173,6 +179,14 @@ export default function OnboardingScreen() {
         {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
 
         <Button title="Continue" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
+
+        <TouchableOpacity
+          style={styles.signInLink}
+          onPress={handleSignInInstead}
+          accessibilityRole="button"
+        >
+          <Text style={styles.signInText}>Sign in with a different account</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -212,6 +226,16 @@ function createStyles(colors: ThemeColors) {
       color: colors.danger,
       fontSize: FONT_SIZES.sm,
       marginBottom: SPACING.md,
+    },
+    signInLink: {
+      alignSelf: 'center',
+      marginTop: SPACING.lg,
+      paddingVertical: SPACING.sm,
+    },
+    signInText: {
+      color: colors.primary,
+      fontSize: FONT_SIZES.md,
+      fontWeight: '600',
     },
   });
 }

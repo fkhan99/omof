@@ -8,6 +8,7 @@ const mockWriteBatch = jest.fn();
 const mockDeleteObject = jest.fn();
 const mockGetUserProfile = jest.fn();
 const mockDeletePost = jest.fn();
+const mockLogOut = jest.fn();
 const mockClearPushToken = jest.fn();
 
 jest.mock('firebase/auth', () => ({
@@ -28,6 +29,7 @@ const mockReauthenticateWithPassword = jest.fn();
 jest.mock('@/services/firebase/auth', () => ({
   getUserProfile: (...args: unknown[]) => mockGetUserProfile(...args),
   reauthenticateWithPassword: (...args: unknown[]) => mockReauthenticateWithPassword(...args),
+  logOut: (...args: unknown[]) => mockLogOut(...args),
 }));
 
 jest.mock('@/services/firebase/posts', () => ({
@@ -66,7 +68,8 @@ describe('deleteAccount', () => {
     mockDeleteUser.mockResolvedValue(undefined);
     mockDeletePost.mockResolvedValue(undefined);
     mockReauthenticateWithPassword.mockResolvedValue(undefined);
-    mockDeleteObject.mockResolvedValue(undefined);
+    mockLogOut.mockResolvedValue(undefined);
+    mockClearPushToken.mockResolvedValue(undefined);
     mockWriteBatch.mockReturnValue({
       delete: jest.fn(),
       commit: jest.fn().mockResolvedValue(undefined),
@@ -99,6 +102,7 @@ describe('deleteAccount', () => {
     expect(mockDeleteDoc).toHaveBeenCalledWith({ id: 'testuser' });
     expect(mockDeleteDoc).toHaveBeenCalledWith({ id: 'user-1' });
     expect(mockDeleteUser).toHaveBeenCalled();
+    expect(mockLogOut).toHaveBeenCalled();
     expect(mockDeleteObject).toHaveBeenCalled();
   });
 

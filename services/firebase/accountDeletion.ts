@@ -157,82 +157,94 @@ export async function deleteAccount(userId: string, password: string): Promise<v
   console.log('[compliance] account deletion started', { userId });
 
   const db = getFirebaseDb();
+  let shouldSignOut = false;
 
   try {
-    await deleteQueryBatch('prootions', 'ownerId', userId);
-  } catch (error) {
-    console.warn('[compliance] promotion cleanup failed before post deletion', error);
-  }
-
-  try {
-    const postsSnap = await getDocs(
-      query(collection(db, 'posts'), where('authorId', '==', userId)),
-    );
-    for (const postDoc of postsSnap.docs) {
-      await deletePost(postDoc.id, userId);
-    }
-  } catch (error) {
-    throw formatDeletionError(error, 'deleting your posts');
-  }
-
-  try {
-    await deleteQueryBatch('comments', 'authorId', userId);
-  } catch (error) {
-    throw formatDeletionError(error, 'deleting your comments');
-  }
-
-  try {
-    const reactionsSnap = await getDocs(
-      query(collection(db, 'reactions'), where('userId', '==', userId)),
-    );
-    for (const reactionDoc of reactionsSnap.docs) {
-      await deleteDoc(reactionDoc.ref);
-    }
-  } catch (error) {
-    throw formatDeletionError(error, 'deleting your reactions');
-  }
-
-  try {
-    await deleteSocialAndAccountData(userId);
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw formatDeletionError(error, 'removing social and account data');
-  }
-
-  try {
-    await clearPushToken(userId);
-  } catch (error) {
-    console.warn('[compliance] push token clear failed during account deletion', error);
-  }
-
-  try {
-    if (profile.username) {
-      await deleteDoc(doc(db, 'usernames', profile.username.toLowerCase()));
-    }
-    await deleteDoc(doc(db, 'users', userId));
-  } catch (error) {
-    throw formatDeletionError(error, 'deleting your profile');
-  }
-
-  await Promise.all([
-    deleteStoragePrefix(`profiles/${userId}`),
-    deleteStoragePrefix(`posts/${userId}`),
-  ]);
-
-  if (auth.currentUser) {
     try {
-      await reauthenticateWithPassword(profile.email, password);
-      await deleteUser(auth.currentUser);
-    } catch (error: unknown) {
-      const code = (error as { code?: string }).code;
-      if (code === 'auth/requires-recent-login') {
-        throw new Error('Enter your password to confirm account deletion.');
+      await deleteQueryBatch('prootions', 'ownerId', userId);
+    } catch (error) {
+      console.warn('[compliance] promotion cleanup failed before post deletion', error);
+    }
+
+    try {
+      const postsSnap = await getDocs(
+        query(collection(db, 'posts'), where('authorId', '==', userId)),
+      );
+      for (const postDoc of postsSnap.docs) {
+        await deletePost(postDoc.id, userId);
       }
-      throw formatDeletionError(error, 'deleting your sign-in account');
+    } catch (error) {
+      throw formatDeletionError(error, 'deleting your posts');
+    }
+
+    try {
+      await deleteQueryBatch('comments', 'authorId', userId);
+    } catch (error) {
+      throw formatDeletionError(error, 'deleting your comments');
+    }
+
+    try {
+      const reactionsSnap = await getDocs(
+        query(collection(db, 'reactions'), where('userId', '==', userId)),
+      );
+      for (const reactionDoc of reactionsSnap.docs) {
+        await deleteDoc(reactionDoc.ref);
+      }
+    } catch (error) {
+      throw formatDeletionError(error, 'deleting your reactions');
+    }
+
+    try {
+      await deleteSocialAndAccountData(userId);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw formatDeletionError(error, 'removing social and account data');
+    }
+
+    try {
+      await clearPushToken(userId);
+    } catch (error) {
+      console.warn('[compliance] push token clear failed during account deletion', error);
+    }
+
+    try {
+      if (profile.username) {
+        await deleteDoc(doc(db, 'usernames', profile.username.toLowerCase()));
+      }
+      await deleteDoc(doc(db, 'users', userId));
+      shouldSignOut = true;
+    } catch (error) {
+      throw formatDeletionError(error, 'deleting your profile');
+    }
+
+    await Promise.all([
+      deleteStoragePrefix(`profiles/${userId}`),
+      deleteStoragePrefix(`posts/${userId}`),
+    ]);
+
+    if (auth.currentUser) {
+      try {
+        await reauthenticateWithPassword(profile.email, password);
+        await deleteUser(auth.currentUser);
+      } catch (error: unknown) {
+        const code = (error as { code?: string }).code;
+        if (code === 'auth/requires-recent-login') {
+          throw new Error('Enter your password to confirm account deletion.');
+        }
+        throw formatDeletionError(error, 'deleting your sign-in account');
+      }
+    }
+
+    console.log('[compliance] account deletion completed', { userId });
+  } finally {
+    if (shouldSignOut) {
+      try {
+        await logOut();
+      } catch (error) {
+        console.warn('[compliance] sign-out after account deletion failed', error);
+      }
     }
   }
-
-  console.log('[compliance] account deletion completed', { userId });
 }
