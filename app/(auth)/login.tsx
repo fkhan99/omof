@@ -32,7 +32,15 @@ export default function LoginScreen() {
     }
     setError(null);
     try {
-      await signIn(data.email, data.password);
+      const user = await signIn(data.email, data.password);
+      const profile = await loadAuthUserProfile(user.uid);
+
+      if (!profile) {
+        await logOut();
+        setError(NO_PROFILE_ACCOUNT_MESSAGE);
+        return;
+      }
+
       router.replace('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');

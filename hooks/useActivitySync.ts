@@ -45,7 +45,7 @@ export function useActivitySync() {
   const pendingFollowRequestCountRef = useRef(0);
 
   useEffect(() => {
-    if (!authUid || !isFirebaseConfigured()) {
+    if (!authUid || !profile || !isFirebaseConfigured()) {
       useNotificationStore.getState().setActivityItems([]);
       useNotificationStore.getState().setUnreadCount(0);
       return;
@@ -226,7 +226,7 @@ export function useActivitySync() {
       unsubRequests();
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [authUid, queryClient]);
+  }, [authUid, profile, queryClient]);
 }
 
 /** @deprecated Use useActivitySync */

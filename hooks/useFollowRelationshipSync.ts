@@ -21,7 +21,7 @@ export function useFollowRelationshipSync() {
   const followerCountRef = useRef(0);
 
   useEffect(() => {
-    if (!authUid || !isFirebaseConfigured()) return;
+    if (!authUid || !profile || !isFirebaseConfigured()) return;
 
     const db = getFirebaseDb();
 

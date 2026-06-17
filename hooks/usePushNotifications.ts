@@ -26,13 +26,13 @@ if (Platform.OS !== 'web') {
 }
 
 export function usePushNotifications() {
-  const { firebaseUser } = useAuthStore();
+  const { firebaseUser, profile } = useAuthStore();
   const { setUnreadCount } = useNotificationStore();
   const router = useRouter();
   const handledResponseIds = useRef(new Set<string>());
 
   useEffect(() => {
-    if (!firebaseUser || !isFirebaseConfigured() || Platform.OS === 'web') return;
+    if (!firebaseUser || !profile || !isFirebaseConfigured() || Platform.OS === 'web') return;
 
     function handleNotificationResponse(response: Notifications.NotificationResponse) {
       const id = response.notification.request.identifier;
@@ -66,7 +66,7 @@ export function usePushNotifications() {
       receivedSub.remove();
       responseSub.remove();
     };
-  }, [firebaseUser, router]);
+  }, [firebaseUser, profile, router]);
 
   async function refreshUnreadCount() {
     if (!firebaseUser) return;
