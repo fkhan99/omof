@@ -201,9 +201,11 @@ export async function deleteAccount(userId: string, password: string): Promise<v
     throw formatDeletionError(error, 'removing social and account data');
   }
 
-  await clearPushToken(userId).catch((error) => {
+  try {
+    await clearPushToken(userId);
+  } catch (error) {
     console.warn('[compliance] push token clear failed during account deletion', error);
-  });
+  }
 
   try {
     if (profile.username) {
