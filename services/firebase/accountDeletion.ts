@@ -16,6 +16,19 @@ import { clearPushToken } from '@/utils/pushRegistration';
 
 const BATCH_SIZE = 400;
 
+function formatDeletionError(error: unknown, step: string): Error {
+  const firebaseError = error as { code?: string; message?: string };
+  if (firebaseError.code === 'permission-denied') {
+    return new Error(
+      `Account deletion failed while ${step}. Missing or insufficient permissions — deploy the latest Firestore rules, then try again.`,
+    );
+  }
+  if (error instanceof Error) {
+    return new Error(`Account deletion failed while ${step}: ${error.message}`);
+  }
+  return new Error(`Account deletion failed while ${step}.`);
+}
+
 async function deleteQueryBatch(
   collectionName: string,
   field: string,
