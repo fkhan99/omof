@@ -42,6 +42,20 @@ export default function PrivacyDataScreen() {
     setNotificationsEnabled(!!profile?.fcmToken);
   }, [profile?.fcmToken]);
 
+  useEffect(() => {
+    if (profile && authUid) return;
+
+    void (async () => {
+      try {
+        await logOut();
+      } catch {
+        // Session may already be cleared after account deletion.
+      }
+      reset();
+      router.replace('/(auth)/login');
+    })();
+  }, [profile, authUid, reset, router]);
+
   const exportMutation = useMutation({
     mutationFn: () => exportUserData(authUid!),
     onSuccess: async (json) => {
@@ -144,7 +158,9 @@ export default function PrivacyDataScreen() {
     deleteMutation.mutate(deletePassword);
   };
 
-  if (!profile || !authUid) return null;
+  if (!profile || !authUid) {
+    return <LoadingState message="Redirecting to sign in..." />;
+  }
 
   const deleteReady = deleteConfirm.trim().toUpperCase() === 'DELETE';
 
