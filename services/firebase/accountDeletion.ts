@@ -96,7 +96,9 @@ export async function deleteAccount(userId: string): Promise<void> {
     deleteQueryBatch('transactions_mock', 'userId', userId),
   ]);
 
-  await clearPushToken(userId);
+  await clearPushToken(userId).catch((error) => {
+    console.warn('[compliance] push token clear failed during account deletion', error);
+  });
 
   // Username reservation
   if (profile.username) {

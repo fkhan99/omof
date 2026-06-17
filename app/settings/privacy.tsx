@@ -26,10 +26,11 @@ import { PRIVACY_CONTACT_EMAIL, SAFETY_CONTACT_EMAIL } from '@/constants/legal';
 
 export default function PrivacyDataScreen() {
   const router = useRouter();
-  const styles = useThemedStyles(createStyles);
+  const styles = useThemedStyles/createStyles);
   const { profile, firebaseUser, reset } = useAuthStore();
   const authUid = firebaseUser?.uid;
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(!!profile?.fcmToken);
 
   useEffect(() => {
@@ -58,9 +59,37 @@ export default function PrivacyDataScreen() {
       Alert.alert('Account deleted', 'Your OMOF account and personal data have been removed.');
     },
     onError: (err) => {
-      Alert.alert('Deletion failed', err instanceof Error ? err.message : 'Try again.');
+      const message = err instanceof Error ? err.message : 'Try again.';
+      setDeleteError(message);
+      Alert.alert('Deletion failed', message);
     },
   });
+
+  const confirmAccountDeletion = (): Promise<boolean> =>
+    new Promise((resolve) => {
+      if (Platform.OS === 'web') {
+        resolve(
+          window.confirm(
+            'Delete account permanently? This removes your profile, posts, and personal data. This cannot be undone.',
+          ),
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Delete account permanently?',
+        'This removes your profile, posts, and personal data. This cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => resolve(true),
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) },
+      );
+    });
 
   const handleNotificationToggle = async (enabled: boolean) => {
     if (!authUid) return;
@@ -86,30 +115,34 @@ export default function PrivacyDataScreen() {
     setNotificationsEnabled(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    Keyboard.dismiss();
+    setDeleteError(null);
+
     if (deleteConfirm.trim().toUpperCase() !== 'DELETE') {
-      Alert.alert('Confirmation required', 'Type DELETE to confirm account deletion.');
+      const message = 'Type DELETE in the field above to confirm.';
+      setDeleteError(message);
+      Alert.alert('Confirmation required', message);
       return;
     }
 
-    Alert.alert(
-      'Delete account permanently?',
-      'This removes your profile, posts, and personal data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteMutation.mutate(),
-        },
-      ],
-    );
+    const confirmed = await confirmAccountDeletion();
+    if (!confirmed) return;
+
+    deleteMutation.mutate();
   };
 
   if (!profile || !authUid) return null;
 
+  const deleteReady = deleteConfirm.trim().toUpperCase() === 'DELETE';
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <Text style={styles.title}>Privacy & Data</Text>
       <Text style={styles.subtitle}>
         Manage your data rights under GDPR, CCPA, and app store requirements.
@@ -146,11 +179,25 @@ export default function PrivacyDataScreen() {
         Required by Apple and Google. Permanently deletes your account and personal data.
       </Text>
       <Input
-        placeholder='Type DELETE to confirm'
+        placeholder="Type DELETE to confirm"
         value={deleteConfirm}
-        onChangeText={setDeleteConfirm}
+        onChangeText={(text) => {
+          setDeleteConfirm(text);
+          if (deleteError) setDeleteError(null);
+        }}
         autoCapitalize="characters"
+        autoCorrect={false}
+        returnKeyType="done"
+        onSubmitEditing={Keyboard.dismiss}
       />
+      {!deleteReady ? (
+        <Text style={styles.deleteHint}>Type DELETE above, then tap the button below.</Text>
+      ) : null}
+      {deleteError ? (
+        <Text style={styles.deleteError} accessibilityRole="alert">
+          {deleteError}
+        </Text>
+      ) : null}
       <Button
         title={deleteMutation.isPending ? 'Deleting...' : 'Delete my account'}
         variant="danger"
@@ -170,6 +217,7 @@ function createStyles(colors: ThemeColors) {
     content: {
       padding: SPACING.lg,
       gap: SPACING.md,
+      paddingBottom: SPACING.xxl,
     },
     title: {
       fontSize: FONT_SIZES.xl,
@@ -195,6 +243,16 @@ function createStyles(colors: ThemeColors) {
     help: {
       fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
+      lineHeight: 20,
+    },
+    deleteHint: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textMuted,
+      fontStyle: 'italic',
+    },
+    deleteError: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.danger,
       lineHeight: 20,
     },
     toggleRow: {
