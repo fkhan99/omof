@@ -37,7 +37,7 @@ function publishActivity(
 
 /** Real-time sync for activity badge, notifications list, and follow requests. */
 export function useActivitySync() {
-  const { firebaseUser } = useAuthStore();
+  const { firebaseUser, profile } = useAuthStore();
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
