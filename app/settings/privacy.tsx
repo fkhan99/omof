@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Share, Switch } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Share,
+  Switch,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import * as Device from 'expo-device';
