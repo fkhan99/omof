@@ -144,6 +144,12 @@ export async function deleteAccount(userId: string): Promise<void> {
   const db = getFirebaseDb();
 
   try {
+    await deleteQueryBatch('prootions', 'ownerId', userId);
+  } catch (error) {
+    console.warn('[compliance] promotion cleanup failed before post deletion', error);
+  }
+
+  try {
     const postsSnap = await getDocs(
       query(collection(db, 'posts'), where('authorId', '==', userId)),
     );
