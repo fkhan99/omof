@@ -13,7 +13,7 @@ function idsEqual(a: string[], b: string[]): boolean {
 
 /** Keeps follow / requested button state and follow counts in sync via Firestore listeners. */
 export function useFollowRelationshipSync() {
-  const { firebaseUser } = useAuthStore();
+  const { firebaseUser, profile } = useAuthStore();
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const followingIdsRef = useRef<string[]>([]);
