@@ -200,7 +200,11 @@ service cloud.firestore {
           )
           || isFollowReceivedNotificationCreate()
         );
-      allow delete: if false;
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.recipientId == request.auth.uid
+          || resource.data.actorId == request.auth.uid
+        );
     }
 
     match /reports/{reportId} {
@@ -209,7 +213,8 @@ service cloud.firestore {
         && request.resource.data.reporterId == request.auth.uid
         && request.resource.data.targetType in ['post', 'comment']
         && request.resource.data.reason in ['harassment', 'hate_speech', 'spam', 'inappropriate_content', 'self_harm', 'other'];
-      allow update, delete: if false;
+      allow delete: if isAuthenticated() && resource.data.reporterId == request.auth.uid;
+      allow update: if false;
     }
 
     match /blockedUsers/{blockId} {
@@ -244,7 +249,7 @@ service cloud.firestore {
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks'])
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['impressions', 'clicks'])
         );
-      allow delete: if false;
+      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
     }
 
     match /transactions_mock/{transactionId} {
@@ -255,7 +260,7 @@ service cloud.firestore {
         && request.resource.data.status == 'mock_completed'
         && request.resource.data.isTestPurchase == true
         && request.resource.data.amount == 0;
-      allow update, delete: if false;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

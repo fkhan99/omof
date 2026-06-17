@@ -91,9 +91,12 @@ export async function deleteAccount(userId: string): Promise<void> {
     deleteQueryEither('followRequests', 'requesterId', 'targetId', userId),
     deleteQueryEither('notifications', 'recipientId', 'actorId', userId),
     deleteQueryEither('blockedUsers', 'blockerId', 'blockedId', userId),
-    deleteQueryBatch('promotions', 'ownerId', userId),
+    deleteQueryBatch('reports', 'reporterId', userId),
+    deleteQueryBatch('prootions', 'ownerId', userId),
     deleteQueryBatch('transactions_mock', 'userId', userId),
   ]);
+
+  await clearPushToken(userId);
 
   // Username reservation
   if (profile.username) {
@@ -104,7 +107,10 @@ export async function deleteAccount(userId: string): Promise<void> {
   await deleteDoc(doc(db, 'users', userId));
 
   // Best-effort storage cleanup
-  await deleteStoragePrefix(`profiles/${userId}`);
+  await Promise.all([
+    deleteStoragePrefix(`profiles/${userId}`),
+    deleteStoragePrefix(`posts/${userId}`),
+  ]);
 
   // Firebase Auth account (must be last while user is signed in)
   if (auth.currentUser) {
