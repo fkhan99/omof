@@ -151,16 +151,11 @@ export async function deleteAccount(userId: string): Promise<void> {
   }
 
   try {
-    await Promise.all([
-      deleteQueryEither('follows', 'followerId', 'followingId', userId),
-      deleteQueryEither('followRequests', 'requesterId', 'targetId', userId),
-      deleteQueryEither('notifications', 'recipientId', 'actorId', userId),
-      deleteQueryEither('blockedUsers', 'blockerId', 'blockedId', userId),
-      deleteQueryBatch('reports', 'reporterId', userId),
-      deleteQueryBatch('prootions', 'ownerId', userId),
-      deleteQueryBatch('transactions_mock', 'userId', userId),
-    ]);
+    await deleteSocialAndAccountData(userId);
   } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
     throw formatDeletionError(error, 'removing social and account data');
   }
 

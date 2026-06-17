@@ -230,7 +230,11 @@ service cloud.firestore {
       allow create: if isAuthenticated()
         && request.resource.data.blockerId == request.auth.uid
         && request.resource.data.blockerId != request.resource.data.blockedId;
-      allow delete: if isAuthenticated() && resource.data.blockerId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.blockerId == request.auth.uid
+          || resource.data.blockedId == request.auth.uid
+        );
       allow update: if false;
     }
 
