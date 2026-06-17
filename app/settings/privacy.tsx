@@ -20,6 +20,8 @@ import { clearPushToken, registerForPushNotifications } from '@/utils/pushRegist
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { logOut } from '@/services/firebase/auth';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { PRIVACY_CONTACT_EMAIL, SAFETY_CONTACT_EMAIL } from '@/constants/legal';
