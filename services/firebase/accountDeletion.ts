@@ -39,8 +39,29 @@ async function deleteQueryBatch(
 
   for (let i = 0; i < snap.docs.length; i += BATCH_SIZE) {
     const batch = writeBatch(db);
-    snap.docs.slice(i, i + BATCH_SIZE).forEach((docSnap) => batch.delete(docSnap.ref));
-    await batch.commit();
+    const chunk = snap.docs.slice(i, i + BATCH_SIZE);
+    chunk.forEach((docSnap) => batch.delete(docSnap.ref));
+    try {
+      await batch.commit();
+    } catch (error) {
+      const firebaseError = error as { code?: string; message?: string };
+      if (firebaseError.code !== 'permission-denied') {
+        throw error;
+      }
+
+      // Fall back to per-document deletes so one legacy row does not block account deletion.
+      for (const docSnap of chunk) {
+        try {
+          await deleteDoc(docSnap.ref);
+        } catch (docError) {
+          const docFirebaseError = docError as { code?: string; message?: string };
+          if (docFirebaseError.code === 'permission-denied') {
+            throw docError;
+          }
+          console.warn(`[compliance] skipped ${collectionName}/${docSnap.id} during account deletion`, docError);
+        }
+      }
+    }
   }
 }
 
