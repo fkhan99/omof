@@ -26,7 +26,9 @@ import { PRIVACY_CONTACT_EMAIL, SAFETY_CONTACT_EMAIL } from '@/constants/legal';
 
 export default function PrivacyDataScreen() {
   const router = useRouter();
-  const styles = useThemedStyles/createStyles);
+  const styles = useThemedStyles(
+    createStyles,
+  );
   const { profile, firebaseUser, reset } = useAuthStore();
   const authUid = firebaseUser?.uid;
   const [deleteConfirm, setDeleteConfirm] = useState('');
