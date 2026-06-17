@@ -261,7 +261,15 @@ service cloud.firestore {
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks'])
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['impressions', 'clicks'])
         );
-      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.ownerId == request.auth.uid
+          || (
+            resource.data.postId != null
+            && get(/databases/$(database)/documents/posts/$(resource.data.postId)).data.authorId
+              == request.auth.uid
+          )
+        );
     }
 
     match /transactions_mock/{transactionId} {

@@ -76,7 +76,7 @@ async function deleteQueryEither(
 }
 
 async function deleteSocialAndAccountData(userId: string): Promise<void> {
-  const steps: { label: string; run: () => Promise<void> }[] = [
+  const criticalSteps: { label: string; run: () => Promise<void> }[] = [
     {
       label: 'follows',
       run: () => deleteQueryEither('follows', 'followerId', 'followingId', userId),
@@ -97,8 +97,11 @@ async function deleteSocialAndAccountData(userId: string): Promise<void> {
       label: 'reports',
       run: () => deleteQueryBatch('reports', 'reporterId', userId),
     },
+  ];
+
+  const optionalSteps: { label: string; run: () => Promise<void> }[] = [
     {
-      label: ' promotions',
+      label: 'prootions',
       run: () => deleteQueryBatch('prootions', 'ownerId', userId),
     },
     {
@@ -107,11 +110,19 @@ async function deleteSocialAndAccountData(userId: string): Promise<void> {
     },
   ];
 
-  for (const step of steps) {
+  for (const step of criticalSteps) {
     try {
       await step.run();
     } catch (error) {
       throw formatDeletionError(error, `removing ${step.label}`);
+    }
+  }
+
+  for (const step of optionalSteps) {
+    try {
+      await step.run();
+    } catch (error) {
+      console.warn(`[compliance] optional cleanup failed for ${step.label}`, error);
     }
   }
 }
