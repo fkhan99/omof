@@ -5,8 +5,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@/utils/validation';
 import { signIn, logOut, loadAuthUserProfile } from '@/services/firebase/auth';
+import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { isFirebaseConfigured } from '@/services/firebase/config';
-import { NO_PROFILE_ACCOUNT_MESSAGE } from '@/utils/authErrors';
+import { getAuthErrorCode } from '@/utils/authErrors';
+import { normalizeEmail } from '@/utils';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FirebaseSetupNotice } from '@/components/FirebaseSetupNotice';
@@ -25,6 +27,13 @@ export default function LoginScreen() {
 
   const firebaseReady = isFirebaseConfigured();
 
+  const redirectToSignup = (email: string) => {
+    router.replace({
+      pathname: '/(auth)/signup',
+      params: { email: normalizeEmail(email), reason: 'no_account' },
+    });
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     if (!firebaseReady) {
       setError('Firebase is not configured. Add your .env keys and restart Expo.');
@@ -36,13 +45,21 @@ export default function LoginScreen() {
       const profile = await loadAuthUserProfile(user.uid);
 
       if (!profile) {
-        await logOut();
-        setError(NO_PROFILE_ACCOUNT_MESSAGE);
+        try {
+          await deleteAuthOnly(user.email ?? data.email, data.password);
+        } catch {
+          await logOut();
+        }
+        redirectToSignup(data.email);
         return;
       }
 
       router.replace('/');
     } catch (err) {
+      if (getAuthErrorCode(err) === 'auth/user-not-found') {
+        redirectToSignup(data.email);
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     }
   };

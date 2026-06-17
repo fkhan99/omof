@@ -17,6 +17,9 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export const NO_PROFILE_ACCOUNT_MESSAGE =
   'No account is associated with this email. Sign up to create a new one.';
 
+export const NO_ACCOUNT_SIGNUP_PROMPT =
+  'No account was found for this email. Create one below to get started.';
+
 function getErrorCode(error: unknown): string | null {
   if (error instanceof FirebaseError) {
     return error.code;
@@ -37,4 +40,8 @@ export function getFirebaseAuthErrorMessage(error: unknown, fallback: string): s
     return error.message;
   }
   return fallback;
+}
+
+export function getAuthErrorCode(error: unknown): string | null {
+  return getErrorCode(error);
 }

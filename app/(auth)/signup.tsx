@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, SignupFormData } from '@/utils/validation';
@@ -10,16 +10,22 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { MINIMUM_AGE } from '@/constants/legal';
+import { NO_ACCOUNT_SIGNUP_PROMPT } from '@/utils/authErrors';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 export default function SignupScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { email: emailParam, reason } = useLocalSearchParams<{
+    email?: string;
+    reason?: string;
+  }>();
   const { setPendingSignupCompliance } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const showNoAccountPrompt = reason === 'no_account';
 
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: '',
@@ -29,6 +35,12 @@ export default function SignupScreen() {
       confirmedAge: false,
     },
   });
+
+  useEffect(() => {
+    if (typeof emailParam === 'string' && emailParam.trim()) {
+      setValue('email', emailParam.trim());
+    }
+  }, [emailParam, setValue]);
 
   const onSubmit = async (data: SignupFormData) => {
     setError(null);
@@ -57,6 +69,12 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.formCard}>
+        {showNoAccountPrompt && (
+          <View style={styles.promptBanner} accessibilityRole="text">
+            <Text style={styles.promptText}>{NO_ACCOUNT_SIGNUP_PROMPT}</Text>
+          </View>
+        )}
+
         <Controller
           control={control}
           name="email"
@@ -190,6 +208,20 @@ function createStyles(colors: ThemeColors) {
       padding: SPACING.lg,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+    },
+    promptBanner: {
+      backgroundColor: colors.background,
+      borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    promptText: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.text,
+      textAlign: 'center',
+      lineHeight: 20,
     },
     legalText: {
       fontSize: FONT_SIZES.sm,
