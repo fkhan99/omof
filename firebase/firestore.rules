@@ -139,7 +139,11 @@ service cloud.firestore {
           request.resource.data.followerId == request.auth.uid
           || isFollowAcceptCreate()
         );
-      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && (
+          resource.data.followerId == request.auth.uid
+          || resource.data.followingId == request.auth.uid
+        );
       allow update: if false;
     }
 
