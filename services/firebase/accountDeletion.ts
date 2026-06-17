@@ -83,51 +83,66 @@ export async function deleteAccount(userId: string): Promise<void> {
 
   const db = getFirebaseDb();
 
-  // Delete owned posts (includes comments/reactions on those posts)
-  const postsSnap = await getDocs(query(collection(db, 'posts'), where('authorId', '==', userId)));
-  for (const postDoc of postsSnap.docs) {
-    await deletePost(postDoc.id, userId);
+  try {
+    const postsSnap = await getDocs(
+      query(collection(db, 'posts'), where('authorId', '==', userId)),
+    );
+    for (const postDoc of postsSnap.docs) {
+      await deletePost(postDoc.id, userId);
+    }
+  } catch (error) {
+    throw formatDeletionError(error, 'deleting your posts');
   }
 
-  // Delete comments authored by user on others' posts
-  await deleteQueryBatch('comments', 'authorId', userId);
-
-  // Delete reactions
-  const reactionsSnap = await getDocs(query(collection(db, 'reactions'), where('userId', '==', userId)));
-  for (const reactionDoc of reactionsSnap.docs) {
-    await deleteDoc(reactionDoc.ref);
+  try {
+    await deleteQueryBatch('comments', 'authorId', userId);
+  } catch (error) {
+    throw formatDeletionError(error, 'deleting your comments');
   }
 
-  // Social graph + safety + monetization + promotions
-  await Promise.all([
-    deleteQueryEither('follows', 'followerId', 'followingId', userId),
-    deleteQueryEither('followRequests', 'requesterId', 'targetId', userId),
-    deleteQueryEither('notifications', 'recipientId', 'actorId', userId),
-    deleteQueryEither('blockedUsers', 'blockerId', 'blockedId', userId),
-    deleteQueryBatch('reports', 'reporterId', userId),
-    deleteQueryBatch('prootions', 'ownerId', userId),
-    deleteQueryBatch('transactions_mock', 'userId', userId),
-  ]);
+  try {
+    const reactionsSnap = await getDocs(
+      query(collection(db, 'reactions'), where('userId', '==', userId)),
+    );
+    for (const reactionDoc of reactionsSnap.docs) {
+      await deleteDoc(reactionDoc.ref);
+    }
+  } catch (error) {
+    throw formatDeletionError(error, 'deleting your reactions');
+  }
+
+  try {
+    await Promise.all([
+      deleteQueryEither('follows', 'followerId', 'followingId', userId),
+      deleteQueryEither('followRequests', 'requesterId', 'targetId', userId),
+      deleteQueryEither('notifications', 'recipientId', 'actorId', userId),
+      deleteQueryEither('blockedUsers', 'blockerId', 'blockedId', userId),
+      deleteQueryBatch('reports', 'reporterId', userId),
+      deleteQueryBatch('prootions', 'ownerId', userId),
+      deleteQueryBatch('transactions_mock', 'userId', userId),
+    ]);
+  } catch (error) {
+    throw formatDeletionError(error, 'removing social and account data');
+  }
 
   await clearPushToken(userId).catch((error) => {
     console.warn('[compliance] push token clear failed during account deletion', error);
   });
 
-  // Username reservation
-  if (profile.username) {
-    await deleteDoc(doc(db, 'usernames', profile.username.toLowerCase()));
+  try {
+    if (profile.username) {
+      await deleteDoc(doc(db, 'usernames', profile.username.toLowerCase()));
+    }
+    await deleteDoc(doc(db, 'users', userId));
+  } catch (error) {
+    throw formatDeletionError(error, 'deleting your profile');
   }
 
-  // User profile
-  await deleteDoc(doc(db, 'users', userId));
-
-  // Best-effort storage cleanup
   await Promise.all([
     deleteStoragePrefix(`profiles/${userId}`),
     deleteStoragePrefix(`posts/${userId}`),
   ]);
 
-  // Firebase Auth account (must be last while user is signed in)
   if (auth.currentUser) {
     try {
       await deleteUser(auth.currentUser);
@@ -136,7 +151,7 @@ export async function deleteAccount(userId: string): Promise<void> {
       if (code === 'auth/requires-recent-login') {
         throw new Error('For security, sign out, sign in again, then retry account deletion.');
       }
-      throw error;
+      throw formatDeletionError(error, 'deleting your sign-in account');
     }
   }
 
