@@ -149,7 +149,15 @@ async function deleteAuthUserWithPassword(
     return;
   }
 
-  await deleteUser(user);
+  try {
+    await deleteUser(user);
+  } catch (error: unknown) {
+    const code = (error as { code?: string }).code;
+    if (code === 'auth/requires-recent-login') {
+      throw new Error('Enter your password to confirm account deletion.');
+    }
+    throw formatDeletionError(error, 'deleting your sign-in account');
+  }
 
   if (auth.currentUser) {
     throw new Error('Failed to delete sign-in account.');
@@ -158,9 +166,9 @@ async function deleteAuthUserWithPassword(
 
 async function deleteAuthUserViaFunction(): Promise<boolean> {
   try {
-    const { getFunctions, httpsCallableableFromURL } = await import('firebase/functions');
+    const { getFunctions, httpsCallable } = await import('firebase/functions');
     const functions = getFunctions();
-    const deleteMyAuthUser = httpsCallableableFromURL(functions, 'deleteMyAuthUser');
+    const deleteMyAuthUser = httpsCallable(functions, 'deleteMyAuthUser');
     await deleteMyAuthUser({});
     return true;
   } catch (error) {
@@ -211,6 +219,10 @@ export async function deleteAccount(userId: string, password: string): Promise<v
 
   const db = getFirebaseDb();
   let shouldSignOut = false;
+  let userDocDeleted = false;
+  const profileEmail = profile.email;
+
+  await reauthenticateWithPassword(profileEmail, password);
 
   try {
     try {
@@ -267,6 +279,7 @@ export async function deleteAccount(userId: string, password: string): Promise<v
         await deleteDoc(doc(db, 'usernames', profile.username.toLowerCase()));
       }
       await deleteDoc(doc(db, 'users', userId));
+      userDocDeleted = true;
       shouldSignOut = true;
     } catch (error) {
       throw formatDeletionError(error, 'deleting your profile');
@@ -277,21 +290,18 @@ export async function deleteAccount(userId: string, password: string): Promise<v
       deleteStoragePrefix(`posts/${userId}`),
     ]);
 
-    if (auth.currentUser) {
-      try {
-        await reauthenticateWithPassword(profile.email, password);
-        await deleteUser(auth.currentUser);
-      } catch (error: unknown) {
-        const code = (error as { code?: string }).code;
-        if (code === 'auth/requires-recent-login') {
-          throw new Error('Enter your password to confirm account deletion.');
-        }
-        throw formatDeletionError(error, 'deleting your sign-in account');
-      }
-    }
+    await ensureAuthAccountRemoved(profileEmail, password);
 
     console.log('[compliance] account deletion completed', { userId });
   } finally {
+    if (userDocDeleted && getFirebaseAuth().currentUser) {
+      try {
+        await ensureAuthAccountRemoved(profileEmail, password);
+      } catch (error) {
+        console.warn('[compliance] auth delete retry in finally failed', error);
+      }
+    }
+
     if (shouldSignOut) {
       try {
         await logOut();
@@ -300,4 +310,21 @@ export async function deleteAccount(userId: string, password: string): Promise<v
       }
     }
   }
+
+  if (userDocDeleted && getFirebaseAuth().currentUser) {
+    throw new Error(
+      'Your profile was removed but your sign-in account could not be deleted. Sign in and try deleting again, or contact support.',
+    );
+  }
+}
+
+/** Remove Firebase Auth sign-in when profile is already gone (e.g. partial deletion). */
+export async function deleteAuthOnly(email: string, password: string): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth.currentUser) {
+    throw new Error('You must be signed in.');
+  }
+
+  await ensureAuthAccountRemoved(email, password);
+  await logOut();
 }

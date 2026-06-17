@@ -14,6 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { onboardingSchema, OnboardingFormData } from '@/utils/validation';
 import { createUserProfile, isUsernameAvailable, loadAuthUserProfile, logOut } from '@/services/firebase/auth';
+import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { uploadProfilePhoto } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
@@ -28,6 +29,9 @@ export default function OnboardingScreen() {
   const { firebaseUser, setProfile, reset, pendingSignupCompliance } = useAuthStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showRemoveSignIn, setShowRemoveSignIn] = useState(false);
+  const [removePassword, setRemovePassword] = useState('');
+  const [removingSignIn, setRemovingSignIn] = useState(false);
 
   const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -58,6 +62,30 @@ export default function OnboardingScreen() {
     await logOut();
     reset();
     router.replace('/(auth)/login');
+  };
+
+  const handleRemoveSignIn = async () => {
+    if (!firebaseUser?.email) {
+      setError('No email on this sign-in. Use a different account instead.');
+      return;
+    }
+    if (!removePassword.trim()) {
+      setError('Enter your password to remove this sign-in.');
+      return;
+    }
+
+    setRemovingSignIn(true);
+    setError(null);
+
+    try {
+      await deleteAuthOnly(firebaseUser.email, removePassword);
+      reset();
+      router.replace('/(auth)/login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove sign-in');
+    } finally {
+      setRemovingSignIn(false);
+    }
   };
 
   const pickImage = async () => {
@@ -187,6 +215,38 @@ export default function OnboardingScreen() {
         >
           <Text style={styles.signInText}>Sign in with a different account</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.signInLink}
+          onPress={() => setShowRemoveSignIn((value) => !value)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.signInText}>
+            {showRemoveSignIn ? 'Hide remove sign-in' : 'Remove this sign-in completely'}
+          </Text>
+        </TouchableOpacity>
+
+        {showRemoveSignIn && (
+          <View style={styles.removeSignInSection}>
+            <Text style={styles.removeHint}>
+              Your data was already removed. Enter your password to delete this sign-in so the same email can be used again.
+            </Text>
+            <Input
+              label="Password"
+              placeholder="Your account password"
+              value={removePassword}
+              onChangeText={setRemovePassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+            <Button
+              title="Remove sign-in"
+              onPress={handleRemoveSignIn}
+              loading={removingSignIn}
+              variant="danger"
+            />
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -236,6 +296,14 @@ function createStyles(colors: ThemeColors) {
       color: colors.primary,
       fontSize: FONT_SIZES.md,
       fontWeight: '600',
+    },
+    removeSignInSection: {
+      marginTop: SPACING.md,
+      gap: SPACING.md,
+    },
+    removeHint: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textSecondary,
     },
   });
 }

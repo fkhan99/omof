@@ -174,3 +174,15 @@ export const onFollowCreated = functions.firestore
       actorPhotoURL: actor.photoURL ?? null,
     });
   });
+
+export const deleteMyAuthUser = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'You must be signed in to delete your account.',
+    );
+  }
+
+  await admin.auth().deleteUser(context.auth.uid);
+  return { success: true };
+});

@@ -11,6 +11,8 @@ const mockDeletePost = jest.fn();
 const mockLogOut = jest.fn();
 const mockClearPushToken = jest.fn();
 
+let mockCurrentUser: { uid: string } | null = { uid: 'user-1' };
+
 jest.mock('firebase/auth', () => ({
   deleteUser: (...args: unknown[]) => mockDeleteUser(...args),
 }));
@@ -38,7 +40,7 @@ jest.mock('@/services/firebase/posts', () => ({
 
 jest.mock('@/services/firebase/config', () => ({
   getFirebaseAuth: () => ({
-    currentUser: { uid: 'user-1' },
+    currentUser: mockCurrentUser,
   }),
   getFirebaseDb: () => ({}),
   getFirebaseStorage: () => ({}),
@@ -58,6 +60,7 @@ jest.mock('firebase/firestore', () => ({
 describe('deleteAccount', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCurrentUser = { uid: 'user-1' };
     mockGetUserProfile.mockResolvedValue({
       id: 'user-1',
       username: 'testuser',
@@ -66,6 +69,9 @@ describe('deleteAccount', () => {
     mockGetDocs.mockResolvedValue({ docs: [] });
     mockDeleteDoc.mockResolvedValue(undefined);
     mockDeleteUser.mockResolvedValue(undefined);
+    mockDeleteUser.mockImplementation(async () => {
+      mockCurrentUser = null;
+    });
     mockDeletePost.mockResolvedValue(undefined);
     mockReauthenticateWithPassword.mockResolvedValue(undefined);
     mockLogOut.mockResolvedValue(undefined);
