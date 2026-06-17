@@ -4,6 +4,8 @@ import {
   signOut,
   sendPasswordResetEmail,
   onAuthStateChanged,
+  EmailAuthProvider,
+  reauthenticateWithCredentential,
   User as FirebaseUser,
 } from 'firebase/auth';
 import {
@@ -100,6 +102,30 @@ export async function resetPassword(email: string): Promise<void> {
   } catch (error) {
     throw new Error(
       getFirebaseAuthErrorMessage(error, 'Failed to send reset email. Please try again.'),
+    );
+  }
+}
+
+/** Required before sensitive actions such as account deletion. */
+export async function reauthenticateWithPassword(
+  email: string,
+  password: string,
+): Promise<void> {
+  assertFirebaseConfigured();
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('You must be signed in.');
+  }
+
+  const credential = EmailAuthProvider.credential(normalizeEmail(email), password);
+
+  try {
+    await reauthenticateWithCredential(user, credential);
+  } catch (error) {
+    throw new Error(
+      getFirebaseAuthErrorMessage(error, 'Password verification failed. Please try again.'),
     );
   }
 }

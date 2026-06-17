@@ -10,7 +10,7 @@ import {
 import { deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseDb, getFirebaseAuth, getFirebaseStorage } from './config';
-import { getUserProfile } from './auth';
+import { getUserProfile, reauthenticateWithPassword } from './auth';
 import { deletePost } from './posts';
 import { clearPushToken } from '@/utils/pushRegistration';
 
@@ -137,12 +137,16 @@ async function deleteStoragePrefix(prefix: string): Promise<void> {
   }
 }
 
-export async function deleteAccount(userId: string): Promise<void> {
+export async function deleteAccount(userId: string, password: string): Promise<void> {
   const auth = getFirebaseAuth();
   const authUid = auth.currentUser?.uid;
 
   if (!authUid || authUid !== userId) {
     throw new Error('You must be signed in to delete your account.');
+  }
+
+  if (!password.trim()) {
+    throw new Error('Enter your password to confirm account deletion.');
   }
 
   const profile = await getUserProfile(userId);
@@ -217,11 +221,12 @@ export async function deleteAccount(userId: string): Promise<void> {
 
   if (auth.currentUser) {
     try {
+      await reauthenticateWithPassword(profile.email, password);
       await deleteUser(auth.currentUser);
     } catch (error: unknown) {
       const code = (error as { code?: string }).code;
       if (code === 'auth/requires-recent-login') {
-        throw new Error('For security, sign out, sign in again, then retry account deletion.');
+        throw new Error('Enter your password to confirm account deletion.');
       }
       throw formatDeletionError(error, 'deleting your sign-in account');
     }

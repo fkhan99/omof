@@ -23,8 +23,11 @@ jest.mock('@/utils/pushRegistration', () => ({
   clearPushToken: (...args: unknown[]) => mockClearPushToken(...args),
 }));
 
+const mockReauthenticateWithPassword = jest.fn();
+
 jest.mock('@/services/firebase/auth', () => ({
   getUserProfile: (...args: unknown[]) => mockGetUserProfile(...args),
+  reauthenticateWithPassword: (...args: unknown[]) => mockReauthenticateWithPassword(...args),
 }));
 
 jest.mock('@/services/firebase/posts', () => ({
@@ -56,12 +59,13 @@ describe('deleteAccount', () => {
     mockGetUserProfile.mockResolvedValue({
       id: 'user-1',
       username: 'testuser',
+      email: 'test@example.com',
     });
     mockGetDocs.mockResolvedValue({ docs: [] });
     mockDeleteDoc.mockResolvedValue(undefined);
     mockDeleteUser.mockResolvedValue(undefined);
     mockDeletePost.mockResolvedValue(undefined);
-    mockClearPushToken.mockResolvedValue(undefined);
+    mockReauthenticateWithPassword.mockResolvedValue(undefined);
     mockDeleteObject.mockResolvedValue(undefined);
     mockWriteBatch.mockReturnValue({
       delete: jest.fn(),
@@ -70,19 +74,26 @@ describe('deleteAccount', () => {
   });
 
   it('rejects when auth uid does not match', async () => {
-    await expect(deleteAccount('other-user')).rejects.toThrow(
+    await expect(deleteAccount('other-user', 'secret123')).rejects.toThrow(
       'You must be signed in to delete your account.',
     );
   });
 
   it('rejects when profile is missing', async () => {
     mockGetUserProfile.mockResolvedValue(null);
-    await expect(deleteAccount('user-1')).rejects.toThrow('Profile not found.');
+    await expect(deleteAccount('user-1', 'secret123')).rejects.toThrow('Profile not found.');
+  });
+
+  it('rejects when password is missing', async () => {
+    await expect(deleteAccount('user-1', '   ')).rejects.toThrow(
+      'Enter your password to confirm account deletion.',
+    );
   });
 
   it('deletes user data and auth account when signed in', async () => {
-    await deleteAccount('user-1');
+    await deleteAccount('user-1', 'secret123');
 
+    expect(mockReauthenticateWithPassword).toHaveBeenCalledWith('test@example.com', 'secret123');
     expect(mockDeletePost).not.toHaveBeenCalled();
     expect(mockClearPushToken).toHaveBeenCalledWith('user-1');
     expect(mockDeleteDoc).toHaveBeenCalledWith({ id: 'testuser' });
@@ -94,8 +105,8 @@ describe('deleteAccount', () => {
   it('maps auth/requires-recent-login to a friendly error', async () => {
     mockDeleteUser.mockRejectedValue({ code: 'auth/requires-recent-login' });
 
-    await expect(deleteAccount('user-1')).rejects.toThrow(
-      'For security, sign out, sign in again, then retry account deletion.',
+    await expect(deleteAccount('user-1', 'secret123')).rejects.toThrow(
+      'Enter your password to confirm account deletion.',
     );
   });
 });

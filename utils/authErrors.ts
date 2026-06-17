@@ -10,6 +10,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/invalid-credential': 'Incorrect email or password.',
   'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
   'auth/weak-password': 'Password must be at least 6 characters.',
+  'auth/requires-recent-login':
+    'For security, verify your password and try again.',
 };
 
 function getErrorCode(error: unknown): string | null {

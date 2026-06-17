@@ -32,6 +32,7 @@ export default function PrivacyDataScreen() {
   const { profile, firebaseUser, reset } = useAuthStore();
   const authUid = firebaseUser?.uid;
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(!!profile?.fcmToken);
 
@@ -53,7 +54,7 @@ export default function PrivacyDataScreen() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteAccount(authUid!),
+    mutationFn: (password: string) => deleteAccount(authUid!, password),
     onSuccess: async () => {
       clearUserPostQueries();
       reset();
@@ -128,10 +129,17 @@ export default function PrivacyDataScreen() {
       return;
     }
 
+    if (!deletePassword.trim()) {
+      const message = 'Enter your password to confirm account deletion.';
+      setDeleteError(message);
+      Alert.alert('Password required', message);
+      return;
+    }
+
     const confirmed = await confirmAccountDeletion();
     if (!confirmed) return;
 
-    deleteMutation.mutate();
+    deleteMutation.mutate(deletePassword);
   };
 
   if (!profile || !authUid) return null;
@@ -179,6 +187,7 @@ export default function PrivacyDataScreen() {
       <Text style={[styles.sectionTitle, styles.dangerTitle]}>Delete account</Text>
       <Text style={styles.help}>
         Required by Apple and Google. Permanently deletes your account and personal data.
+        You must enter your password to confirm.
       </Text>
       <Input
         placeholder="Type DELETE to confirm"
@@ -188,6 +197,20 @@ export default function PrivacyDataScreen() {
           if (deleteError) setDeleteError(null);
         }}
         autoCapitalize="characters"
+        autoCorrect={false}
+        returnKeyType="done"
+        onSubmitEditing={Keyboard.dismiss}
+      />
+      <Input
+        label="Password"
+        placeholder="Enter your password"
+        value={deletePassword}
+        onChangeText={(text) => {
+          setDeletePassword(text);
+          if (deleteError) setDeleteError(null);
+        }}
+        secureTextEntry
+        autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="done"
         onSubmitEditing={Keyboard.dismiss}
