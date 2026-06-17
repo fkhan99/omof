@@ -137,6 +137,59 @@ async function deleteStoragePrefix(prefix: string): Promise<void> {
   }
 }
 
+async function deleteAuthUserWithPassword(
+  email: string,
+  password: string,
+): Promise<void> {
+  await reauthenticateWithPassword(email, password);
+
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) {
+    return;
+  }
+
+  await deleteUser(user);
+
+  if (auth.currentUser) {
+    throw new Error('Failed to delete sign-in account.');
+  }
+}
+
+async function deleteAuthUserViaFunction(): Promise<boolean> {
+  try {
+    const { getFunctions, httpsCallableableFromURL } = await import('firebase/functions');
+    const functions = getFunctions();
+    const deleteMyAuthUser = httpsCallableableFromURL(functions, 'deleteMyAuthUser');
+    await deleteMyAuthUser({});
+    return true;
+  } catch (error) {
+    console.warn('[compliance] admin auth delete fallback failed', error);
+    return false;
+  }
+}
+
+async function ensureAuthAccountRemoved(
+  email: string,
+  password: string,
+): Promise<void> {
+  try {
+    await deleteAuthUserWithPassword(email, password);
+    return;
+  } catch (error) {
+    console.warn('[compliance] client auth delete failed, trying admin fallback', error);
+  }
+
+  const deletedViaFunction = await deleteAuthUserViaFunction();
+  if (deletedViaFunction) {
+    return;
+  }
+
+  throw new Error(
+    'Your profile was removed but your sign-in account could not be deleted. Sign in and try deleting again, or contact support.',
+  );
+}
+
 export async function deleteAccount(userId: string, password: string): Promise<void> {
   const auth = getFirebaseAuth();
   const authUid = auth.currentUser?.uid;
