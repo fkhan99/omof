@@ -93,6 +93,24 @@ export async function logOut(): Promise<void> {
   await signOut(auth);
 }
 
+/**
+ * Returns true if a Firebase Auth account exists for this email.
+ * Returns null when it cannot be determined (e.g. email enumeration
+ * protection is enabled), so callers can fall back gracefully.
+ */
+export async function accountExistsForEmail(email: string): Promise<boolean | null> {
+  assertFirebaseConfigured();
+  const auth = getFirebaseAuth();
+
+  try {
+    const methods = await fetchSignInMethodsForEmail(auth, normalizeEmail(email));
+    return methods.length > 0;
+  } catch (error) {
+    console.warn('[Auth] accountExistsForEmail failed', error);
+    return null;
+  }
+}
+
 export async function resetPassword(email: string): Promise<void> {
   assertFirebaseConfigured();
   const auth = getFirebaseAuth();

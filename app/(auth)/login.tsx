@@ -4,11 +4,18 @@ import { useRouter, Link } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@/utils/validation';
-import { signIn, logOut, loadAuthUserProfile } from '@/services/firebase/auth';
+import { signIn, logOut, loadAuthUserProfile, accountExistsForEmail } from '@/services/firebase/auth';
 import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { isFirebaseConfigured } from '@/services/firebase/config';
 import { getAuthErrorCode } from '@/utils/authErrors';
 import { normalizeEmail } from '@/utils';
+
+const NO_ACCOUNT_ERROR_CODES = new Set([
+  'auth/user-not-found',
+  'auth/invalid-credential',
+  'auth/invalid-login-credentials',
+  'auth/wrong-password',
+]);
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FirebaseSetupNotice } from '@/components/FirebaseSetupNotice';
@@ -56,10 +63,20 @@ export default function LoginScreen() {
 
       router.replace('/');
     } catch (err) {
-      if (getAuthErrorCode(err) === 'auth/user-not-found') {
-        redirectToSignup(data.email);
-        return;
+      const code = getAuthErrorCode(err);
+
+      if (NO_ACCOUNT_ERROR_CODES.has(code ?? '')) {
+        const exists = await accountExistsForEmail(data.email);
+        if (exists === false) {
+          redirectToSignup(data.email);
+          return;
+        }
+        if (exists === null && code === 'auth/user-not-found') {
+          redirectToSignup(data.email);
+          return;
+        }
       }
+
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     }
   };

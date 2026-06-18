@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
-import { onboardingSchema, OnboardingFormData } from '@/utils/validation';
+import { onboardingSchema, OnboardingFormData, validateUsername } from '@/utils/validation';
 import { createUserProfile, isUsernameAvailable, loadAuthUserProfile, logOut } from '@/services/firebase/auth';
 import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { uploadProfilePhoto } from '@/services/firebase/users';
@@ -39,6 +39,38 @@ export default function OnboardingScreen() {
   });
 
   const displayName = watch('displayName');
+  const username = watch('username');
+  const [usernameStatus, setUsernameStatus] = useState<
+    'idle' | 'checking' | 'available' | 'taken'
+  >('idle');
+
+  useEffect(() => {
+    const trimmed = username?.trim() ?? '';
+
+    if (!trimmed || validateUsername(trimmed)) {
+      setUsernameStatus('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setUsernameStatus('checking');
+
+    const handle = setTimeout(async () => {
+      try {
+        const available = await isUsernameAvailable(trimmed);
+        if (!cancelled) {
+          setUsernameStatus(available ? 'available' : 'taken');
+        }
+      } catch {
+        if (!cancelled) setUsernameStatus('idle');
+      }
+    }, 450);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [username]);
 
   useEffect(() => {
     if (!firebaseUser?.uid) return;
@@ -164,13 +196,27 @@ export default function OnboardingScreen() {
               label="Username"
               placeholder="your_username"
               value={value}
-              onChangeText={onChange}
+              onChangeText={(text) => onChange(text.replace(/\s/g, ''))}
               onBlur={onBlur}
               error={errors.username?.message}
               autoCapitalize="none"
             />
           )}
         />
+
+        {!errors.username && usernameStatus === 'checking' && (
+          <Text style={styles.usernameHint}>Checking availability…</Text>
+        )}
+        {!errors.username && usernameStatus === 'available' && (
+          <Text style={[styles.usernameHint, styles.usernameAvailable]}>
+            Username is available
+          </Text>
+        )}
+        {!errors.username && usernameStatus === 'taken' && (
+          <Text style={[styles.usernameHint, styles.usernameTaken]}>
+            This username is already taken
+          </Text>
+        )}
 
         <Controller
           control={control}
@@ -206,7 +252,12 @@ export default function OnboardingScreen() {
 
         {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
 
-        <Button title="Continue" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
+        <Button
+          title="Continue"
+          onPress={handleSubmit(onSubmit)}
+          loading={isSubmitting}
+          disabled={usernameStatus === 'taken' || usernameStatus === 'checking'}
+        />
 
         <TouchableOpacity
           style={styles.signInLink}
@@ -286,6 +337,18 @@ function createStyles(colors: ThemeColors) {
       color: colors.danger,
       fontSize: FONT_SIZES.sm,
       marginBottom: SPACING.md,
+    },
+    usernameHint: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textSecondary,
+      marginTop: -SPACING.sm,
+      marginBottom: SPACING.md,
+    },
+    usernameAvailable: {
+      color: colors.success,
+    },
+    usernameTaken: {
+      color: colors.danger,
     },
     signInLink: {
       alignSelf: 'center',
