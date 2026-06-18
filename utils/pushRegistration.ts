@@ -79,6 +79,11 @@ export async function registerForPushNotifications(userId: string): Promise<stri
   await updateFcmToken(userId, token);
   console.log('[push] token registered', { userId, tokenPrefix: token.slice(0, 28) });
 
+  if (__DEV__) {
+    // Full token for manual testing via https://expo.dev/notifications
+    console.log('[push] dev token (test via expo.dev/notifications):', token);
+  }
+
   return token;
 }
 
