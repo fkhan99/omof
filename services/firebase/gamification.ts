@@ -1,4 +1,14 @@
-import { doc, getDoc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  collection,
+  query,
+  where,
+  serverTimestamp,
+  increment,
+} from 'firebase/firestore';
 import { getFirebaseDb } from './config';
 import { BadgeId, UserStats } from '@/types';
 import { BADGE_DEFINITIONS, DEFAULT_USER_STATS, POINT_VALUES } from '@/constants/gamification';
