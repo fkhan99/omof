@@ -192,6 +192,37 @@ async function deleteDocsByQuery(
 }
 
 /**
+ * Extract the storage object path from a Firebase download URL.
+ * URLs look like: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedPath>?alt=media&token=...
+ */
+function storagePathFromDownloadUrl(url: string): string | null {
+  if (typeof url !== 'string' || !url.includes('/o/')) return null;
+  try {
+    const afterO = url.split('/o/')[1];
+    if (!afterO) return null;
+    const encodedPath = afterO.split('?')[0];
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort delete of a Storage object given its download URL. */
+async function deleteStorageFileFromUrl(url: string | null | undefined): Promise<void> {
+  if (!url) return;
+  const path = storagePathFromDownloadUrl(url);
+  if (!path) return;
+
+  try {
+    await admin.storage().bucket().file(path).delete();
+    functions.logger.info('[moderation] deleted media', { path });
+  } catch (error) {
+    // Object may not exist or already be gone — non-fatal.
+    functions.logger.warn('[moderation] media delete skipped', { path, error });
+  }
+}
+
+/**
  * Auto-moderation: when a post accumulates flags from enough distinct users,
  * remove the post and notify the author in their activity feed.
  */
