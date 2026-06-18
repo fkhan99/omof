@@ -45,7 +45,9 @@ export function usePushNotifications() {
       router.push(route as never);
     }
 
-    void registerForPushNotifications(firebaseUser.uid);
+    registerForPushNotifications(firebaseUser.uid).catch((error) => {
+      console.warn('[push] auto-registration failed', error);
+    });
     void refreshUnreadCount();
 
     const receivedSub = Notifications.addNotificationReceivedListener(() => {
