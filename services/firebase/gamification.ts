@@ -108,6 +108,48 @@ async function applyGamificationUpdate(
   }
 }
 
+/**
+ * Daily check-in: advances the day streak based on the last active date.
+ * Call this when the user opens the app so the streak reflects daily presence,
+ * not just posting/commenting/reacting. Writes only when the day changes.
+ */
+export async function recordDailyActivity(userId: string): Promise<UserStats | null> {
+  const db = getFirebaseDb();
+  const userRef = doc(db, 'users', userId);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) return null;
+
+  const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
+
+  if (currentStats.lastActiveDate === todayKey()) {
+    return currentStats;
+  }
+
+  const nextStats: UserStats = {
+    ...currentStats,
+    streakDays: computeStreakDays(currentStats),
+    lastActiveDate: todayKey(),
+  };
+
+  const currentBadges = (snap.data().badges as BadgeId[]) ?? [];
+  const newBadges = badgesToUnlock(nextStats, currentBadges);
+  const allBadges = [...currentBadges, ...newBadges];
+
+  await updateDoc(userRef, {
+    stats: nextStats,
+    badges: allBadges,
+    updatedAt: serverTimestamp(),
+  });
+
+  console.log('[gamification] daily check-in', {
+    userId,
+    streakDays: nextStats.streakDays,
+    lastActiveDate: nextStats.lastActiveDate,
+  });
+
+  return nextStats;
+}
+
 export async function onPostCreated(userId: string): Promise<void> {
   const db = getFirebaseDb();
   const userRef = doc(db, 'users', userId);

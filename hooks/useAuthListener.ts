@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { subscribeToAuthState, loadAuthUserProfile } from '@/services/firebase/auth';
+import { recordDailyActivity } from '@/services/firebase/gamification';
 import { clearUserPostQueries } from '@/lib/queryClient';
 
 const PROFILE_LOAD_TIMEOUT_MS = 15_000;
@@ -52,6 +54,20 @@ export function useAuthListener() {
                 });
               }
               setProfile(profile);
+
+              if (profile) {
+                void recordDailyActivity(user.uid)
+                  .then((stats) => {
+                    if (!stats) return;
+                    const store = useAuthStore.getState();
+                    if (store.profile && store.profile.id === user.uid) {
+                      store.setProfile({ ...store.profile, stats });
+                    }
+                  })
+                  .catch((error) => {
+                    console.warn('[gamification] daily check-in failed', error);
+                  });
+              }
             } catch (error) {
               console.error('[Auth] profile load failed:', error);
               setProfile(null);
@@ -72,4 +88,30 @@ export function useAuthListener() {
       reset();
     };
   }, [setFirebaseUser, setProfile, setLoading, setInitialized, reset]);
+
+  // Re-check the streak when the app returns to the foreground (e.g. left open
+  // across midnight) so the day streak stays accurate without a restart.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+
+      const store = useAuthStore.getState();
+      const uid = store.firebaseUser?.uid;
+      if (!uid || !store.profile) return;
+
+      void recordDailyActivity(uid)
+        .then((stats) => {
+          if (!stats) return;
+          const latest = useAuthStore.getState();
+          if (latest.profile && latest.profile.id === uid) {
+            latest.setProfile({ ...latest.profile, stats });
+          }
+        })
+        .catch((error) => {
+          console.warn('[gamification] foreground check-in failed', error);
+        });
+    });
+
+    return () => subscription.remove();
+  }, []);
 }
