@@ -145,6 +145,11 @@ function createStyles(colors: ThemeColors) {
       aspectRatio: 1,
       backgroundColor: colors.surfaceMuted,
     },
+    fullMedia: {
+      width: '100%',
+      alignSelf: 'center',
+      backgroundColor: colors.black,
+    },
     playOverlay: {
       ...StyleSheet.absoluteFill,
       alignItems: 'center',
