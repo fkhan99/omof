@@ -58,8 +58,17 @@ export async function createPromotion(
     throw new Error('This post already has an active promotion.');
   }
 
-  if (owner.plan === 'plus' && owner.promotionCredits < PROMOTION_CREDIT_COST) {
-    throw new Error('No promotion credits left. Upgrade or wait for more credits.');
+  if (owner.plan === 'plus') {
+    if (owner.promotionCredits < PROMOTION_CREDIT_COST) {
+      throw new Error('No promotion credits left. Upgrade or wait for more credits.');
+    }
+  } else {
+    const activeOwned = await getActivePromotionsByOwner(ownerId);
+    if (activeOwned.length > 0) {
+      throw new Error(
+        'Free plan allows 1 active promotion at a time. Wait for it to end or upgrade to OMOF Plus.',
+      );
+    }
   }
 
   const db = getFirebaseDb();
