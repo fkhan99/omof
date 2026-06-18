@@ -13,6 +13,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseDb, getFirebaseStorage } from './config';
 import { mapUserDoc } from './mappers';
 import { User } from '@/types';
+import { optimizeImageForUpload } from '@/utils/media';
+import { AVATAR_MAX_DIMENSION } from '@/constants/theme';
 import { SEARCH_RESULTS_LIMIT } from '@/constants/theme';
 
 export async function getUserById(userId: string): Promise<User | null> {
@@ -55,10 +57,11 @@ export async function updateUserProfile(
 
 export async function uploadProfilePhoto(userId: string, uri: string): Promise<string> {
   const storage = getFirebaseStorage();
-  const response = await fetch(uri);
+  const optimized = await optimizeImageForUpload(uri, AVATAR_MAX_DIMENSION);
+  const response = await fetch(optimized.uri);
   const blob = await response.blob();
-  const storageRef = ref(storage, `profiles/${userId}/${Date.now()}.jpg`);
-  await uploadBytes(storageRef, blob);
+  const storageRef = ref(storage, `profiles/${userId}/${Date.now()}.webp`);
+  await uploadBytes(storageRef, blob, { contentType: 'image/webp' });
   return getDownloadURL(storageRef);
 }
 

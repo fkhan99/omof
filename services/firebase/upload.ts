@@ -21,22 +21,6 @@ export async function uploadLocalFile(
   return getDownloadURL(storageRef);
 }
 
-export async function uploadThumbnail(
-  storage: FirebaseStorage,
-  storagePath: string,
-  thumbnailUri: string,
-): Promise<string> {
-  if (thumbnailUri.startsWith('data:image')) {
-    const storageRef = ref(storage, storagePath);
-    const response = await fetch(thumbnailUri);
-    const blob = await response.blob();
-    await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-    return getDownloadURL(storageRef);
-  }
-
-  return uploadLocalFile(storage, thumbnailUri, storagePath, 'image/jpeg');
-}
-
 export async function uploadPlaceholderThumbnail(
   storage: FirebaseStorage,
   storagePath: string,

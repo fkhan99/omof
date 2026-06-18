@@ -17,11 +17,17 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth } from './config';
-import { uploadLocalFile, uploadPlaceholderThumbnail, uploadThumbnail } from './upload';
+import { uploadLocalFile, uploadPlaceholderThumbnail } from './upload';
 import { mapPostDoc } from './mappers';
 import { Post, PaginatedResult, MoodTag, PostMediaType } from '@/types';
-import { POSTS_PAGE_SIZE } from '@/constants/theme';
-import { getVideoContentType, getVideoExtension, getVideoThumbnailOrPlaceholder, prepareVideoForUpload } from '@/utils/media';
+import { POSTS_PAGE_SIZE, VIDEO_THUMBNAIL_MAX_DIMENSION } from '@/constants/theme';
+import {
+  getVideoContentType,
+  getVideoExtension,
+  getVideoThumbnailOrPlaceholder,
+  optimizeImageForUpload,
+  prepareVideoForUpload,
+} from '@/utils/media';
 import { onPostCreated } from './gamification';
 
 function filterPostsByAuthor(posts: Post[], authorId: string): Post[] {
@@ -46,11 +52,12 @@ export async function createPost(
   const timestamp = Date.now();
 
   if (media.mediaType === 'image') {
+    const optimized = await optimizeImageForUpload(media.uri);
     const imageURL = await uploadLocalFile(
       storage,
-      media.uri,
-      `posts/${author.id}/${timestamp}.jpg`,
-      media.mimeType?.startsWith('image/') ? media.mimeType : 'image/jpeg',
+      optimized.uri,
+      `posts/${author.id}/${timestamp}.webp`,
+      'image/webp',
     );
 
     const docRef = await addDoc(collection(db, 'posts'), {
@@ -88,10 +95,15 @@ export async function createPost(
 
   let imageURL: string;
   if (thumbnailUri) {
-    imageURL = await uploadThumbnail(
-      storage,
-      `posts/${author.id}/${timestamp}_thumb.jpg`,
+    const optimizedThumb = await optimizeImageForUpload(
       thumbnailUri,
+      VIDEO_THUMBNAIL_MAX_DIMENSION,
+    );
+    imageURL = await uploadLocalFile(
+      storage,
+      optimizedThumb.uri,
+      `posts/${author.id}/${timestamp}_thumb.webp`,
+      'image/webp',
     );
   } else {
     imageURL = await uploadPlaceholderThumbnail(

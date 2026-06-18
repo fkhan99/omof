@@ -2,13 +2,15 @@ import { doc, updateDoc } from 'firebase/firestore';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Post } from '@/types';
 import { getFirebaseDb, getFirebaseStorage } from './config';
-import { uploadThumbnail } from './upload';
+import { uploadLocalFile } from './upload';
 import {
   getVideoExtension,
   getVideoContentType,
   getVideoThumbnailOrPlaceholder,
+  optimizeImageForUpload,
 } from '@/utils/media';
 import { needsVideoThumbnailRegen } from '@/utils/posts';
+import { VIDEO_THUMBNAIL_MAX_DIMENSION } from '@/constants/theme';
 
 const queue: Post[] = [];
 const queuedIds = new Set<string>();
@@ -57,11 +59,17 @@ async function backfillVideoPostThumbnail(post: Post): Promise<string | null> {
     const thumbnailUri = await getVideoThumbnailOrPlaceholder(download.uri);
     if (!thumbnailUri) return null;
 
-    const storage = getFirebaseStorage();
-    const imageURL = await uploadThumbnail(
-      storage,
-      `posts/backfill/${post.id}_thumb.jpg`,
+    const optimizedThumb = await optimizeImageForUpload(
       thumbnailUri,
+      VIDEO_THUMBNAIL_MAX_DIMENSION,
+    );
+
+    const storage = getFirebaseStorage();
+    const imageURL = await uploadLocalFile(
+      storage,
+      optimizedThumb.uri,
+      `posts/backfill/${post.id}_thumb.webp`,
+      'image/webp',
     );
 
     const db = getFirebaseDb();

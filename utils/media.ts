@@ -1,7 +1,10 @@
 import { Platform } from 'react-native';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import * as FileSystem from 'expo-file-system/legacy';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import {
+  IMAGE_COMPRESS_QUALITY,
+  IMAGE_MAX_DIMENSION,
   VIDEO_THUMBNAIL_TIMEOUT_MS,
   VIDEO_THUMBNAIL_UPLOAD_TIMEOUT_MS,
 } from '@/constants/theme';
@@ -227,6 +230,43 @@ export function getVideoExtension(contentType: string): string {
 
 export async function prepareVideoForUpload(videoUri: string): Promise<string> {
   return resolveLocalVideoUri(videoUri);
+}
+
+export interface OptimizedImage {
+  uri: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Downscales an image so its longest edge does not exceed `maxDimension`, then
+ * re-encodes it as WebP. Returns the original (re-encoded) image when it's
+ * already within bounds. Accepts local file URIs and base64 data URIs.
+ */
+export async function optimizeImageForUpload(
+  uri: string,
+  maxDimension: number = IMAGE_MAX_DIMENSION,
+  compress: number = IMAGE_COMPRESS_QUALITY,
+): Promise<OptimizedImage> {
+  const context = ImageManipulator.manipulate(uri);
+  let image = await context.renderAsync();
+
+  const longestEdge = Math.max(image.width, image.height);
+  if (longestEdge > maxDimension) {
+    const scale = maxDimension / longestEdge;
+    context.resize({
+      width: Math.round(image.width * scale),
+      height: Math.round(image.height * scale),
+    });
+    image = await context.renderAsync();
+  }
+
+  const result = await image.saveAsync({
+    format: SaveFormat.WEBP,
+    compress,
+  });
+
+  return { uri: result.uri, width: result.width, height: result.height };
 }
 
 export async function persistDataUrlThumbnail(dataUrl: string): Promise<string | null> {
