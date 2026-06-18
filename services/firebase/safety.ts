@@ -8,7 +8,6 @@ import {
   query,
   where,
   serverTimestamp,
-  addDoc,
 } from 'firebase/firestore';
 import { getFirebaseDb } from './config';
 import { mapBlockedUserDoc, mapReportDoc } from './mappers';
@@ -67,15 +66,34 @@ export async function reportContent(
   details?: string,
 ): Promise<Report> {
   const db = getFirebaseDb();
-  const docRef = await addDoc(collection(db, 'reports'), {
+
+  // Deterministic id => one flag per user per target. This keeps the
+  // auto-moderation count honest (distinct reporters == report docs) and
+  // prevents a single user from inflating the count by reporting repeatedly.
+  const reportId = `${targetId}_${reporterId}`;
+  const reportRef = doc(db, 'reports', reportId);
+
+  const existing = await getDoc(reportRef);
+  if (existing.exists()) {
+    return mapReportDoc(existing.id, existing.data()!);
+  }
+
+  let postAuthorId: string | null = null;
+  if (targetType === 'post') {
+    const postSnap = await getDoc(doc(db, 'posts', targetId));
+    postAuthorId = postSnap.exists() ? postSnap.data().authorId ?? null : null;
+  }
+
+  await setDoc(reportRef, {
     reporterId,
     targetType,
     targetId,
+    postAuthorId,
     reason,
     details: details ?? null,
     createdAt: serverTimestamp(),
   });
 
-  const snap = await getDoc(docRef);
+  const snap = await getDoc(reportRef);
   return mapReportDoc(snap.id, snap.data()!);
 }

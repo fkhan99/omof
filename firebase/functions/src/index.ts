@@ -20,6 +20,9 @@ const REACTION_LABELS: Record<string, string> = {
   sending_support: 'Sending support',
 };
 
+// Keep in sync with constants/safety.ts AUTO_REMOVAL_REPORT_THRESHOLD.
+const AUTO_REMOVAL_REPORT_THRESHOLD = 5;
+
 async function getUser(userId: string): Promise<UserData | null> {
   const snap = await db.collection('users').doc(userId).get();
   if (!snap.exists) return null;
@@ -173,6 +176,106 @@ export const onFollowCreated = functions.firestore
       actorDisplayName: actor.displayName,
       actorPhotoURL: actor.photoURL ?? null,
     });
+  });
+
+async function deleteDocsByQuery(
+  query: admin.firestore.Query,
+): Promise<void> {
+  const snap = await query.get();
+  const docs = snap.docs;
+
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = db.batch();
+    docs.slice(i, i + 400).forEach((docSnap) => batch.delete(docSnap.ref));
+    await batch.commit();
+  }
+}
+
+/**
+ * Auto-moderation: when a post accumulates flags from enough distinct users,
+ * remove the post and notify the author in their activity feed.
+ */
+export const onReportCreated = functions.firestore
+  .document('reports/{reportId}')
+  .onCreate(async (snap) => {
+    const report = snap.data();
+    if (report.targetType !== 'post') return;
+
+    const postId: string = report.targetId;
+    if (!postId) return;
+
+    const postSnap = await db.collection('posts').doc(postId).get();
+    if (!postSnap.exists) {
+      functions.logger.info('[moderation] post already removed', { postId });
+      return;
+    }
+
+    // Single-field query (no composite index needed); filter type in code.
+    const reportsSnap = await db
+      .collection('reports')
+      .where('targetId', '==', postId)
+      .get();
+
+    const distinctReporters = new Set<string>();
+    reportsSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.targetType === 'post' && data.reporterId) {
+        distinctReporters.add(data.reporterId);
+      }
+    });
+
+    functions.logger.info('[moderation] evaluating post', {
+      postId,
+      distinctReporters: distinctReporters.size,
+      threshold: AUTO_REMOVAL_REPORT_THRESHOLD,
+    });
+
+    if (distinctReporters.size < AUTO_REMOVAL_REPORT_THRESHOLD) return;
+
+    const post = postSnap.data()!;
+    const authorId: string = post.authorId;
+
+    await Promise.all([
+      deleteDocsByQuery(db.collection('comments').where('postId', '==', postId)),
+      deleteDocsByQuery(db.collection('reactions').where('postId', '==', postId)),
+    ]);
+
+    await postSnap.ref.delete();
+
+    functions.logger.info('[moderation] post removed', {
+      postId,
+      authorId,
+      reporterCount: distinctReporters.size,
+    });
+
+    if (authorId) {
+      await db.collection('notifications').add({
+        recipientId: authorId,
+        actorId: authorId,
+        actorUsername: 'OMOF',
+        actorDisplayName: 'OMOF Safety',
+        actorPhotoURL: null,
+        type: 'post_removed',
+        postId: null,
+        postImageURL: null,
+        commentText: null,
+        commentId: null,
+        reactionType: null,
+        reportCount: distinctReporters.size,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      const author = await getUser(authorId);
+      if (author?.fcmToken) {
+        await sendExpoPushNotification(
+          author.fcmToken,
+          'OMOF',
+          'One of your posts was removed after multiple community reports.',
+          { type: 'post_removed' },
+        );
+      }
+    }
   });
 
 export const deleteMyAuthUser = functions.https.onCall(async (_data, context) => {
