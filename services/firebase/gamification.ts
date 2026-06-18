@@ -121,9 +121,9 @@ async function applyGamificationUpdate(
 /**
  * Sync a user's progress when they open the app:
  *  - advances the day streak based on the last active date, and
- *  - reconciles posts / comments / supportive counts from the actual
- *    collections (so activity from before counters existed, or any drift,
- *    is reflected).
+ *  - reconciles posts / comments / supportive / reactions counts from the
+ *    actual collections (so activity from before counters existed, or any
+ *    drift, is reflected).
  * Writes only when something actually changed.
  */
 export async function syncUserProgress(userId: string): Promise<UserStats | null> {
@@ -166,6 +166,8 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
     postsCount: postsSnap.size,
     commentsCount: commentsSnap.size,
     supportiveCommentsCount,
+    reactionsGiven,
+    reactionsReceived,
     streakDays,
     lastActiveDate: todayKey(),
   };
@@ -177,6 +179,8 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
     nextStats.postsCount !== currentStats.postsCount
     || nextStats.commentsCount !== currentStats.commentsCount
     || nextStats.supportiveCommentsCount !== currentStats.supportiveCommentsCount
+    || nextStats.reactionsGiven !== currentStats.reactionsGiven
+    || nextStats.reactionsReceived !== currentStats.reactionsReceived
     || nextStats.streakDays !== currentStats.streakDays
     || nextStats.lastActiveDate !== currentStats.lastActiveDate;
 
@@ -192,6 +196,8 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
       postsCount: nextStats.postsCount,
       commentsCount: nextStats.commentsCount,
       supportiveCommentsCount: nextStats.supportiveCommentsCount,
+      reactionsGiven: nextStats.reactionsGiven,
+      reactionsReceived: nextStats.reactionsReceived,
       streakDays: nextStats.streakDays,
     });
   }
