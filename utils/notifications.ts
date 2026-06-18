@@ -20,9 +20,16 @@ export function getActivityActionText(notification: Notification): string {
     }
     case 'like':
       return 'liked your post';
+    case 'post_removed':
+      return 'Your post was removed after being flagged by multiple people for violating community guidelines.';
     default:
       return 'interacted with you';
   }
+}
+
+/** System notifications have no acting user and render as a standalone message. */
+export function isSystemNotification(notification: Notification): boolean {
+  return notification.type === 'post_removed';
 }
 
 export function getActivityMessage(notification: Notification): string {

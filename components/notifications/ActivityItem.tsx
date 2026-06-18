@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { Notification } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
-import { getActivityActionText } from '@/utils/notifications';
+import { getActivityActionText, isSystemNotification } from '@/utils/notifications';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useTheme } from '@/hooks/useTheme';
 import { formatRelativeTime } from '@/utils';
 
 interface ActivityItemProps {
@@ -14,7 +16,31 @@ interface ActivityItemProps {
 
 export function ActivityItem({ notification, onPress }: ActivityItemProps) {
   const styles = useThemedStyles(createStyles);
+  const { colors } = useTheme();
   const actionText = getActivityActionText(notification);
+  const isSystem = isSystemNotification(notification);
+
+  if (isSystem) {
+    return (
+      <TouchableOpacity
+        style={[styles.item, !notification.read && styles.unread]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={actionText}
+      >
+        <View style={styles.systemIcon}>
+          <Ionicons name="alert-circle" size={28} color={colors.danger} />
+        </View>
+
+        <View style={styles.content}>
+          <Text style={styles.message}>{actionText}</Text>
+          <Text style={styles.time}>{formatRelativeTime(notification.createdAt)}</Text>
+        </View>
+
+        {!notification.read ? <View style={styles.unreadDot} /> : null}
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -85,6 +111,14 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.xs,
       color: colors.textMuted,
       marginTop: SPACING.xs,
+    },
+    systemIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.dangerSoft,
     },
     thumbnail: {
       width: 48,
