@@ -66,7 +66,7 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
         <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
       </TouchableOpacity>
 
-      <PostMedia post={post} mode="preview" onPress={openPost} />
+      <PostMedia post={post} mode="feed" onPress={openPost} />
 
       <View style={styles.body}>
         {post.isPromoted ? <PromotedLabel /> : null}

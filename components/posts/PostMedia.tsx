@@ -92,6 +92,57 @@ function FullImage({ uri }: { uri: string }) {
   );
 }
 
+function FeedMedia({
+  uri,
+  isVideo,
+  onPress,
+}: {
+  uri: string;
+  isVideo: boolean;
+  onPress?: () => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useTheme();
+  const maxHeight = useMaxMediaHeight();
+  const [aspectRatio, setAspectRatio] = useState(1);
+
+  const handleLoad = (event: ImageLoadEventData) => {
+    const { width, height } = event.source;
+    if (width && height) {
+      setAspectRatio(clampAspectRatio(width / height));
+    }
+  };
+
+  const content = (
+    <View style={styles.mediaWrap}>
+      <Image
+        source={{ uri }}
+        style={[styles.fullMedia, { aspectRatio, maxHeight }]}
+        contentFit="contain"
+        onLoad={handleLoad}
+        accessibilityLabel={isVideo ? 'Video thumbnail' : 'Post image'}
+      />
+      {isVideo ? (
+        <View style={styles.playOverlay} pointerEvents="none">
+          <View style={styles.playButton}>
+            <Ionicons name="play" size={28} color={colors.white} />
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.95} accessibilityRole="button">
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
+}
+
 export function PostMedia({ post, mode, onPress }: PostMediaProps) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
@@ -104,6 +155,10 @@ export function PostMedia({ post, mode, onPress }: PostMediaProps) {
 
   if (mode === 'player' && !isVideo && post.imageURL) {
     return <FullImage uri={post.imageURL} />;
+  }
+
+  if (mode === 'feed') {
+    return <FeedMedia uri={previewURL} isVideo={isVideo} onPress={onPress} />;
   }
 
   const content = (
