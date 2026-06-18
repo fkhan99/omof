@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   EmailAuthProvider,
   reauthenticateWithCredential,
+  fetchSignInMethodsForEmail,
   User as FirebaseUser,
 } from 'firebase/auth';
 import {
