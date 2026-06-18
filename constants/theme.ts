@@ -129,3 +129,10 @@ export const VIDEO_MAX_DURATION_SEC = 60;
 export const VIDEO_MAX_SIZE_BYTES = 50 * 1024 * 1024;
 export const VIDEO_THUMBNAIL_TIMEOUT_MS = 3000;
 export const VIDEO_THUMBNAIL_UPLOAD_TIMEOUT_MS = 15000;
+
+// Storage optimization: images are downscaled to a maximum edge length and
+// re-encoded as WebP before upload to keep Firebase Storage usage low.
+export const IMAGE_MAX_DIMENSION = 1440;
+export const AVATAR_MAX_DIMENSION = 512;
+export const VIDEO_THUMBNAIL_MAX_DIMENSION = 1080;
+export const IMAGE_COMPRESS_QUALITY = 0.8;
