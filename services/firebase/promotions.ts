@@ -129,6 +129,33 @@ export async function getActivePromotions(): Promise<Promotion[]> {
   return promotions;
 }
 
+/**
+ * Active, non-expired promotions owned by a user. Queries by ownerId only (a
+ * single-field index) and filters status client-side to avoid a composite
+ * index, lazily expiring any that have passed their end date.
+ */
+export async function getActivePromotionsByOwner(ownerId: string): Promise<Promotion[]> {
+  const db = getFirebaseDb();
+  const snap = await getDocs(
+    query(collection(db, 'promotions'), where('ownerId', '==', ownerId), limit(50)),
+  );
+
+  const now = Date.now();
+  const active: Promotion[] = [];
+
+  for (const docSnap of snap.docs) {
+    const promotion = mapPromotionDoc(docSnap.id, docSnap.data());
+    if (promotion.status !== 'active') continue;
+    if (promotion.expiresAt.getTime() <= now) {
+      await updateDoc(doc(db, 'promotions', promotion.id), { status: 'expired' });
+      continue;
+    }
+    active.push(promotion);
+  }
+
+  return active;
+}
+
 export async function getActivePromotionForPost(postId: string): Promise<Promotion | null> {
   const db = getFirebaseDb();
   const snap = await getDocs(

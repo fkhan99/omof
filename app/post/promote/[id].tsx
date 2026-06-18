@@ -3,7 +3,11 @@ import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPost } from '@/services/firebase/posts';
-import { createPromotion, getActivePromotionForPost } from '@/services/firebase/promotions';
+import {
+  createPromotion,
+  getActivePromotionForPost,
+  getActivePromotionsByOwner,
+} from '@/services/firebase/promotions';
 import { useAuthStore } from '@/store/authStore';
 import {
   PROMOTION_DURATIONS,
@@ -46,10 +50,17 @@ export default function PromotePostScreen() {
     enabled: !!id,
   });
 
+  const { data: ownerActivePromotions } = useQuery({
+    queryKey: ['myActivePromotions', authUid],
+    queryFn: () => getActivePromotionsByOwner(authUid!),
+    enabled: !!authUid && profile?.plan === 'free',
+  });
+
   const promoteMutation = useMutation({
     mutationFn: () => createPromotion(authUid!, id!, goal, durationDays),
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['promotion', id] });
+      queryClient.invalidateQueries({ queryKey: ['myActivePromotions', authUid] });
       queryClient.invalidateQueries({ queryKey: ['explore'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       if (authUid) {
@@ -82,7 +93,10 @@ export default function PromotePostScreen() {
     );
   }
 
-  const canPromote = canUserPromote(profile.plan, profile.promotionCredits);
+  const freeLimitReached =
+    profile.plan === 'free' && (ownerActivePromotions?.length ?? 0) > 0;
+  const canPromote =
+    canUserPromote(profile.plan, profile.promotionCredits) && !freeLimitReached;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -141,7 +155,9 @@ export default function PromotePostScreen() {
 
       {!canPromote ? (
         <Text style={[styles.creditsNote, { color: colors.danger }]}>
-          No promotion credits left. Upgrade to OMOF Plus in Settings.
+          {freeLimitReached
+            ? 'You already have an active promotion. Free plan allows 1 at a time — wait for it to end or upgrade to OMOF Plus.'
+            : 'No promotion credits left. Upgrade to OMOF Plus in Settings.'}
         </Text>
       ) : null}
     </ScrollView>
