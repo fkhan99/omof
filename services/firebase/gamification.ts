@@ -135,9 +135,11 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
   const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
   const currentBadges = (snap.data().badges as BadgeId[]) ?? [];
 
-  const [postsSnap, commentsSnap] = await Promise.all([
+  const [postsSnap, commentsSnap, reactionsGivenSnap, reactionsReceivedSnap] = await Promise.all([
     getDocs(query(collection(db, 'posts'), where('authorId', '==', userId))),
     getDocs(query(collection(db, 'comments'), where('authorId', '==', userId))),
+    getDocs(query(collection(db, 'reactions'), where('userId', '==', userId))),
+    getDocs(query(collection(db, 'reactions'), where('postAuthorId', '==', userId))),
   ]);
 
   // A "supportive" comment is one made on a post the user does not own.
@@ -147,6 +149,12 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
     const postId = commentDoc.data().postId as string | undefined;
     if (postId && !ownPostIds.has(postId)) supportiveCommentsCount += 1;
   });
+
+  const reactionsGiven = reactionsGivenSnap.size;
+  // Received excludes self-reactions, matching the live counter behavior.
+  const reactionsReceived = reactionsReceivedSnap.docs.filter(
+    (reactionDoc) => reactionDoc.data().userId !== userId,
+  ).length;
 
   const alreadyActiveToday = currentStats.lastActiveDate === todayKey();
   const streakDays = alreadyActiveToday
