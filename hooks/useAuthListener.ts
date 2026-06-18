@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { subscribeToAuthState, loadAuthUserProfile } from '@/services/firebase/auth';
-import { recordDailyActivity } from '@/services/firebase/gamification';
+import { syncUserProgress } from '@/services/firebase/gamification';
 import { clearUserPostQueries } from '@/lib/queryClient';
 
 const PROFILE_LOAD_TIMEOUT_MS = 15_000;
@@ -56,7 +56,7 @@ export function useAuthListener() {
               setProfile(profile);
 
               if (profile) {
-                void recordDailyActivity(user.uid)
+                void syncUserProgress(user.uid)
                   .then((stats) => {
                     if (!stats) return;
                     const store = useAuthStore.getState();
@@ -65,7 +65,7 @@ export function useAuthListener() {
                     }
                   })
                   .catch((error) => {
-                    console.warn('[gamification] daily check-in failed', error);
+                    console.warn('[gamification] progress sync failed', error);
                   });
               }
             } catch (error) {
@@ -99,7 +99,7 @@ export function useAuthListener() {
       const uid = store.firebaseUser?.uid;
       if (!uid || !store.profile) return;
 
-      void recordDailyActivity(uid)
+      void syncUserProgress(uid)
         .then((stats) => {
           if (!stats) return;
           const latest = useAuthStore.getState();
@@ -108,7 +108,7 @@ export function useAuthListener() {
           }
         })
         .catch((error) => {
-          console.warn('[gamification] foreground check-in failed', error);
+          console.warn('[gamification] foreground sync failed', error);
         });
     });
 

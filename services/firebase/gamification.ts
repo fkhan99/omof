@@ -119,43 +119,74 @@ async function applyGamificationUpdate(
 }
 
 /**
- * Daily check-in: advances the day streak based on the last active date.
- * Call this when the user opens the app so the streak reflects daily presence,
- * not just posting/commenting/reacting. Writes only when the day changes.
+ * Sync a user's progress when they open the app:
+ *  - advances the day streak based on the last active date, and
+ *  - reconciles posts / comments / supportive counts from the actual
+ *    collections (so activity from before counters existed, or any drift,
+ *    is reflected).
+ * Writes only when something actually changed.
  */
-export async function recordDailyActivity(userId: string): Promise<UserStats | null> {
+export async function syncUserProgress(userId: string): Promise<UserStats | null> {
   const db = getFirebaseDb();
   const userRef = doc(db, 'users', userId);
   const snap = await getDoc(userRef);
   if (!snap.exists()) return null;
 
   const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
+  const currentBadges = (snap.data().badges as BadgeId[]) ?? [];
 
-  if (currentStats.lastActiveDate === todayKey()) {
-    return currentStats;
-  }
+  const [postsSnap, commentsSnap] = await Promise.all([
+    getDocs(query(collection(db, 'posts'), where('authorId', '==', userId))),
+    getDocs(query(collection(db, 'comments'), where('authorId', '==', userId))),
+  ]);
+
+  // A "supportive" comment is one made on a post the user does not own.
+  const ownPostIds = new Set(postsSnap.docs.map((postDoc) => postDoc.id));
+  let supportiveCommentsCount = 0;
+  commentsSnap.docs.forEach((commentDoc) => {
+    const postId = commentDoc.data().postId as string | undefined;
+    if (postId && !ownPostIds.has(postId)) supportiveCommentsCount += 1;
+  });
+
+  const alreadyActiveToday = currentStats.lastActiveDate === todayKey();
+  const streakDays = alreadyActiveToday
+    ? currentStats.streakDays
+    : computeStreakDays(currentStats);
 
   const nextStats: UserStats = {
     ...currentStats,
-    streakDays: computeStreakDays(currentStats),
+    postsCount: postsSnap.size,
+    commentsCount: commentsSnap.size,
+    supportiveCommentsCount,
+    streakDays,
     lastActiveDate: todayKey(),
   };
 
-  const currentBadges = (snap.data().badges as BadgeId[]) ?? [];
   const newBadges = badgesToUnlock(nextStats, currentBadges);
   const allBadges = [...currentBadges, ...newBadges];
 
-  await updateDoc(userRef, {
-    stats: nextStats,
-    badges: allBadges,
-    updatedAt: serverTimestamp(),
-  });
+  const statsChanged =
+    nextStats.postsCount !== currentStats.postsCount
+    || nextStats.commentsCount !== currentStats.commentsCount
+    || nextStats.supportiveCommentsCount !== currentStats.supportiveCommentsCount
+    || nextStats.streakDays !== currentStats.streakDays
+    || nextStats.lastActiveDate !== currentStats.lastActiveDate;
 
-  console.log('[gamification] daily check-in', {
-    userId,
-    streakDays: nextStats.streakDays,
-    lastActiveDate: nextStats.lastActiveDate,
-  });
+  if (statsChanged || newBadges.length > 0) {
+    await updateDoc(userRef, {
+      stats: nextStats,
+      badges: allBadges,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log('[gamification] progress synced', {
+      userId,
+      postsCount: nextStats.postsCount,
+      commentsCount: nextStats.commentsCount,
+      supportiveCommentsCount: nextStats.supportiveCommentsCount,
+      streakDays: nextStats.streakDays,
+    });
+  }
 
   return nextStats;
 }
