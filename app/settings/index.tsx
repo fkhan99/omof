@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { ThemeMode } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
 import { updateUserProfile } from '@/services/firebase/users';
 import { getUserProfile } from '@/services/firebase/auth';
+import { sendTestPushToSelf } from '@/utils/pushRegistration';
 
 interface SettingsItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -64,7 +65,7 @@ const THEME_OPTIONS: { mode: ThemeMode; label: string; description: string }[] =
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { mode, setMode } = useTheme();
+  const { mode, setMode, colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const { profile, setProfile } = useAuthStore();
 
@@ -75,6 +76,22 @@ export default function SettingsScreen() {
       setProfile({ ...profile, isPrivate });
       const refreshed = await getUserProfile(profile.id);
       if (refreshed) setProfile(refreshed);
+    },
+  });
+
+  const testPushMutation = useMutation({
+    mutationFn: () => sendTestPushToSelf(profile!.id),
+    onSuccess: (result) => {
+      Alert.alert(
+        result.ok ? 'Test notification sent' : "Couldn't send test",
+        result.message,
+      );
+    },
+    onError: (error) => {
+      Alert.alert(
+        "Couldn't send test",
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     },
   });
 
@@ -114,6 +131,37 @@ export default function SettingsScreen() {
           />
         ))}
       </View>
+
+      {Platform.OS !== 'web' && (
+        <>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.testRow}
+              onPress={() => testPushMutation.mutate()}
+              disabled={!profile || testPushMutation.isPending}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={colors.textSecondary}
+              />
+              <View style={styles.testText}>
+                <Text style={styles.testTitle}>Send test notification</Text>
+                <Text style={styles.testDescription}>
+                  Push a test to this device to confirm notifications work.
+                </Text>
+              </View>
+              {testPushMutation.isPending ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Ionicons name="paper-plane-outline" size={20} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       <Text style={styles.sectionTitle}>Safety & community</Text>
       <SettingsItem
@@ -183,6 +231,26 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
     },
     toggleDescription: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textMuted,
+      marginTop: SPACING.xs,
+      lineHeight: 18,
+    },
+    testRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: SPACING.lg,
+      gap: SPACING.md,
+    },
+    testText: {
+      flex: 1,
+    },
+    testTitle: {
+      fontSize: FONT_SIZES.md,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    testDescription: {
       fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
       marginTop: SPACING.xs,
