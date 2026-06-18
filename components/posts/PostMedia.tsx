@@ -18,13 +18,10 @@ interface PostMediaProps {
 function VideoPlayer({ uri, style }: { uri: string; style: ViewStyle }) {
   const player = useVideoPlayer(uri, (instance) => {
     instance.loop = true;
-    // Ensure audio is on by default (web/native may otherwise start muted).
+    // Browsers start an autoplayed/preloaded <video> muted to satisfy autoplay
+    // policy; assert audio on so user-initiated playback has sound on web.
     instance.muted = false;
     instance.volume = 1.0;
-    if (Platform.OS !== 'web') {
-      // Play audio even when the iOS hardware silent switch is on.
-      instance.audioMixingMode = 'duckOthers';
-    }
   });
 
   return (
