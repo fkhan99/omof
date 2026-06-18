@@ -192,16 +192,19 @@ async function deleteDocsByQuery(
 }
 
 /**
- * Extract the storage object path from a Firebase download URL.
+ * Extract the bucket and object path from a Firebase download URL.
  * URLs look like: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedPath>?alt=media&token=...
  */
-function storagePathFromDownloadUrl(url: string): string | null {
+function parseStorageDownloadUrl(
+  url: string,
+): { bucket: string; path: string } | null {
   if (typeof url !== 'string' || !url.includes('/o/')) return null;
   try {
+    const bucketMatch = url.match(/\/b\/([^/]+)\/o\//);
     const afterO = url.split('/o/')[1];
-    if (!afterO) return null;
-    const encodedPath = afterO.split('?')[0];
-    return decodeURIComponent(encodedPath);
+    if (!bucketMatch || !afterO) return null;
+    const path = decodeURIComponent(afterO.split('?')[0]);
+    return { bucket: bucketMatch[1], path };
   } catch {
     return null;
   }
@@ -210,15 +213,15 @@ function storagePathFromDownloadUrl(url: string): string | null {
 /** Best-effort delete of a Storage object given its download URL. */
 async function deleteStorageFileFromUrl(url: string | null | undefined): Promise<void> {
   if (!url) return;
-  const path = storagePathFromDownloadUrl(url);
-  if (!path) return;
+  const parsed = parseStorageDownloadUrl(url);
+  if (!parsed) return;
 
   try {
-    await admin.storage().bucket().file(path).delete();
-    functions.logger.info('[moderation] deleted media', { path });
+    await admin.storage().bucket(parsed.bucket).file(parsed.path).delete();
+    functions.logger.info('[moderation] deleted media', parsed);
   } catch (error) {
     // Object may not exist or already be gone — non-fatal.
-    functions.logger.warn('[moderation] media delete skipped', { path, error });
+    functions.logger.warn('[moderation] media delete skipped', { ...parsed, error });
   }
 }
 
@@ -269,6 +272,13 @@ export const onReportCreated = functions.firestore
     await Promise.all([
       deleteDocsByQuery(db.collection('comments').where('postId', '==', postId)),
       deleteDocsByQuery(db.collection('reactions').where('postId', '==', postId)),
+    ]);
+
+    // Remove uploaded media. For videos, imageURL holds the thumbnail and
+    // videoURL the clip; for images, imageURL holds the photo.
+    await Promise.all([
+      deleteStorageFileFromUrl(post.imageURL),
+      deleteStorageFileFromUrl(post.videoURL),
     ]);
 
     await postSnap.ref.delete();
