@@ -18,7 +18,7 @@ import { isVideoPost } from '@/utils/posts';
 
 interface PostMediaProps {
   post: Post;
-  mode: 'preview' | 'player';
+  mode: 'preview' | 'feed' | 'player';
   onPress?: () => void;
 }
 
