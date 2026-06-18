@@ -115,23 +115,49 @@ export default function PrivacyDataScreen() {
 
     if (!enabled) {
       setNotificationsEnabled(false);
-      await clearPushToken(authUid);
+      try {
+        await clearPushToken(authUid);
+      } catch (error) {
+        console.warn('[push] failed to clear token', error);
+      }
       return;
     }
 
     if (!Device.isDevice) {
-      Alert.alert('Notifications unavailable', 'Push notifications require a physical device.');
+      Alert.alert(
+        'Notifications unavailable',
+        'Push notifications require a physical device — they do not work on simulators or emulators.',
+      );
       return;
     }
 
-    const token = await registerForPushNotifications(authUid);
-    if (!token) {
-      Alert.alert('Permission required', 'Enable notifications in your device Settings.');
+    try {
+      const token = await registerForPushNotifications(authUid);
+      if (!token) {
+        Alert.alert(
+          'Permission needed',
+          'Notifications are turned off for OMOF. Enable them for OMOF in your device Settings, then try again.',
+        );
+        setNotificationsEnabled(false);
+        return;
+      }
+
+      setNotificationsEnabled(true);
+    } catch (error) {
+      console.error('[push] enable failed', error);
+      const message = error instanceof Error ? error.message : '';
+      const needsDevBuild = /Expo Go|development build|removed from Expo Go|getExpoPushTokenAsync/i.test(
+        message,
+      );
+
+      Alert.alert(
+        'Could not enable notifications',
+        needsDevBuild
+          ? 'Push notifications require a development build, not Expo Go. Build one with: eas build --profile development'
+          : message || 'Something went wrong enabling notifications. Please try again.',
+      );
       setNotificationsEnabled(false);
-      return;
     }
-
-    setNotificationsEnabled(true);
   };
 
   const handleDelete = async () => {
