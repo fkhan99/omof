@@ -73,16 +73,14 @@ async function applyGamificationUpdate(
   const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
   const currentBadges = (snap.data().badges as BadgeId[]) ?? [];
 
+  // Compute the streak from the EXISTING lastActiveDate before overwriting it
+  // to today — otherwise the check always sees "today" and never advances.
   const nextStats: UserStats = {
     ...currentStats,
     ...statsPatch,
     points: currentStats.points + pointsDelta,
+    streakDays: computeStreakDays(currentStats),
     lastActiveDate: todayKey(),
-    streakDays: computeStreakDays({
-      ...currentStats,
-      ...statsPatch,
-      lastActiveDate: todayKey(),
-    }),
   };
 
   const newBadges = badgesToUnlock(nextStats, currentBadges);
