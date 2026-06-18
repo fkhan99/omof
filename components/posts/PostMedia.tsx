@@ -1,6 +1,13 @@
-import { View, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { Image } from 'expo-image';
+import { useEffect, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+} from 'react-native';
+import { Image, type ImageLoadEventData } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useEvent } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '@/types';
 import { SPACING, ThemeColors } from '@/constants/theme';
@@ -15,7 +22,25 @@ interface PostMediaProps {
   onPress?: () => void;
 }
 
-function VideoPlayer({ uri, style }: { uri: string; style: ViewStyle }) {
+// Keep extreme aspect ratios in check so very tall/wide media stays usable.
+const MIN_ASPECT_RATIO = 0.5;
+const MAX_ASPECT_RATIO = 3;
+
+function clampAspectRatio(ratio: number): number {
+  if (!Number.isFinite(ratio) || ratio <= 0) return 1;
+  return Math.min(MAX_ASPECT_RATIO, Math.max(MIN_ASPECT_RATIO, ratio));
+}
+
+function useMaxMediaHeight(): number {
+  const { height } = useWindowDimensions();
+  return Math.round(height * 0.8);
+}
+
+function FullVideo({ uri }: { uri: string }) {
+  const styles = useThemedStyles(createStyles);
+  const maxHeight = useMaxMediaHeight();
+  const [aspectRatio, setAspectRatio] = useState(1);
+
   const player = useVideoPlayer(uri, (instance) => {
     instance.loop = true;
     // Browsers start an autoplayed/preloaded <video> muted to satisfy autoplay
@@ -24,13 +49,45 @@ function VideoPlayer({ uri, style }: { uri: string; style: ViewStyle }) {
     instance.volume = 1.0;
   });
 
+  const sourceLoad = useEvent(player, 'sourceLoad');
+
+  useEffect(() => {
+    const size = sourceLoad?.availableVideoTracks?.[0]?.size;
+    if (size?.width && size?.height) {
+      setAspectRatio(clampAspectRatio(size.width / size.height));
+    }
+  }, [sourceLoad]);
+
   return (
     <VideoView
       player={player}
-      style={style}
-      contentFit="cover"
+      style={[styles.fullMedia, { aspectRatio, maxHeight }]}
+      contentFit="contain"
       nativeControls
       playsInline
+    />
+  );
+}
+
+function FullImage({ uri }: { uri: string }) {
+  const styles = useThemedStyles(createStyles);
+  const maxHeight = useMaxMediaHeight();
+  const [aspectRatio, setAspectRatio] = useState(1);
+
+  const handleLoad = (event: ImageLoadEventData) => {
+    const { width, height } = event.source;
+    if (width && height) {
+      setAspectRatio(clampAspectRatio(width / height));
+    }
+  };
+
+  return (
+    <Image
+      source={{ uri }}
+      style={[styles.fullMedia, { aspectRatio, maxHeight }]}
+      contentFit="contain"
+      onLoad={handleLoad}
+      accessibilityLabel="Post image"
     />
   );
 }
@@ -42,7 +99,11 @@ export function PostMedia({ post, mode, onPress }: PostMediaProps) {
   const previewURL = useVideoThumbnailBackfill(post);
 
   if (mode === 'player' && isVideo && post.videoURL) {
-    return <VideoPlayer uri={post.videoURL} style={styles.media} />;
+    return <FullVideo uri={post.videoURL} />;
+  }
+
+  if (mode === 'player' && !isVideo && post.imageURL) {
+    return <FullImage uri={post.imageURL} />;
   }
 
   const content = (
