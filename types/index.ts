@@ -26,6 +26,7 @@ export const REACTION_LABELS: Record<ReactionType, string> = {
 };
 
 export const REPORT_REASONS = [
+  'obscenity',
   'harassment',
   'hate_speech',
   'spam',
@@ -37,6 +38,7 @@ export const REPORT_REASONS = [
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  obscenity: 'Obscene or explicit content',
   harassment: 'Harassment or bullying',
   hate_speech: 'Hate speech',
   spam: 'Spam',
@@ -51,7 +53,8 @@ export type NotificationType =
   | 'follow_accepted'
   | 'comment'
   | 'reaction'
-  | 'like';
+  | 'like'
+  | 'post_removed';
 
 export interface Notification {
   id: string;
