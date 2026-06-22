@@ -37,7 +37,7 @@ const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT 
 admin.initializeApp({ projectId });
 const { purgeAllUserData } = require(compiledPath);
 
-async function resolveUserId(value: string): Promise<string> {
+async function resolveUserId(value) {
   if (/^[A-Za-z0-9]{20,}$/.test(value) && !value.includes('@')) {
     return value;
   }
@@ -47,7 +47,7 @@ async function resolveUserId(value: string): Promise<string> {
 
   const usernameSnap = await db.collection('usernames').doc(usernameLower).get();
   if (usernameSnap.exists) {
-    const userId = usernameSnap.data()?.userId as string | undefined;
+    const userId = usernameSnap.data()?.userId;
     if (userId) return userId;
   }
 
