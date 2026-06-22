@@ -79,8 +79,7 @@ export async function signUp(email: string, password: string): Promise<FirebaseU
 
   try {
     const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-    // The verify-email screen sends the verification email on mount, which also
-    // covers existing unverified accounts on their next sign-in.
+    await deliverVerificationEmail(credential.user);
     return credential.user;
   } catch (error) {
     throw new Error(

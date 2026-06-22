@@ -202,8 +202,10 @@ export default function VerifyEmailScreen() {
           <Text style={styles.email}>{email}</Text>
         </Text>
         <Text style={styles.body}>
-          Open the email and tap the link to confirm it's really you. This screen updates
-          automatically once you're verified.
+          Open the email and tap the link to confirm it's really you. Check your spam or
+          promotions folder — the sender is usually{' '}
+          <Text style={styles.email}>noreply@omof-eed24.firebaseapp.com</Text>.
+          This screen updates automatically once you're verified.
         </Text>
 
         {message ? <Text style={styles.success} accessibilityRole="alert">{message}</Text> : null}
