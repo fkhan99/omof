@@ -1,4 +1,9 @@
-import { sendEmailVerification,
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   reload,
   onAuthStateChanged,
   EmailAuthProvider,
@@ -8,7 +13,6 @@ import { sendEmailVerification,
 } from 'firebase/auth';
 import {
   doc,
-  setDoc,
   getDoc,
   serverTimestamp,
   runTransaction,
@@ -25,6 +29,7 @@ import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
+import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
 import { updateFcmToken } from './pushToken';
 
 function assertFirebaseConfigured(): void {
@@ -75,7 +80,7 @@ export async function sendVerificationEmail(): Promise<void> {
   }
 
   try {
-    await sendEmailVerification(user);
+    await sendEmailVerification(user, getEmailVerificationActionSettings());
   } catch (error) {
     throw new Error(
       getFirebaseAuthErrorMessage(error, 'Failed to send verification email. Please try again.'),

@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { StackBackButton } from '@/components/navigation/StackBackButton';
 import { useAuthListener } from '@/hooks/useAuthListener';
+import { useEmailActionHandler } from '@/hooks/useEmailActionHandler';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useFollowRelationshipSync } from '@/hooks/useFollowRelationshipSync';
 import { useActivitySync } from '@/hooks/useActivitySync';
@@ -10,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 function RootLayoutNav() {
   useAuthListener();
+  useEmailActionHandler();
   usePushNotifications();
   useFollowRelationshipSync();
   useActivitySync();

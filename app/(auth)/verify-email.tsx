@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, AppState } from 'react-native';
+import { View, Text, StyleSheet, AppState, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -9,6 +9,10 @@ import {
 } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { confirmAction } from '@/utils/confirm';
+import {
+  completeEmailVerificationFromLink,
+  stripEmailActionQueryFromUrl,
+} from '@/utils/firebaseEmailActions';
 import { Button } from '@/components/ui/Button';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -38,8 +42,32 @@ export default function VerifyEmailScreen() {
     }
   }, [firebaseUser, router]);
 
-  // Send the verification email once when the screen first opens. This covers
-  // both fresh signups and existing unverified accounts that now must verify.
+  // Complete verification when the inbox link opens this page with oobCode (web).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const search = window.location.search;
+    if (!search.includes('oobCode') || !search.includes('mode=verifyEmail')) return;
+
+    void (async () => {
+      try {
+        const refreshed = await completeEmailVerificationFromLink(search);
+        stripEmailActionQueryFromUrl();
+        if (refreshed?.emailVerified) {
+          setFirebaseUser(refreshed);
+          router.replace('/');
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'That verification link is invalid or expired. Resend a new email.',
+        );
+        stripEmailActionQueryFromUrl();
+      }
+    })();
+  }, [router, setFirebaseUser]);
+
+  // Send the verification email once when the screen first opens.
   useEffect(() => {
     if (!firebaseUser || autoSentRef.current) return;
     autoSentRef.current = true;
@@ -64,8 +92,7 @@ export default function VerifyEmailScreen() {
     return false;
   }, [router, setFirebaseUser]);
 
-  // Poll for verification and re-check whenever the app returns to foreground
-  // (e.g. after the user taps the link in their email app).
+  // Poll for verification and re-check when the app returns to foreground.
   useEffect(() => {
     let cancelled = false;
 
@@ -79,10 +106,26 @@ export default function VerifyEmailScreen() {
       }
     });
 
+    const onVisibilityChange = () => {
+      if (
+        !cancelled &&
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'visible'
+      ) {
+        void proceedIfVerified();
+      }
+    };
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
     return () => {
       cancelled = true;
       clearInterval(interval);
       subscription.remove();
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
     };
   }, [proceedIfVerified]);
 

@@ -10,6 +10,10 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/invalid-credential': 'Incorrect email or password.',
   'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
   'auth/weak-password': 'Password must be at least 6 characters.',
+  'auth/invalid-action-code':
+    'That verification link is invalid or already used. Resend a new verification email.',
+  'auth/expired-action-code':
+    'That verification link has expired. Resend a new verification email.',
   'auth/requires-recent-login':
     'For security, verify your password and try again.',
 };
