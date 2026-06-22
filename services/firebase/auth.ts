@@ -58,12 +58,52 @@ export async function signUp(email: string, password: string): Promise<FirebaseU
 
   try {
     const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+    // Best-effort: don't fail signup if the verification email can't be sent —
+    // the verify-email screen offers a resend button.
+    try {
+      await sendEmailVerification(credential.user);
+    } catch (verificationError) {
+      console.warn('[Auth] failed to send verification email on signup', verificationError);
+    }
     return credential.user;
   } catch (error) {
     throw new Error(
       getFirebaseAuthErrorMessage(error, 'Failed to create account. Please try again.'),
     );
   }
+}
+
+/** Sends (or resends) a verification email to the currently signed-in user. */
+export async function sendVerificationEmail(): Promise<void> {
+  assertFirebaseConfigured();
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('You must be signed in to verify your email.');
+  }
+
+  try {
+    await sendEmailVerification(user);
+  } catch (error) {
+    throw new Error(
+      getFirebaseAuthErrorMessage(error, 'Failed to send verification email. Please try again.'),
+    );
+  }
+}
+
+/**
+ * Refreshes the current user from the server (so `emailVerified` reflects a
+ * link that was just clicked) and returns the up-to-date user.
+ */
+export async function reloadCurrentUser(): Promise<FirebaseUser | null> {
+  if (!isFirebaseConfigured()) return null;
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  await reload(user);
+  return auth.currentUser;
 }
 
 export async function signIn(email: string, password: string): Promise<FirebaseUser> {
