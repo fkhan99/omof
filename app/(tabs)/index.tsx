@@ -50,7 +50,14 @@ export default function FeedScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  if (isLoading) {
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof displayPosts)[number] }) => <PostCard post={item} />,
+    [],
+  );
+
+  // Profile not resolved yet (auth still initializing) — show a loader instead
+  // of falsely telling the user their feed is empty.
+  if (!profile || isLoading) {
     return <LoadingState message="Loading your feed..." />;
   }
 
@@ -58,24 +65,21 @@ export default function FeedScreen() {
     return <ErrorState message="Couldn't load your feed." onRetry={() => refetch()} />;
   }
 
-  if (displayPosts.length === 0) {
-    return (
-      <EmptyState
-        icon="people-outline"
-        title="Your feed is quiet"
-        message="Follow people to see their posts here. Your own posts appear on your profile."
-      />
-    );
-  }
-
   return (
     <FlatList
       data={displayPosts}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => <PostCard post={item} />}
-      contentContainerStyle={styles.list}
+      renderItem={renderItem}
+      contentContainerStyle={displayPosts.length === 0 ? styles.emptyList : styles.list}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      ListEmptyComponent={
+        <EmptyState
+          icon="people-outline"
+          title="Your feed is quiet"
+          message="Follow people to see their posts here. Pull down to refresh. Your own posts appear on your profile."
+        />
       }
       onEndReachedThreshold={0.5}
     />
@@ -86,6 +90,9 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     list: {
       paddingBottom: SPACING.lg,
+    },
+    emptyList: {
+      flexGrow: 1,
     },
   });
 }

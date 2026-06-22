@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
@@ -60,11 +60,18 @@ export default function ProfileScreen() {
     return postsData.items.filter((post) => post.authorId === authUid);
   }, [authUid, postsData?.items]);
 
-  const handleLogout = async () => {
+  const performLogout = async () => {
     clearUserPostQueries();
     await logOut();
     reset();
     router.replace('/(auth)/login');
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: () => void performLogout() },
+    ]);
   };
 
   if (!profile || !authUid) {

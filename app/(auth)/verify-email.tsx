@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, AppState } from 'react-native';
+import { View, Text, StyleSheet, AppState, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -120,12 +120,27 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const handleUseDifferentEmail = async () => {
-    try {
-      await logOut();
-    } finally {
-      router.replace('/(auth)/signup');
-    }
+  const handleUseDifferentEmail = () => {
+    Alert.alert(
+      'Use a different email',
+      "You'll be signed out of this unverified account and returned to sign up. Continue?",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await logOut();
+              } finally {
+                router.replace('/(auth)/signup');
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   return (

@@ -176,7 +176,9 @@ export default function SearchScreen() {
             keyboardShouldPersistTaps="handled"
           />
         )
-      ) : isLoading ? null : users.length === 0 ? (
+      ) : isLoading ? (
+        <LoadingState message="Searching..." />
+      ) : users.length === 0 ? (
         <EmptyState icon="person-outline" title="No results" message="Try a different search term." />
       ) : (
         <FlatList

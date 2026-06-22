@@ -161,6 +161,12 @@ export default function ActivityScreen() {
     onMutate: (requesterId) => {
       setActiveRequestId(requesterId);
     },
+    onError: (err) => {
+      Alert.alert(
+        'Could not decline request',
+        err instanceof Error ? err.message : 'Please try again.',
+      );
+    },
     onSettled: () => {
       setActiveRequestId(null);
       queryClient.invalidateQueries({ queryKey: ['followRequests'] });
@@ -169,10 +175,21 @@ export default function ActivityScreen() {
 
   const markAllRead = useCallback(async () => {
     if (!authUid) return;
-    await markAllNotificationsRead(authUid, notifications);
+    const previous = notifications;
     const next = notifications.map((item) => ({ ...item, read: true }));
     setActivityItems(next);
     updateBadgeCount(next);
+    try {
+      await markAllNotificationsRead(authUid, previous);
+    } catch (error) {
+      // Roll back the optimistic update so unread state stays accurate.
+      setActivityItems(previous);
+      updateBadgeCount(previous);
+      Alert.alert(
+        'Could not mark all as read',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    }
   }, [authUid, notifications, setActivityItems, updateBadgeCount]);
 
   const handlePress = async (notification: Notification) => {
