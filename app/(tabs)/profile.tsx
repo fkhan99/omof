@@ -101,23 +101,25 @@ export default function ProfileScreen() {
   const renderListHeader = () => (
     <>
       <View style={styles.header}>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.headerActionButton}
-            onPress={handleLogout}
-            accessibilityRole="button"
-            accessibilityLabel="Sign out"
-          >
-            <Ionicons name="log-out-outline" size={22} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerActionButton}
-            onPress={() => router.push('/settings')}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-          >
-            <Ionicons name="settings-outline" size={24} color={colors.text} />
-          </TouchableOpacity>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerActionButton}
+              onPress={handleLogout}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
+            >
+              <Ionicons name="log-out-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerActionButton}
+              onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.profileRow}>
@@ -226,17 +228,20 @@ function createStyles(colors: ThemeColors) {
       gap: SPACING.lg,
       marginBottom: SPACING.md,
     },
+    headerTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      marginBottom: Platform.select({ web: SPACING.sm, default: SPACING.md }),
+    },
     headerActions: {
-      position: 'absolute',
-      top: SPACING.md,
-      right: SPACING.md,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: SPACING.xs,
-      zIndex: 1,
+      gap: Platform.select({ web: SPACING.xs, default: SPACING.sm }),
     },
     headerActionButton: {
       padding: SPACING.sm,
+      margin: -SPACING.sm,
     },
     displayName: {
       fontSize: FONT_SIZES.md,
