@@ -240,7 +240,7 @@ export async function deleteAccount(userId: string, password: string): Promise<v
 
   try {
     try {
-      await deleteQueryBatch('prootions', 'ownerId', userId);
+      await deleteQueryBatch('promotions', 'ownerId', userId);
     } catch (error) {
       console.warn('[compliance] promotion cleanup failed before post deletion', error);
     }

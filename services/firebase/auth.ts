@@ -98,6 +98,16 @@ export async function reloadCurrentUser(): Promise<FirebaseUser | null> {
   if (!user) return null;
 
   await reload(user);
+  // Force-refresh the ID token so the `email_verified` claim Firestore rules
+  // read reflects a just-completed verification (otherwise content writes are
+  // rejected until the token refreshes on its own).
+  if (auth.currentUser?.emailVerified) {
+    try {
+      await auth.currentUser.getIdToken(true);
+    } catch {
+      // Non-fatal: token will refresh on its own shortly.
+    }
+  }
   return auth.currentUser;
 }
 
