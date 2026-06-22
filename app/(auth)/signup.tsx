@@ -50,7 +50,7 @@ export default function SignupScreen() {
         confirmedAge: data.confirmedAge,
       });
       await signUp(data.email, data.password);
-      router.replace({ pathname: '/(auth)/verify-email', params: { sent: '1' } });
+      router.replace('/(auth)/verify-email');
     } catch (err) {
       setPendingSignupCompliance(null);
       setError(err instanceof Error ? err.message : 'Failed to create account');

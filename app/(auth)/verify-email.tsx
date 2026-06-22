@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, AppState, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import {
   logOut,
@@ -23,11 +23,11 @@ const POLL_INTERVAL_MS = 4000;
 export default function VerifyEmailScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { sent } = useLocalSearchParams<{ sent?: string }>();
   const { firebaseUser, setFirebaseUser, reset, setPendingSignupCompliance } = useAuthStore();
   const email = firebaseUser?.email ?? 'your email';
 
   const [checking, setChecking] = useState(false);
+  const [initialSending, setInitialSending] = useState(true);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
@@ -68,9 +68,9 @@ export default function VerifyEmailScreen() {
     })();
   }, [router, setFirebaseUser]);
 
-  // Send once when landing from login (signup already sent on account creation).
+  // Always send when this screen opens so success/error reflects a real attempt.
   useEffect(() => {
-    if (!firebaseUser || autoSentRef.current || sent === '1') return;
+    if (!firebaseUser || autoSentRef.current) return;
     autoSentRef.current = true;
 
     void sendVerificationEmail()
@@ -80,8 +80,11 @@ export default function VerifyEmailScreen() {
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Failed to send verification email.');
+      })
+      .finally(() => {
+        setInitialSending(false);
       });
-  }, [firebaseUser, sent]);
+  }, [firebaseUser]);
 
   const proceedIfVerified = useCallback(async (): Promise<boolean> => {
     const refreshed = await reloadCurrentUser();
@@ -210,10 +213,8 @@ export default function VerifyEmailScreen() {
           This screen updates automatically once you're verified.
         </Text>
 
-        {sent === '1' && !message && !error ? (
-          <Text style={styles.success} accessibilityRole="alert">
-            Verification email sent to {email}. If nothing arrives, wait a minute then tap Resend.
-          </Text>
+        {initialSending ? (
+          <Text style={styles.body}>Sending verification email…</Text>
         ) : null}
 
         {message ? <Text style={styles.success} accessibilityRole="alert">{message}</Text> : null}
@@ -223,6 +224,7 @@ export default function VerifyEmailScreen() {
           title="I've verified — continue"
           onPress={handleCheck}
           loading={checking}
+          disabled={initialSending}
           style={styles.primaryButton}
         />
 
@@ -230,7 +232,7 @@ export default function VerifyEmailScreen() {
           title={cooldown > 0 ? `Resend email (${cooldown}s)` : 'Resend email'}
           onPress={handleResend}
           loading={resending}
-          disabled={cooldown > 0 || resending}
+          disabled={initialSending || cooldown > 0 || resending}
           variant="secondary"
           style={styles.secondaryButton}
         />

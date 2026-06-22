@@ -21,6 +21,7 @@ import {
 import {
   getFirebaseAuth,
   getFirebaseDb,
+  getFirebaseApp,
   isFirebaseConfigured,
   FirebaseNotConfiguredError,
 } from './config';

@@ -11,6 +11,7 @@ import {
 } from './gamification';
 import { createAdminPurgeUserDataCallable, createOnAuthUserDeleted } from './userDeletion';
 import { createAdminEmailVerificationCallable } from './adminAuth';
+import { createRequestVerificationEmailCallable } from './verificationEmail';
 
 admin.initializeApp();
 
@@ -454,3 +455,6 @@ export const adminPurgeUserData = createAdminPurgeUserDataCallable();
 
 /** Admin-only: generate a verification link or mark an email verified. */
 export const adminEmailVerification = createAdminEmailVerificationCallable();
+
+/** Signed-in users: send verification email via configured SMTP (falls back client-side). */
+export const requestVerificationEmail = createRequestVerificationEmailCallable();
