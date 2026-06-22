@@ -17,6 +17,7 @@ import {
   getDoc,
   serverTimestamp,
   runTransaction,
+  onSnapshot,
 } from 'firebase/firestore';
 import {
   getFirebaseAuth,
@@ -215,6 +216,32 @@ export async function getUserProfile(userId: string): Promise<User | null> {
 
   if (!exists) return null;
   return mapUserDoc(snap.id, snap.data());
+}
+
+/** Live profile updates (stats, badges, counts) while signed in. */
+export function subscribeToUserProfile(
+  userId: string,
+  callback: (user: User | null) => void,
+): () => void {
+  if (!isFirebaseConfigured()) {
+    callback(null);
+    return () => {};
+  }
+
+  const db = getFirebaseDb();
+  return onSnapshot(
+    doc(db, 'users', userId),
+    (snap) => {
+      if (!snap.exists()) {
+        callback(null);
+        return;
+      }
+      callback(mapUserDoc(snap.id, snap.data()));
+    },
+    (error) => {
+      console.warn('[Auth] profile subscription error', error);
+    },
+  );
 }
 
 /**

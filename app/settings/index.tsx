@@ -8,8 +8,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { ThemeMode } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
 import { updateUserProfile } from '@/services/firebase/users';
-import { getUserProfile } from '@/services/firebase/auth';
+import { getUserProfile, logOut } from '@/services/firebase/auth';
 import { sendTestPushToSelf } from '@/utils/pushRegistration';
+import { clearUserPostQueries } from '@/lib/queryClient';
+import { confirmAction } from '@/utils/confirm';
 
 interface SettingsItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -67,7 +69,30 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { mode, setMode, colors } = useTheme();
   const styles = useThemedStyles(createStyles);
-  const { profile, setProfile } = useAuthStore();
+  const { profile, setProfile, reset } = useAuthStore();
+
+  const handleSignOut = () => {
+    confirmAction(
+      'Sign out',
+      'Are you sure you want to sign out?',
+      () => {
+        void (async () => {
+          try {
+            clearUserPostQueries();
+            await logOut();
+            reset();
+            router.replace('/(auth)/login');
+          } catch (error) {
+            Alert.alert(
+              'Sign out failed',
+              error instanceof Error ? error.message : 'Please try again.',
+            );
+          }
+        })();
+      },
+      'Sign Out',
+    );
+  };
 
   const privacyMutation = useMutation({
     mutationFn: (isPrivate: boolean) => updateUserProfile(profile!.id, { isPrivate }),
@@ -123,6 +148,7 @@ export default function SettingsScreen() {
             disabled={!profile || privacyMutation.isPending}
           />
         </View>
+        <SettingsItem icon="log-out-outline" title="Sign Out" onPress={handleSignOut} />
       </View>
 
       <Text style={styles.sectionTitle}>Appearance</Text>

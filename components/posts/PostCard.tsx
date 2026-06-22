@@ -7,9 +7,11 @@ import { MoodTagBadge } from '@/components/ui/MoodTagBadge';
 import { PostMedia } from '@/components/posts/PostMedia';
 import { PromotedLabel } from '@/components/posts/PromotedLabel';
 import { ReactionBar } from '@/components/reactions/ReactionBar';
+import { PostComments } from '@/components/comments/PostComments';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { usePostReaction } from '@/hooks/usePostReaction';
+import { usePostLiveCounts } from '@/hooks/usePostLiveCounts';
 import { formatRelativeTime, formatReactionCount } from '@/utils';
 import { trackPromotionClick, trackPromotionImpression } from '@/services/firebase/promotions';
 
@@ -24,6 +26,7 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
   const isFeed = variant === 'feed';
   const impressionTracked = useRef(false);
   const { userReaction, react } = usePostReaction(post.id);
+  usePostLiveCounts(post.id);
 
   useEffect(() => {
     if (post.isPromoted && post.promotionId && !impressionTracked.current) {
@@ -85,16 +88,12 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
 
         <ReactionBar userReaction={userReaction} onReact={react} />
 
-        {post.commentCount > 0 ? (
-          <TouchableOpacity
-            onPress={openPost}
-            accessibilityRole="button"
-            accessibilityLabel={`View all ${post.commentCount} comments`}
-          >
-            <Text style={styles.viewComments}>
-              View all {post.commentCount} comments
-            </Text>
-          </TouchableOpacity>
+        {isFeed ? (
+          <PostComments
+            postId={post.id}
+            commentCount={post.commentCount}
+            variant="feed"
+          />
         ) : null}
       </View>
     </View>
@@ -167,11 +166,6 @@ function createStyles(colors: ThemeColors) {
     captionUser: {
       fontWeight: '700',
       color: colors.text,
-    },
-    viewComments: {
-      fontSize: FONT_SIZES.sm,
-      color: colors.textMuted,
-      marginTop: SPACING.xs,
     },
   });
 }

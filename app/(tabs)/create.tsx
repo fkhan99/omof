@@ -5,12 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { Image, type ImageLoadEventData } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,10 +49,14 @@ interface SelectedMedia {
 export default function CreatePostScreen() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxPreviewHeight =
+    Platform.OS === 'web' ? Math.min(Math.round(windowHeight * 0.42), 520) : undefined;
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia | null>(null);
+  const [previewAspectRatio, setPreviewAspectRatio] = useState(1);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const previewRequestRef = useRef(0);
   const [showCrisisModal, setShowCrisisModal] = useState(false);
@@ -69,7 +74,15 @@ export default function CreatePostScreen() {
   const clearMedia = () => {
     previewRequestRef.current += 1;
     setSelectedMedia(null);
+    setPreviewAspectRatio(1);
     setIsLoadingPreview(false);
+  };
+
+  const handlePreviewLoad = (event: ImageLoadEventData) => {
+    const { width, height } = event.source;
+    if (width && height) {
+      setPreviewAspectRatio(width / height);
+    }
   };
 
   const loadVideoPreview = (videoUri: string) => {
@@ -198,6 +211,7 @@ export default function CreatePostScreen() {
         data.moodTag as MoodTag,
       );
       queryClient.invalidateQueries({ queryKey: ['myPosts', firebaseUser.uid] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
       setSelectedMedia(null);
       setIsLoadingPreview(false);
       setValue('caption', '');
@@ -255,11 +269,29 @@ export default function CreatePostScreen() {
         Share what's real. Photos and videos up to {VIDEO_MAX_DURATION_SEC}s.
       </Text>
 
-      <View style={styles.mediaPicker}>
+      <View
+        style={[
+          styles.mediaPicker,
+          maxPreviewHeight ? { maxHeight: maxPreviewHeight, aspectRatio: undefined } : null,
+        ]}
+      >
         {selectedMedia ? (
           <View style={styles.previewWrap}>
             {previewUri ? (
-              <Image source={{ uri: previewUri }} style={styles.preview} />
+              <Image
+                source={{ uri: previewUri }}
+                style={[
+                  styles.preview,
+                  maxPreviewHeight
+                    ? { aspectRatio: previewAspectRatio, maxHeight: maxPreviewHeight }
+                    : null,
+                ]}
+                contentFit="contain"
+                onLoad={handlePreviewLoad}
+                accessibilityLabel={
+                  selectedMedia.mediaType === 'video' ? 'Video preview' : 'Photo preview'
+                }
+              />
             ) : (
               <View style={styles.videoPlaceholder}>
                 <Ionicons name="videocam" size={40} color={colors.textMuted} />
@@ -400,6 +432,7 @@ function createStyles(colors: ThemeColors) {
     preview: {
       width: '100%',
       height: '100%',
+      alignSelf: 'center',
     },
     videoPlaceholder: {
       flex: 1,

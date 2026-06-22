@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { Image, type ImageLoadEventData } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -31,14 +32,19 @@ function clampAspectRatio(ratio: number): number {
   return Math.min(MAX_ASPECT_RATIO, Math.max(MIN_ASPECT_RATIO, ratio));
 }
 
-function useMaxMediaHeight(): number {
-  const { height } = useWindowDimensions();
+function useMaxMediaHeight(mode: PostMediaProps['mode']): number {
+  const { height, width } = useWindowDimensions();
+  if (Platform.OS === 'web') {
+    // Keep media, caption, and reactions visible without scrolling on desktop.
+    const viewportCap = mode === 'player' ? height * 0.52 : height * 0.48;
+    return Math.round(Math.min(viewportCap, width * 0.72, 640));
+  }
   return Math.round(height * 0.8);
 }
 
 function FullVideo({ uri }: { uri: string }) {
   const styles = useThemedStyles(createStyles);
-  const maxHeight = useMaxMediaHeight();
+  const maxHeight = useMaxMediaHeight('player');
   const [aspectRatio, setAspectRatio] = useState(1);
 
   const player = useVideoPlayer(uri, (instance) => {
@@ -71,7 +77,7 @@ function FullVideo({ uri }: { uri: string }) {
 
 function FullImage({ uri }: { uri: string }) {
   const styles = useThemedStyles(createStyles);
-  const maxHeight = useMaxMediaHeight();
+  const maxHeight = useMaxMediaHeight('player');
   const [aspectRatio, setAspectRatio] = useState(1);
 
   const handleLoad = (event: ImageLoadEventData) => {
@@ -103,7 +109,7 @@ function FeedMedia({
 }) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
-  const maxHeight = useMaxMediaHeight();
+  const maxHeight = useMaxMediaHeight('feed');
   const [aspectRatio, setAspectRatio] = useState(1);
 
   const handleLoad = (event: ImageLoadEventData) => {

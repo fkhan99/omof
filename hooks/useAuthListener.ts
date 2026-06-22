@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
-import { subscribeToAuthState, loadAuthUserProfile } from '@/services/firebase/auth';
+import {
+  subscribeToAuthState,
+  loadAuthUserProfile,
+  subscribeToUserProfile,
+} from '@/services/firebase/auth';
 import { syncUserProgress } from '@/services/firebase/gamification';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { todayKey } from '@/utils/streak';
@@ -147,4 +151,20 @@ export function useAuthListener() {
 
     return () => subscription.remove();
   }, []);
+
+  const firebaseUser = useAuthStore((s) => s.firebaseUser);
+
+  // Keep profile stats/points in sync as Cloud Functions update the user doc.
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+
+    return subscribeToUserProfile(uid, (user) => {
+      if (!user) return;
+      const store = useAuthStore.getState();
+      if (store.firebaseUser?.uid === uid) {
+        store.setProfile(user);
+      }
+    });
+  }, [firebaseUser?.uid]);
 }

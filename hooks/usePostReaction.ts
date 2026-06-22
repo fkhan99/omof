@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserReaction, toggleReaction } from '@/services/firebase/reactions';
 import { useAuthStore } from '@/store/authStore';
 import { Reaction, ReactionType } from '@/types';
+import { applyReactionCountDelta, patchPostInCaches } from '@/lib/postQueryCache';
 
 export function usePostReaction(postId: string) {
   const { firebaseUser } = useAuthStore();
@@ -19,6 +20,8 @@ export function usePostReaction(postId: string) {
     onMutate: async (type) => {
       await queryClient.cancelQueries({ queryKey: ['reaction', postId, userId] });
       const previous = queryClient.getQueryData<Reaction | null>(['reaction', postId, userId]);
+      const previousType = previous?.type ?? null;
+      const nextType = previousType === type ? null : type;
 
       if (previous?.type === type) {
         queryClient.setQueryData(['reaction', postId, userId], null);
@@ -33,7 +36,11 @@ export function usePostReaction(postId: string) {
         } satisfies Reaction);
       }
 
-      return { previous };
+      patchPostInCaches(queryClient, postId, (post) =>
+        applyReactionCountDelta(post, previousType, nextType),
+      );
+
+      return { previous, previousType, nextType };
     },
     onSuccess: (result) => {
       queryClient.setQueryData(['reaction', postId, userId], result);
@@ -43,6 +50,11 @@ export function usePostReaction(postId: string) {
     onError: (error, _type, context) => {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(['reaction', postId, userId], context.previous);
+      }
+      if (context?.previousType !== undefined && context?.nextType !== undefined) {
+        patchPostInCaches(queryClient, postId, (post) =>
+          applyReactionCountDelta(post, context.nextType, context.previousType),
+        );
       }
       console.error('[reactions] failed to save reaction', error);
     },

@@ -7,6 +7,7 @@ import { getMyPosts } from '@/services/firebase/posts';
 import { getActualFollowCounts } from '@/services/firebase/follows';
 import { logOut } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
+import { confirmAction } from '@/utils/confirm';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { PostGrid } from '@/components/posts/PostGrid';
@@ -19,6 +20,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { GamificationStats } from '@/components/profile/GamificationStats';
 import { PlusBadge } from '@/components/users/PlusBadge';
+import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
 import { Post } from '@/types';
 
 export default function ProfileScreen() {
@@ -60,17 +62,28 @@ export default function ProfileScreen() {
   }, [authUid, postsData?.items]);
 
   const performLogout = async () => {
-    clearUserPostQueries();
-    await logOut();
-    reset();
-    router.replace('/(auth)/login');
+    try {
+      clearUserPostQueries();
+      await logOut();
+      reset();
+      router.replace('/(auth)/login');
+    } catch (err) {
+      Alert.alert(
+        'Sign out failed',
+        err instanceof Error ? err.message : 'Please try again.',
+      );
+    }
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => void performLogout() },
-    ]);
+    confirmAction(
+      'Sign out',
+      'Are you sure you want to sign out?',
+      () => {
+        void performLogout();
+      },
+      'Sign Out',
+    );
   };
 
   if (!profile || !authUid) {
@@ -83,14 +96,24 @@ export default function ProfileScreen() {
   const renderListHeader = () => (
     <>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => router.push('/settings')}
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-        >
-          <Ionicons name="settings-outline" size={24} color={colors.text} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={handleLogout}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            <Ionicons name="log-out-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <Ionicons name="settings-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.profileRow}>
           <Avatar uri={profile.photoURL} name={profile.displayName} size={88} showRing />
@@ -136,6 +159,13 @@ export default function ProfileScreen() {
           onPress={() => router.push('/profile/edit')}
           style={styles.editButton}
         />
+
+        <Button
+          title="Sign Out"
+          variant="ghost"
+          onPress={handleLogout}
+          style={styles.logoutHeader}
+        />
       </View>
 
       <View style={styles.postsHeader}>
@@ -166,9 +196,7 @@ export default function ProfileScreen() {
     );
   };
 
-  const renderListFooter = () => (
-    <Button title="Sign Out" variant="ghost" onPress={handleLogout} style={styles.logout} />
-  );
+  const renderListFooter = () => null;
 
   return (
     <PostGrid
@@ -176,7 +204,7 @@ export default function ProfileScreen() {
       ListHeaderComponent={renderListHeader}
       ListEmptyComponent={renderListEmpty}
       ListFooterComponent={renderListFooter}
-      extraData={`${authUid}-${displayedFollowerCount}-${displayedFollowingCount}`}
+      extraData={`${authUid}-${displayedFollowerCount}-${displayedFollowingCount}-${profile.stats.points}`}
     />
   );
 }
@@ -200,12 +228,17 @@ function createStyles(colors: ThemeColors) {
       gap: SPACING.lg,
       marginBottom: SPACING.md,
     },
-    settingsButton: {
+    headerActions: {
       position: 'absolute',
       top: SPACING.md,
       right: SPACING.md,
-      padding: SPACING.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
       zIndex: 1,
+    },
+    headerActionButton: {
+      padding: SPACING.sm,
     },
     displayName: {
       fontSize: FONT_SIZES.md,
@@ -251,6 +284,11 @@ function createStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
       minWidth: 140,
     },
+    logoutHeader: {
+      marginTop: SPACING.sm,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 0,
+    },
     postsHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -267,10 +305,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       letterSpacing: 0.5,
       textTransform: 'uppercase',
-    },
-    logout: {
-      marginHorizontal: SPACING.lg,
-      marginTop: SPACING.lg,
     },
   });
 }
