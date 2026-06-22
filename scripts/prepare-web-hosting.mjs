@@ -98,31 +98,51 @@ function publishWebFont(sourceAssetPath) {
 }
 
 function buildFontHeadMarkup() {
-  return [
-    `<link rel="preload" href="${WEB_IONICONS_PATH}" as="font" type="font/ttf" crossorigin="anonymous" />`,
-    `<style id="expo-generated-fonts">@font-face{font-family:"ionicons";src:url("${WEB_IONICONS_PATH}") format("truetype");font-display:swap;font-weight:normal;font-style:normal;}</style>`,
-  ].join('');
+  const style = `<style id="expo-generated-fonts">@font-face{font-family:"ionicons";src:url("${WEB_IONICONS_PATH}") format("truetype");font-display:swap;font-weight:normal;font-style:normal;}</style>`;
+  const preload = `<link rel="preload" href="${WEB_IONICONS_PATH}" as="font" type="font/ttf" crossorigin="anonymous" />`;
+  return { style, preload, combined: `${preload}${style}` };
 }
 
 function injectFontMarkupIntoHtmlFiles() {
-  const markup = buildFontHeadMarkup();
+  const { style, preload, combined } = buildFontHeadMarkup();
   let updated = 0;
 
-  for (const entry of readdirSync(target, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith('.html')) continue;
+  function walk(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const filePath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(filePath);
+        continue;
+      }
+      if (!entry.name.endsWith('.html')) continue;
 
-    const filePath = resolve(target, entry.name);
-    const html = readFileSync(filePath, 'utf8');
-    if (html.includes('id="expo-generated-fonts"')) continue;
+      let html = readFileSync(filePath, 'utf8');
+      let changed = false;
 
-    const nextHtml = html.includes('</head>')
-      ? html.replace('</head>', `${markup}</head>`)
-      : `${markup}${html}`;
+      if (html.includes('id="expo-generated-fonts"')) {
+        const nextHtml = html
+          .replace(/<style id="expo-generated-fonts">[\s\S]*?<\/style>/, style)
+          .replace(
+            /<link rel="preload" href="\/assets\/node_modules\/@expo\/vector-icons\/[^"]+" as="font"[^>]*>/g,
+            preload,
+          );
+        if (nextHtml !== html) {
+          html = nextHtml;
+          changed = true;
+        }
+      } else if (html.includes('</head>')) {
+        html = html.replace('</head>', `${combined}</head>`);
+        changed = true;
+      }
 
-    writeFileSync(filePath, nextHtml);
-    updated += 1;
+      if (changed) {
+        writeFileSync(filePath, html);
+        updated += 1;
+      }
+    }
   }
 
+  walk(target);
   return updated;
 }
 
