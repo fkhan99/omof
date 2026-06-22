@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
 import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge';
 import { OmofWordmark } from '@/components/branding/OmofWordmark';
+import { ProfileHeaderActions } from '@/components/profile/ProfileHeaderActions';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
