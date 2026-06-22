@@ -1,7 +1,9 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 
-const db = admin.firestore();
+function getDb() {
+  return admin.firestore();
+}
 
 const POINT_VALUES = {
   createPost: 10,
