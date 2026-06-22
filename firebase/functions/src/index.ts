@@ -10,6 +10,7 @@ import {
   syncFollowCounts,
 } from './gamification';
 import { createAdminPurgeUserDataCallable, createOnAuthUserDeleted } from './userDeletion';
+import { createAdminEmailVerificationCallable } from './adminAuth';
 
 admin.initializeApp();
 
@@ -450,3 +451,6 @@ export const onAuthUserDeleted = createOnAuthUserDeleted();
 
 /** Admin-only: purge orphaned data for a uid whose Auth account is already gone. */
 export const adminPurgeUserData = createAdminPurgeUserDataCallable();
+
+/** Admin-only: generate a verification link or mark an email verified. */
+export const adminEmailVerification = createAdminEmailVerificationCallable();

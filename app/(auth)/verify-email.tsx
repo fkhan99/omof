@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, AppState, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import {
   logOut,
@@ -23,6 +23,7 @@ const POLL_INTERVAL_MS = 4000;
 export default function VerifyEmailScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { sent } = useLocalSearchParams<{ sent?: string }>();
   const { firebaseUser, setFirebaseUser, reset, setPendingSignupCompliance } = useAuthStore();
   const email = firebaseUser?.email ?? 'your email';
 
@@ -67,9 +68,9 @@ export default function VerifyEmailScreen() {
     })();
   }, [router, setFirebaseUser]);
 
-  // Send the verification email once when the screen first opens.
+  // Send once when landing from login (signup already sent on account creation).
   useEffect(() => {
-    if (!firebaseUser || autoSentRef.current) return;
+    if (!firebaseUser || autoSentRef.current || sent === '1') return;
     autoSentRef.current = true;
 
     void sendVerificationEmail()
@@ -80,7 +81,7 @@ export default function VerifyEmailScreen() {
       .catch((err) => {
         setError(err instanceof Error ? err.message : 'Failed to send verification email.');
       });
-  }, [firebaseUser]);
+  }, [firebaseUser, sent]);
 
   const proceedIfVerified = useCallback(async (): Promise<boolean> => {
     const refreshed = await reloadCurrentUser();
@@ -202,11 +203,18 @@ export default function VerifyEmailScreen() {
           <Text style={styles.email}>{email}</Text>
         </Text>
         <Text style={styles.body}>
-          Open the email and tap the link to confirm it's really you. Check your spam or
-          promotions folder — the sender is usually{' '}
+          Open the email and tap the link to confirm it's really you. Check your spam,
+          promotions, and All Mail — the sender is usually{' '}
           <Text style={styles.email}>noreply@omof-eed24.firebaseapp.com</Text>.
+          Search your inbox for "omof-eed24" if you don't see it within a few minutes.
           This screen updates automatically once you're verified.
         </Text>
+
+        {sent === '1' && !message && !error ? (
+          <Text style={styles.success} accessibilityRole="alert">
+            Verification email sent to {email}. If nothing arrives, wait a minute then tap Resend.
+          </Text>
+        ) : null}
 
         {message ? <Text style={styles.success} accessibilityRole="alert">{message}</Text> : null}
         {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}

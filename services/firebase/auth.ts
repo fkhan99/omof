@@ -29,26 +29,13 @@ import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
-import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
 import { updateFcmToken } from './pushToken';
 
 async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {
-  try {
-    await sendEmailVerification(user, getEmailVerificationActionSettings());
-  } catch (error) {
-    const code = getAuthErrorCode(error);
-    if (
-      code === 'auth/unauthorized-continue-uri' ||
-      code === 'auth/invalid-continue-uri' ||
-      code === 'auth/missing-continue-uri'
-    ) {
-      // Domain may be missing from Firebase Authorized domains — fall back to the
-      // default Firebase-hosted verification link so delivery still works.
-      await sendEmailVerification(user);
-      return;
-    }
-    throw error;
-  }
+  // Use Firebase's default verification email (firebaseapp.com link). Custom
+  // continue URLs often fail silently in Gmail when the domain isn't authorized
+  // or hurts deliverability from Firebase's shared sender.
+  await sendEmailVerification(user);
 }
 
 function assertFirebaseConfigured(): void {
@@ -78,7 +65,11 @@ export async function signUp(email: string, password: string): Promise<FirebaseU
 
   try {
     const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-    await deliverVerificationEmail(credential.user);
+    try {
+      await deliverVerificationEmail(credential.user);
+    } catch (verificationError) {
+      console.warn('[Auth] verification email failed on signup', verificationError);
+    }
     return credential.user;
   } catch (error) {
     throw new Error(
