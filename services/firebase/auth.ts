@@ -65,11 +65,6 @@ export async function signUp(email: string, password: string): Promise<FirebaseU
 
   try {
     const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-    try {
-      await deliverVerificationEmail(credential.user);
-    } catch (verificationError) {
-      console.warn('[Auth] verification email failed on signup', verificationError);
-    }
     return credential.user;
   } catch (error) {
     throw new Error(
