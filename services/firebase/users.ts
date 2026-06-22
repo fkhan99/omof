@@ -60,8 +60,8 @@ export async function uploadProfilePhoto(userId: string, uri: string): Promise<s
   const optimized = await optimizeAvatarForUpload(uri, AVATAR_MAX_DIMENSION);
   const response = await fetch(optimized.uri);
   const blob = await response.blob();
-  const storageRef = ref(storage, `profiles/${userId}/${Date.now()}.webp`);
-  await uploadBytes(storageRef, blob, { contentType: 'image/webp' });
+  const storageRef = ref(storage, `profiles/${userId}/${Date.now()}.${optimized.extension}`);
+  await uploadBytes(storageRef, blob, { contentType: optimized.contentType });
   return getDownloadURL(storageRef);
 }
 

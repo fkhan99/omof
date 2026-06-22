@@ -54,8 +54,8 @@ export async function createPost(
     const imageURL = await uploadLocalFile(
       storage,
       optimized.uri,
-      `posts/${author.id}/${timestamp}.webp`,
-      'image/webp',
+      `posts/${author.id}/${timestamp}.${optimized.extension}`,
+      optimized.contentType,
     );
 
     const docRef = await addDoc(collection(db, 'posts'), {
@@ -99,8 +99,8 @@ export async function createPost(
     imageURL = await uploadLocalFile(
       storage,
       optimizedThumb.uri,
-      `posts/${author.id}/${timestamp}_thumb.webp`,
-      'image/webp',
+      `posts/${author.id}/${timestamp}_thumb.${optimizedThumb.extension}`,
+      optimizedThumb.contentType,
     );
   } else {
     imageURL = await uploadPlaceholderThumbnail(

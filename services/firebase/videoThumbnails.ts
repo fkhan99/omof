@@ -68,8 +68,8 @@ async function backfillVideoPostThumbnail(post: Post): Promise<string | null> {
     const imageURL = await uploadLocalFile(
       storage,
       optimizedThumb.uri,
-      `posts/backfill/${post.id}_thumb.webp`,
-      'image/webp',
+      `posts/backfill/${post.id}_thumb.${optimizedThumb.extension}`,
+      optimizedThumb.contentType,
     );
 
     const db = getFirebaseDb();

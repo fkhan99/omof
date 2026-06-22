@@ -303,8 +303,8 @@ async function saveOptimizedImage(
 
 /**
  * Downscales an image so its longest edge does not exceed `maxDimension`, then
- * re-encodes it as WebP. Returns the original (re-encoded) image when it's
- * already within bounds. Accepts local file URIs and base64 data URIs.
+ * re-encodes it for upload (WebP on native, JPEG on web). Accepts local file
+ * URIs and base64 data URIs.
  */
 export async function optimizeImageForUpload(
   uri: string,
@@ -325,12 +325,7 @@ export async function optimizeImageForUpload(
     image = await context.renderAsync();
   }
 
-  const result = await image.saveAsync({
-    format: SaveFormat.WEBP,
-    compress,
-  });
-
-  return { uri: result.uri, width: result.width, height: result.height };
+  return saveOptimizedImage(image, compress);
 }
 
 /**
@@ -362,12 +357,7 @@ export async function optimizeAvatarForUpload(
     image = await context.renderAsync();
   }
 
-  const result = await image.saveAsync({
-    format: SaveFormat.WEBP,
-    compress,
-  });
-
-  return { uri: result.uri, width: result.width, height: result.height };
+  return saveOptimizedImage(image, compress);
 }
 
 export async function persistDataUrlThumbnail(dataUrl: string): Promise<string | null> {
