@@ -22,9 +22,10 @@ export default function VerifyEmailScreen() {
 
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+  const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const autoSentRef = useRef(false);
 
   // If there is no signed-in user (e.g. opened directly), go back to login.
   useEffect(() => {
@@ -32,6 +33,22 @@ export default function VerifyEmailScreen() {
       router.replace('/(auth)/login');
     }
   }, [firebaseUser, router]);
+
+  // Send the verification email once when the screen first opens. This covers
+  // both fresh signups and existing unverified accounts that now must verify.
+  useEffect(() => {
+    if (!firebaseUser || autoSentRef.current) return;
+    autoSentRef.current = true;
+
+    void sendVerificationEmail()
+      .then(() => {
+        setMessage(`Verification email sent to ${firebaseUser.email ?? 'your email'}.`);
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to send verification email.');
+      });
+  }, [firebaseUser]);
 
   const proceedIfVerified = useCallback(async (): Promise<boolean> => {
     const refreshed = await reloadCurrentUser();
