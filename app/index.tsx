@@ -33,19 +33,19 @@ export default function Index() {
 
   useEffect(() => {
     if (!isInitialized) {
-      console.log('[Route] waiting for auth init', { isInitialized, isLoading });
+      log('[Route] waiting for auth init', { isInitialized, isLoading });
       return;
     }
 
     if (isLoading) {
-      console.log('[Route] auth resolving…', { isInitialized, isLoading });
+      log('[Route] auth resolving…', { isInitialized, isLoading });
       return;
     }
 
     const uid = firebaseUser?.uid ?? null;
 
     if (!uid) {
-      console.log('[Route] no auth user → login', { uid });
+      log('[Route] no auth user → login', { uid });
       router.replace('/(auth)/login');
       return;
     }
@@ -53,7 +53,7 @@ export default function Index() {
     // A failed profile load (not a missing profile) must not route to
     // onboarding — keep the user here and let them retry.
     if (profileError) {
-      console.log('[Route] profile load errored → holding for retry', { uid });
+      log('[Route] profile load errored → holding for retry', { uid });
       return;
     }
 
@@ -62,13 +62,13 @@ export default function Index() {
     // Every account must have a verified email — including existing ones —
     // before reaching onboarding or the main app.
     if (firebaseUser && !firebaseUser.emailVerified) {
-      console.log('[Route] email not verified → verify-email', { uid });
+      log('[Route] email not verified → verify-email', { uid });
       router.replace('/(auth)/verify-email');
       return;
     }
 
     if (usersDocExists) {
-      console.log('[Route] users/{uid} exists → main app', {
+      log('[Route] users/{uid} exists → main app', {
         uid,
         username: profile.username,
       });
@@ -76,7 +76,7 @@ export default function Index() {
       return;
     }
 
-    console.log('[Route] users/{uid} missing → onboarding', { uid });
+    log('[Route] users/{uid} missing → onboarding', { uid });
     router.replace('/(onboarding)');
   }, [firebaseUser, profile, isLoading, isInitialized, profileError, router]);
 

@@ -4,8 +4,12 @@ import { useAuthStore } from '@/store/authStore';
 import { subscribeToAuthState, loadAuthUserProfile } from '@/services/firebase/auth';
 import { syncUserProgress } from '@/services/firebase/gamification';
 import { clearUserPostQueries } from '@/lib/queryClient';
+import { todayKey } from '@/utils/streak';
 
 const PROFILE_LOAD_TIMEOUT_MS = 15_000;
+// syncUserProgress does several full-collection reads; don't repeat it on every
+// foreground. Re-run only after a cooldown or when the local day rolls over.
+const FOREGROUND_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 
 async function loadProfileWithTimeout(uid: string) {
   return Promise.race([
@@ -27,14 +31,16 @@ export function useAuthListener() {
         setLoading(true);
 
         const nextUid = user?.uid ?? null;
-        console.log('[Auth] onAuthStateChanged — uid:', nextUid);
+        if (__DEV__) console.log('[Auth] onAuthStateChanged — uid:', nextUid);
 
         try {
           if (previousUidRef.current !== null && previousUidRef.current !== nextUid) {
-            console.log('[Auth] uid changed — clearing post queries', {
-              previousUid: previousUidRef.current,
-              nextUid,
-            });
+            if (__DEV__) {
+              console.log('[Auth] uid changed — clearing post queries', {
+                previousUid: previousUidRef.current,
+                nextUid,
+              });
+            }
             clearUserPostQueries();
           }
 
@@ -52,10 +58,12 @@ export function useAuthListener() {
                 console.warn('[Auth] profile load failed, retrying once', firstError);
                 profile = await loadProfileWithTimeout(user.uid);
               }
-              console.log('[Auth] profile load result:', {
-                uid: user.uid,
-                usersDocExists: profile !== null,
-              });
+              if (__DEV__) {
+                console.log('[Auth] profile load result:', {
+                  uid: user.uid,
+                  usersDocExists: profile !== null,
+                });
+              }
               if (profile && profile.id !== user.uid) {
                 console.warn('[Auth] profile.id does not match auth uid', {
                   profileId: profile.id,
@@ -105,6 +113,7 @@ export function useAuthListener() {
 
   // Re-check the streak when the app returns to the foreground (e.g. left open
   // across midnight) so the day streak stays accurate without a restart.
+  const lastForegroundSyncRef = useRef<{ at: number; day: string } | null>(null);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return;
@@ -112,6 +121,16 @@ export function useAuthListener() {
       const store = useAuthStore.getState();
       const uid = store.firebaseUser?.uid;
       if (!uid || !store.profile) return;
+
+      const now = Date.now();
+      const day = todayKey();
+      const last = lastForegroundSyncRef.current;
+      // Skip the (expensive) reconciliation if we synced recently on the same
+      // calendar day.
+      if (last && last.day === day && now - last.at < FOREGROUND_SYNC_COOLDOWN_MS) {
+        return;
+      }
+      lastForegroundSyncRef.current = { at: now, day };
 
       void syncUserProgress(uid)
         .then((stats) => {

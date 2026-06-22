@@ -50,7 +50,7 @@ export default function ProfileScreen() {
   } = useQuery({
     queryKey: ['myPosts', authUid],
     queryFn: async () => {
-      console.log('[Profile] queryFn — auth uid:', authUid);
+      if (__DEV__) console.log('[Profile] queryFn — auth uid:', authUid);
       return getMyPosts(authUid!);
     },
     enabled: !!authUid,

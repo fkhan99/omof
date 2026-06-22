@@ -82,19 +82,21 @@ async function applyGamificationUpdate(
     updatedAt: serverTimestamp(),
   });
 
-  console.log('[gamification] points update', {
-    userId,
-    pointsDelta,
-    totalPoints: nextStats.points,
-    stats: nextStats,
-  });
-
-  for (const badgeId of newBadges) {
-    console.log('[gamification] badge unlocked', {
+  if (__DEV__) {
+    console.log('[gamification] points update', {
       userId,
-      badgeId,
-      title: BADGE_DEFINITIONS[badgeId].title,
+      pointsDelta,
+      totalPoints: nextStats.points,
+      stats: nextStats,
     });
+
+    for (const badgeId of newBadges) {
+      console.log('[gamification] badge unlocked', {
+        userId,
+        badgeId,
+        title: BADGE_DEFINITIONS[badgeId].title,
+      });
+    }
   }
 }
 
@@ -168,15 +170,17 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
       updatedAt: serverTimestamp(),
     });
 
-    console.log('[gamification] progress synced', {
-      userId,
-      postsCount: nextStats.postsCount,
-      commentsCount: nextStats.commentsCount,
-      supportiveCommentsCount: nextStats.supportiveCommentsCount,
-      reactionsGiven: nextStats.reactionsGiven,
-      reactionsReceived: nextStats.reactionsReceived,
-      streakDays: nextStats.streakDays,
-    });
+    if (__DEV__) {
+      console.log('[gamification] progress synced', {
+        userId,
+        postsCount: nextStats.postsCount,
+        commentsCount: nextStats.commentsCount,
+        supportiveCommentsCount: nextStats.supportiveCommentsCount,
+        reactionsGiven: nextStats.reactionsGiven,
+        reactionsReceived: nextStats.reactionsReceived,
+        streakDays: nextStats.streakDays,
+      });
+    }
   }
 
   return nextStats;
