@@ -69,6 +69,26 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Failed:', error.message ?? error);
+  const message = error.message ?? String(error);
+  if (
+    message.includes('ENOTFOUND metadata.google.internal') ||
+    message.includes('Could not load the default credentials') ||
+    message.includes('Unable to detect a Project Id')
+  ) {
+    console.error('Failed: Firebase Admin credentials are not configured on this machine.\n');
+    console.error('Option A — service account key (recommended):');
+    console.error('  1. Firebase Console → Project settings → Service accounts');
+    console.error('  2. Generate new private key → save the JSON file');
+    console.error('  3. In PowerShell:');
+    console.error('     $env:GOOGLE_APPLICATION_CREDENTIALS="C:\\path\\to\\key.json"');
+    console.error('     node scripts/email-verification-help.mjs jamesguan17@gmail.com --verify');
+    console.error('\nOption B — gcloud (if Google Cloud SDK is installed):');
+    console.error('  gcloud auth application-default login');
+    console.error('  node scripts/email-verification-help.mjs jamesguan17@gmail.com --verify');
+    console.error('\nOption C — skip the script: Firebase Console → Authentication → Users');
+    console.error('  → click jamesguan17@gmail.com → edit Email verified → Save.');
+    process.exit(1);
+  }
+  console.error('Failed:', message);
   process.exit(1);
 });
