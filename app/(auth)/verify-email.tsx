@@ -19,7 +19,7 @@ const POLL_INTERVAL_MS = 4000;
 export default function VerifyEmailScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { firebaseUser, setFirebaseUser } = useAuthStore();
+  const { firebaseUser, setFirebaseUser, reset, setPendingSignupCompliance } = useAuthStore();
   const email = firebaseUser?.email ?? 'your email';
 
   const [checking, setChecking] = useState(false);
@@ -28,10 +28,12 @@ export default function VerifyEmailScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoSentRef = useRef(false);
+  const isSwitchingEmailRef = useRef(false);
 
-  // If there is no signed-in user (e.g. opened directly), go back to login.
+  // If there is no signed-in user (e.g. opened directly), go back to login —
+  // unless the user intentionally signed out to pick a different email.
   useEffect(() => {
-    if (!firebaseUser) {
+    if (!firebaseUser && !isSwitchingEmailRef.current) {
       router.replace('/(auth)/login');
     }
   }, [firebaseUser, router]);
@@ -122,26 +124,29 @@ export default function VerifyEmailScreen() {
     }
   };
 
+  const performSwitchEmail = async () => {
+    isSwitchingEmailRef.current = true;
+    setError(null);
+    try {
+      clearUserPostQueries();
+      await logOut();
+      reset();
+      setPendingSignupCompliance(null);
+      router.replace('/(auth)/signup');
+    } catch (err) {
+      isSwitchingEmailRef.current = false;
+      setError(err instanceof Error ? err.message : 'Could not sign out. Please try again.');
+    }
+  };
+
   const handleUseDifferentEmail = () => {
-    Alert.alert(
+    confirmAction(
       'Use a different email',
       "You'll be signed out of this unverified account and returned to sign up. Continue?",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await logOut();
-              } finally {
-                router.replace('/(auth)/signup');
-              }
-            })();
-          },
-        },
-      ],
+      () => {
+        void performSwitchEmail();
+      },
+      'Continue',
     );
   };
 
