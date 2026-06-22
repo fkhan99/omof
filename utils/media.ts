@@ -23,7 +23,39 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | nul
   ]);
 }
 
-function getExtensionFromUri(uri: string): string {
+function getImageExtensionFromUri(uri: string): string {
+  const lower = uri.toLowerCase().split('?')[0].split('#')[0];
+  if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'heic';
+  if (lower.endsWith('.png')) return 'png';
+  if (lower.endsWith('.webp')) return 'webp';
+  if (lower.endsWith('.gif')) return 'gif';
+  return 'jpg';
+}
+
+/**
+ * Image pickers on iOS may return gallery or iCloud URIs that must be copied
+ * into cache before manipulation or upload.
+ */
+export async function resolveLocalImageUri(imageUri: string): Promise<string> {
+  if (Platform.OS === 'web') return imageUri;
+
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) return imageUri;
+
+  if (imageUri.startsWith('file://')) {
+    try {
+      const info = await FileSystem.getInfoAsync(imageUri);
+      if (info.exists) return imageUri;
+    } catch {
+      // Fall through and copy from the original URI.
+    }
+  }
+
+  const destination = `${cacheDir}omof-image-${Date.now()}.${getImageExtensionFromUri(imageUri)}`;
+  await FileSystem.copyAsync({ from: imageUri, to: destination });
+  return destination;
+}
+
   const lower = uri.toLowerCase().split('?')[0].split('#')[0];
   if (lower.endsWith('.mov')) return 'mov';
   if (lower.endsWith('.webm')) return 'webm';
