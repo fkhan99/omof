@@ -181,6 +181,7 @@ export default function EditPostScreen() {
         onDismiss={handleCrisisDismiss}
       />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

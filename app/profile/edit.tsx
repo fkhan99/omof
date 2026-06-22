@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Text,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +39,15 @@ export default function EditProfileScreen() {
   });
 
   const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow photo library access to choose a profile photo.',
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -67,8 +85,21 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <TouchableOpacity style={styles.photoSection} onPress={pickImage}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
+      <TouchableOpacity
+        style={styles.photoSection}
+        onPress={pickImage}
+        accessibilityRole="button"
+        accessibilityLabel="Change profile photo"
+      >
         <Avatar uri={photoUri ?? profile?.photoURL ?? null} name={profile?.displayName} size={96} />
         <Text style={styles.photoHint}>Tap to change photo</Text>
       </TouchableOpacity>
@@ -107,6 +138,7 @@ export default function EditProfileScreen() {
 
       <Button title="Save Changes" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -306,6 +306,7 @@ export default function CreatePostScreen() {
             style={[styles.moodChip, selectedMood === mood && styles.moodChipSelected]}
             onPress={() => setValue('moodTag', mood)}
             accessibilityRole="button"
+            accessibilityLabel={`Mood: ${mood}`}
             accessibilityState={{ selected: selectedMood === mood }}
           >
             <Text
