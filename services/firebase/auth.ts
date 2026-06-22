@@ -28,9 +28,8 @@ import { mapUserDoc, getDefaultUserFields } from './mappers';
 import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
-import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
+import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
 import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
-import { getAuthErrorCode } from '@/utils/authErrors';
 import { updateFcmToken } from './pushToken';
 
 async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {
@@ -99,7 +98,7 @@ export async function sendVerificationEmail(): Promise<void> {
   }
 
   try {
-    await sendEmailVerification(user, getEmailVerificationActionSettings());
+    await deliverVerificationEmail(user);
   } catch (error) {
     throw new Error(
       getFirebaseAuthErrorMessage(error, 'Failed to send verification email. Please try again.'),
