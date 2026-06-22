@@ -175,6 +175,12 @@ export default function UserProfileScreen() {
       Alert.alert('User blocked', 'You will no longer see their content.');
       router.back();
     },
+    onError: (error) => {
+      Alert.alert(
+        "Couldn't block user",
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    },
   });
 
   const handleBlock = () => {

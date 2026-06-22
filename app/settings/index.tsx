@@ -77,6 +77,12 @@ export default function SettingsScreen() {
       const refreshed = await getUserProfile(profile.id);
       if (refreshed) setProfile(refreshed);
     },
+    onError: (error) => {
+      Alert.alert(
+        "Couldn't update privacy",
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    },
   });
 
   const testPushMutation = useMutation({

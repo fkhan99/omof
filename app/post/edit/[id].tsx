@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -109,7 +111,15 @@ export default function EditPostScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.heading}>Edit post</Text>
       <Text style={styles.subheading}>Update your caption or mood. Media cannot be changed.</Text>
 
@@ -140,6 +150,9 @@ export default function EditPostScreen() {
             key={mood}
             style={[styles.moodChip, selectedMood === mood && styles.moodChipSelected]}
             onPress={() => setValue('moodTag', mood)}
+            accessibilityRole="button"
+            accessibilityLabel={`Mood: ${mood}`}
+            accessibilityState={{ selected: selectedMood === mood }}
           >
             <Text
               style={[

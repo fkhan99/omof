@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,7 +59,15 @@ export default function ReportScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Report {targetType}</Text>
       <Text style={styles.subtitle}>Why are you reporting this content?</Text>
 
@@ -87,6 +104,7 @@ export default function ReportScreen() {
 
       <Button title="Submit Report" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

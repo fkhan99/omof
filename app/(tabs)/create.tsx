@@ -8,6 +8,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -238,7 +240,15 @@ export default function CreatePostScreen() {
       : selectedMedia?.uri;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.heading}>New post</Text>
       <Text style={styles.subheading}>
         Share what's real. Photos and videos up to {VIDEO_MAX_DURATION_SEC}s.
@@ -335,6 +345,7 @@ export default function CreatePostScreen() {
         title="Share"
         onPress={handleSubmit(onSubmit)}
         loading={isSubmitting}
+        disabled={!selectedMedia || !selectedMood || isSubmitting}
       />
 
       <CrisisSupportModal
@@ -343,6 +354,7 @@ export default function CreatePostScreen() {
         onDismiss={handleCrisisDismiss}
       />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
