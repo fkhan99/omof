@@ -1,11 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
+import { loadAuthUserProfile } from '@/services/firebase/auth';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
 
 export default function Index() {
   const router = useRouter();
-  const { firebaseUser, profile, isLoading, isInitialized } = useAuthStore();
+  const { firebaseUser, profile, isLoading, isInitialized, profileError, setProfile, setProfileError } =
+    useAuthStore();
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetryProfile = async () => {
+    const uid = firebaseUser?.uid;
+    if (!uid || retrying) return;
+    setRetrying(true);
+    try {
+      const reloaded = await loadAuthUserProfile(uid);
+      setProfileError(false);
+      setProfile(reloaded);
+    } catch (error) {
+      console.warn('[Route] manual profile reload failed', error);
+      setProfileError(true);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   useEffect(() => {
     if (!isInitialized) {
@@ -23,6 +43,13 @@ export default function Index() {
     if (!uid) {
       console.log('[Route] no auth user → login', { uid });
       router.replace('/(auth)/login');
+      return;
+    }
+
+    // A failed profile load (not a missing profile) must not route to
+    // onboarding — keep the user here and let them retry.
+    if (profileError) {
+      console.log('[Route] profile load errored → holding for retry', { uid });
       return;
     }
 
@@ -47,7 +74,19 @@ export default function Index() {
 
     console.log('[Route] users/{uid} missing → onboarding', { uid });
     router.replace('/(onboarding)');
-  }, [firebaseUser, profile, isLoading, isInitialized, router]);
+  }, [firebaseUser, profile, isLoading, isInitialized, profileError, router]);
+
+  if (isInitialized && !isLoading && firebaseUser && profileError) {
+    if (retrying) {
+      return <LoadingState message="Loading your profile..." />;
+    }
+    return (
+      <ErrorState
+        message="We couldn't load your profile. Check your connection and try again."
+        onRetry={handleRetryProfile}
+      />
+    );
+  }
 
   return <LoadingState message="Starting OMOF..." />;
 }

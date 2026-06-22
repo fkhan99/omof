@@ -17,7 +17,8 @@ async function loadProfileWithTimeout(uid: string) {
 }
 
 export function useAuthListener() {
-  const { setFirebaseUser, setProfile, setLoading, setInitialized, reset } = useAuthStore();
+  const { setFirebaseUser, setProfile, setProfileError, setLoading, setInitialized, reset } =
+    useAuthStore();
   const previousUidRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -42,7 +43,15 @@ export function useAuthListener() {
 
           if (user) {
             try {
-              const profile = await loadProfileWithTimeout(user.uid);
+              let profile;
+              try {
+                profile = await loadProfileWithTimeout(user.uid);
+              } catch (firstError) {
+                // Retry once before treating it as a failure, so a transient
+                // network blip doesn't drop an existing user into onboarding.
+                console.warn('[Auth] profile load failed, retrying once', firstError);
+                profile = await loadProfileWithTimeout(user.uid);
+              }
               console.log('[Auth] profile load result:', {
                 uid: user.uid,
                 usersDocExists: profile !== null,
@@ -53,6 +62,7 @@ export function useAuthListener() {
                   authUid: user.uid,
                 });
               }
+              setProfileError(false);
               setProfile(profile);
 
               if (profile) {
@@ -70,9 +80,13 @@ export function useAuthListener() {
               }
             } catch (error) {
               console.error('[Auth] profile load failed:', error);
+              // Distinguish a load failure from a genuinely missing profile so
+              // the router doesn't push an existing user into onboarding.
+              setProfileError(true);
               setProfile(null);
             }
           } else {
+            setProfileError(false);
             setProfile(null);
             clearUserPostQueries();
           }
@@ -87,7 +101,7 @@ export function useAuthListener() {
       unsubscribe();
       reset();
     };
-  }, [setFirebaseUser, setProfile, setLoading, setInitialized, reset]);
+  }, [setFirebaseUser, setProfile, setProfileError, setLoading, setInitialized, reset]);
 
   // Re-check the streak when the app returns to the foreground (e.g. left open
   // across midnight) so the day streak stays accurate without a restart.
