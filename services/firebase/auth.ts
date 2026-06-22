@@ -3,6 +3,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  reload,
   onAuthStateChanged,
   EmailAuthProvider,
   reauthenticateWithCredential,
