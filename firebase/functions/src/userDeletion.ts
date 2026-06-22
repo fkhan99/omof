@@ -63,12 +63,17 @@ async function deleteStorageFileFromUrl(url: string | null | undefined): Promise
 }
 
 async function deleteStoragePrefix(prefix: string): Promise<number> {
-  const bucket = admin.storage().bucket();
-  const [files] = await bucket.getFiles({ prefix });
-  await Promise.all(
-    files.map((file) => file.delete().catch(() => undefined)),
-  );
-  return files.length;
+  try {
+    const bucket = admin.storage().bucket();
+    const [files] = await bucket.getFiles({ prefix });
+    await Promise.all(
+      files.map((file) => file.delete().catch(() => undefined)),
+    );
+    return files.length;
+  } catch (error) {
+    functions.logger.warn('[userDeletion] storage prefix delete failed', { prefix, error });
+    return 0;
+  }
 }
 
 async function deletePostTree(
