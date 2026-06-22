@@ -47,6 +47,7 @@ export function OptionsMenu({ visible, title, options, onClose }: OptionsMenuPro
               style={styles.option}
               onPress={() => handlePress(option)}
               accessibilityRole="button"
+              accessibilityLabel={option.label}
             >
               <Text
                 style={[

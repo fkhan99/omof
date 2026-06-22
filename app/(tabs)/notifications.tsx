@@ -30,7 +30,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 export default function ActivityScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { firebaseUser } = useAuthStore();
+  const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const notifications = useNotificationStore((state) => state.activityItems);
   const setActivityItems = useNotificationStore((state) => state.setActivityItems);
   const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);

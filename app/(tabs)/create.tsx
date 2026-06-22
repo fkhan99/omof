@@ -49,7 +49,8 @@ export default function CreatePostScreen() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
   const router = useRouter();
-  const { profile, firebaseUser } = useAuthStore();
+  const profile = useAuthStore((s) => s.profile);
+  const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const previewRequestRef = useRef(0);

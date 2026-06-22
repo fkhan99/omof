@@ -22,7 +22,11 @@ export function MoodTagBadge({ mood }: MoodTagBadgeProps) {
   const styles = useThemedStyles(createStyles);
 
   return (
-    <View style={[styles.badge, { backgroundColor: MOOD_COLORS[mood] + '33' }]}>
+    <View
+      style={[styles.badge, { backgroundColor: MOOD_COLORS[mood] + '33' }]}
+      accessibilityRole="text"
+      accessibilityLabel={`Mood: ${mood}`}
+    >
       <Text style={[styles.text, { color: MOOD_COLORS[mood] }]}>{mood}</Text>
     </View>
   );

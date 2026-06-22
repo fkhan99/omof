@@ -6,7 +6,7 @@ export function PromotedLabel() {
   const styles = useThemedStyles(createStyles);
 
   return (
-    <View style={styles.badge}>
+    <View style={styles.badge} accessibilityRole="text" accessibilityLabel="Promoted post">
       <Text style={styles.text}>Promoted</Text>
     </View>
   );

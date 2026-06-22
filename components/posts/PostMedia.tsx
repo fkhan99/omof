@@ -186,7 +186,12 @@ export function PostMedia({ post, mode, onPress }: PostMediaProps) {
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.95} accessibilityRole="button">
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.95}
+        accessibilityRole="button"
+        accessibilityLabel="Open post"
+      >
         {content}
       </TouchableOpacity>
     );

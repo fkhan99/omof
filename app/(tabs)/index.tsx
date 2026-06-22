@@ -18,7 +18,7 @@ import { useTheme } from '@/hooks/useTheme';
 export default function FeedScreen() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((s) => s.profile);
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({

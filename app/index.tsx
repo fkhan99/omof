@@ -5,6 +5,10 @@ import { loadAuthUserProfile } from '@/services/firebase/auth';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 
+const log = (...args: unknown[]) => {
+  if (__DEV__) console.log(...args);
+};
+
 export default function Index() {
   const router = useRouter();
   const { firebaseUser, profile, isLoading, isInitialized, profileError, setProfile, setProfileError } =

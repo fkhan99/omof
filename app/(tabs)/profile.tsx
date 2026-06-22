@@ -25,7 +25,9 @@ export default function ProfileScreen() {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
   const router = useRouter();
-  const { profile, firebaseUser, reset } = useAuthStore();
+  const profile = useAuthStore((s) => s.profile);
+  const firebaseUser = useAuthStore((s) => s.firebaseUser);
+  const reset = useAuthStore((s) => s.reset);
 
   const authUid = firebaseUser?.uid;
 

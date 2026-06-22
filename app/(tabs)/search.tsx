@@ -29,7 +29,8 @@ import { User } from '@/types';
 
 export default function SearchScreen() {
   const styles = useThemedStyles(createStyles);
-  const { profile, firebaseUser } = useAuthStore();
+  const profile = useAuthStore((s) => s.profile);
+  const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const [searchTerm, setSearchTerm] = useState('');
