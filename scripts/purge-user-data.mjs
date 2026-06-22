@@ -34,7 +34,10 @@ if (!existsSync(compiledPath)) {
 const admin = require('firebase-admin');
 const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? 'omof-eed24';
 
-admin.initializeApp({ projectId });
+admin.initializeApp({
+  projectId,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET ?? `${projectId}.firebasestorage.app`,
+});
 const { purgeAllUserData } = require(compiledPath);
 
 async function resolveUserId(value) {
