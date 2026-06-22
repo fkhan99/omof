@@ -7,11 +7,9 @@ import {
   query,
   where,
   serverTimestamp,
-  increment,
 } from 'firebase/firestore';
 import { getFirebaseDb } from './config';
 import { BadgeId, UserStats } from '@/types';
-import { BADGE_DEFINITIONS, DEFAULT_USER_STATS, POINT_VALUES } from '@/constants/gamification';
 import { computeNextStreak, todayKey } from '@/utils/streak';
 
 function normalizeStats(raw: Partial<UserStats> | undefined): UserStats {
@@ -48,56 +46,6 @@ function badgesToUnlock(stats: UserStats, existing: BadgeId[]): BadgeId[] {
   }
 
   return unlocked;
-}
-
-async function applyGamificationUpdate(
-  userId: string,
-  statsPatch: Partial<UserStats>,
-  pointsDelta: number,
-): Promise<void> {
-  const db = getFirebaseDb();
-  const userRef = doc(db, 'users', userId);
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return;
-
-  const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
-  const currentBadges = (snap.data().badges as BadgeId[]) ?? [];
-
-  // Compute the streak from the EXISTING lastActiveDate before overwriting it
-  // to today — otherwise the check always sees "today" and never advances.
-  const nextStats: UserStats = {
-    ...currentStats,
-    ...statsPatch,
-    points: currentStats.points + pointsDelta,
-    streakDays: computeStreakDays(currentStats),
-    lastActiveDate: todayKey(),
-  };
-
-  const newBadges = badgesToUnlock(nextStats, currentBadges);
-  const allBadges = [...currentBadges, ...newBadges];
-
-  await updateDoc(userRef, {
-    stats: nextStats,
-    badges: allBadges,
-    updatedAt: serverTimestamp(),
-  });
-
-  if (__DEV__) {
-    console.log('[gamification] points update', {
-      userId,
-      pointsDelta,
-      totalPoints: nextStats.points,
-      stats: nextStats,
-    });
-
-    for (const badgeId of newBadges) {
-      console.log('[gamification] badge unlocked', {
-        userId,
-        badgeId,
-        title: BADGE_DEFINITIONS[badgeId].title,
-      });
-    }
-  }
 }
 
 /**
@@ -184,74 +132,4 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
   }
 
   return nextStats;
-}
-
-export async function onPostCreated(userId: string): Promise<void> {
-  const db = getFirebaseDb();
-  const userRef = doc(db, 'users', userId);
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return;
-
-  const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
-
-  await applyGamificationUpdate(
-    userId,
-    { postsCount: currentStats.postsCount + 1 },
-    POINT_VALUES.createPost,
-  );
-}
-
-export async function onCommentCreated(userId: string, isOwnPost: boolean): Promise<void> {
-  const db = getFirebaseDb();
-  const userRef = doc(db, 'users', userId);
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return;
-
-  const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
-  const patch: Partial<UserStats> = {
-    commentsCount: currentStats.commentsCount + 1,
-  };
-
-  let points = 0;
-  if (!isOwnPost) {
-    patch.supportiveCommentsCount = currentStats.supportiveCommentsCount + 1;
-    points = POINT_VALUES.supportiveComment;
-  }
-
-  await applyGamificationUpdate(userId, patch, points);
-}
-
-export async function onReactionGiven(userId: string): Promise<void> {
-  const db = getFirebaseDb();
-  const userRef = doc(db, 'users', userId);
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return;
-
-  const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
-
-  await applyGamificationUpdate(
-    userId,
-    { reactionsGiven: currentStats.reactionsGiven + 1 },
-    POINT_VALUES.reactionGiven,
-  );
-}
-
-export async function onReactionReceived(userId: string): Promise<void> {
-  const db = getFirebaseDb();
-  const userRef = doc(db, 'users', userId);
-  const snap = await getDoc(userRef);
-  if (!snap.exists()) return;
-
-  const currentStats = normalizeStats(snap.data().stats as Partial<UserStats> | undefined);
-
-  await applyGamificationUpdate(
-    userId,
-    { reactionsReceived: currentStats.reactionsReceived + 1 },
-    POINT_VALUES.reactionReceived,
-  );
-}
-
-export async function awardPoints(userId: string, amount: number, reason: string): Promise<void> {
-  await applyGamificationUpdate(userId, {}, amount);
-  if (__DEV__) console.log('[gamification] manual points award', { userId, amount, reason });
 }

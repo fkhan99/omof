@@ -250,14 +250,3 @@ export interface PostWithPromotion extends Post {
   promotionId?: string;
   isPromoted?: boolean;
 }
-
-export interface MockTransaction {
-  id: string;
-  userId: string;
-  plan: UserPlan;
-  amount: number;
-  currency: string;
-  status: 'mock_completed';
-  isTestPurchase: true;
-  createdAt: Date;
-}

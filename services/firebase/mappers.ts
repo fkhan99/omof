@@ -21,7 +21,6 @@ import {
   UserStats,
   BadgeId,
   Promotion,
-  MockTransaction,
 } from '@/types';
 import { DEFAULT_USER_STATS } from '@/constants/gamification';
 
@@ -187,19 +186,6 @@ export function mapPromotionDoc(id: string, data: DocumentData): Promotion {
     expiresAt: timestampToDate(data.expiresAt),
     impressions: data.impressions ?? 0,
     clicks: data.clicks ?? 0,
-  };
-}
-
-export function mapMockTransactionDoc(id: string, data: DocumentData): MockTransaction {
-  return {
-    id,
-    userId: data.userId,
-    plan: data.plan,
-    amount: data.amount ?? 0,
-    currency: data.currency ?? 'USD',
-    status: 'mock_completed',
-    isTestPurchase: true,
-    createdAt: timestampToDate(data.createdAt),
   };
 }
 

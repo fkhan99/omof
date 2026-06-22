@@ -88,9 +88,6 @@ export async function setReaction(
   };
 
   if (existing.exists()) {
-    const existingData = existing.data();
-    const oldType = existingData.type as ReactionType;
-
     await updateDoc(reactionRef, {
       type,
       postAuthorId: post.authorId,
