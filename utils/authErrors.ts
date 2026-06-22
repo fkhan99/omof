@@ -14,6 +14,12 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     'That verification link is invalid or already used. Resend a new verification email.',
   'auth/expired-action-code':
     'That verification link has expired. Resend a new verification email.',
+  'auth/unauthorized-continue-uri':
+    'Could not send verification email for this site URL. Try again or contact support.',
+  'auth/invalid-continue-uri':
+    'Could not send verification email for this site URL. Try again or contact support.',
+  'auth/missing-continue-uri':
+    'Could not send verification email. Try again or contact support.',
   'auth/requires-recent-login':
     'For security, verify your password and try again.',
 };

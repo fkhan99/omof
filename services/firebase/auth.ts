@@ -30,7 +30,27 @@ import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
 import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
+import { getAuthErrorCode } from '@/utils/authErrors';
 import { updateFcmToken } from './pushToken';
+
+async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {
+  try {
+    await sendEmailVerification(user, getEmailVerificationActionSettings());
+  } catch (error) {
+    const code = getAuthErrorCode(error);
+    if (
+      code === 'auth/unauthorized-continue-uri' ||
+      code === 'auth/invalid-continue-uri' ||
+      code === 'auth/missing-continue-uri'
+    ) {
+      // Domain may be missing from Firebase Authorized domains — fall back to the
+      // default Firebase-hosted verification link so delivery still works.
+      await sendEmailVerification(user);
+      return;
+    }
+    throw error;
+  }
+}
 
 function assertFirebaseConfigured(): void {
   if (!isFirebaseConfigured()) {

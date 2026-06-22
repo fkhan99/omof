@@ -17,8 +17,9 @@ export function getEmailVerificationActionSettings(): ActionCodeSettings {
   const url = getEmailVerificationContinueUrl();
   return {
     url,
-    // Web opens the app URL with oobCode; native uses Firebase's hosted page then continueUrl.
-    handleCodeInApp: Platform.OS === 'web',
+    // Use Firebase's hosted verification page in the email link — best deliverability.
+    // The app still handles oobCode if the user lands on /verify-email directly.
+    handleCodeInApp: false,
   };
 }
 
