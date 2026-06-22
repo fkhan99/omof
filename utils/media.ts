@@ -56,6 +56,7 @@ export async function resolveLocalImageUri(imageUri: string): Promise<string> {
   return destination;
 }
 
+function getExtensionFromUri(uri: string): string {
   const lower = uri.toLowerCase().split('?')[0].split('#')[0];
   if (lower.endsWith('.mov')) return 'mov';
   if (lower.endsWith('.webm')) return 'webm';
@@ -280,7 +281,8 @@ export async function optimizeImageForUpload(
   maxDimension: number = IMAGE_MAX_DIMENSION,
   compress: number = IMAGE_COMPRESS_QUALITY,
 ): Promise<OptimizedImage> {
-  const context = ImageManipulator.manipulate(uri);
+  const localUri = await resolveLocalImageUri(uri);
+  const context = ImageManipulator.manipulate(localUri);
   let image = await context.renderAsync();
 
   const longestEdge = Math.max(image.width, image.height);
@@ -290,6 +292,43 @@ export async function optimizeImageForUpload(
       width: Math.round(image.width * scale),
       height: Math.round(image.height * scale),
     });
+    image = await context.renderAsync();
+  }
+
+  const result = await image.saveAsync({
+    format: SaveFormat.WEBP,
+    compress,
+  });
+
+  return { uri: result.uri, width: result.width, height: result.height };
+}
+
+/**
+ * Square-crops and downscales profile photos. Used when iOS picks the original
+ * library asset without the native crop UI.
+ */
+export async function optimizeAvatarForUpload(
+  uri: string,
+  maxDimension: number = IMAGE_MAX_DIMENSION,
+  compress: number = IMAGE_COMPRESS_QUALITY,
+): Promise<OptimizedImage> {
+  const localUri = await resolveLocalImageUri(uri);
+  const context = ImageManipulator.manipulate(localUri);
+  let image = await context.renderAsync();
+
+  const cropSize = Math.min(image.width, image.height);
+  if (cropSize < image.width || cropSize < image.height) {
+    context.crop({
+      originX: Math.round((image.width - cropSize) / 2),
+      originY: Math.round((image.height - cropSize) / 2),
+      width: cropSize,
+      height: cropSize,
+    });
+    image = await context.renderAsync();
+  }
+
+  if (image.width > maxDimension) {
+    context.resize({ width: maxDimension, height: maxDimension });
     image = await context.renderAsync();
   }
 

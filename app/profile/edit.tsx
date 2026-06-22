@@ -5,15 +5,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Text,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as ImagePicker from 'expo-image-picker';
 import { editProfileSchema, EditProfileFormData } from '@/utils/validation';
+import { pickProfilePhotoFromLibrary } from '@/utils/pickProfilePhoto';
 import { updateUserProfile, uploadProfilePhoto } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/authStore';
 import { getUserProfile } from '@/services/firebase/auth';
@@ -39,24 +38,9 @@ export default function EditProfileScreen() {
   });
 
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission needed',
-        'Allow photo library access to choose a profile photo.',
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setPhotoUri(result.assets[0].uri);
+    const uri = await pickProfilePhotoFromLibrary();
+    if (uri) {
+      setPhotoUri(uri);
     }
   };
 

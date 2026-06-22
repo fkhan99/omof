@@ -12,8 +12,8 @@ import {
 import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as ImagePicker from 'expo-image-picker';
 import { onboardingSchema, OnboardingFormData, validateUsername } from '@/utils/validation';
+import { pickProfilePhotoFromLibrary } from '@/utils/pickProfilePhoto';
 import { createUserProfile, isUsernameAvailable, loadAuthUserProfile, logOut } from '@/services/firebase/auth';
 import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { uploadProfilePhoto } from '@/services/firebase/users';
@@ -122,24 +122,9 @@ export default function OnboardingScreen() {
   };
 
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission needed',
-        'Allow photo library access to choose a profile photo.',
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setPhotoUri(result.assets[0].uri);
+    const uri = await pickProfilePhotoFromLibrary();
+    if (uri) {
+      setPhotoUri(uri);
     }
   };
 
