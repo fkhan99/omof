@@ -33,6 +33,11 @@ export default function ProfileScreen() {
 
   const authUid = firebaseUser?.uid;
 
+  useProfileFollowCounts(authUid, {
+    followerCount: profile?.followerCount ?? 0,
+    followingCount: profile?.followingCount ?? 0,
+  });
+
   const { data: followCounts } = useQuery({
     queryKey: ['followCounts', authUid],
     queryFn: () => getActualFollowCounts(authUid!),
