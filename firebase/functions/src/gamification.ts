@@ -92,6 +92,87 @@ function badgesToUnlock(stats: UserStats, existing: BadgeId[]): BadgeId[] {
   return unlocked;
 }
 
+function computePointsFromCounts(
+  stats: Pick<UserStats, 'postsCount' | 'supportiveCommentsCount' | 'reactionsGiven' | 'reactionsReceived'>,
+): number {
+  return (
+    stats.postsCount * POINT_VALUES.createPost
+    + stats.supportiveCommentsCount * POINT_VALUES.supportiveComment
+    + stats.reactionsGiven * POINT_VALUES.reactionGiven
+    + stats.reactionsReceived * POINT_VALUES.reactionReceived
+  );
+}
+
+function computeBadgesFromStats(stats: UserStats): BadgeId[] {
+  const badges: BadgeId[] = [];
+  if (stats.postsCount >= 1) badges.push('first_real_post');
+  if (stats.supportiveCommentsCount >= 5) badges.push('supportive_friend');
+  if (stats.streakDays >= 7) badges.push('authenticity_streak_7');
+  if (stats.postsCount >= 10) badges.push('community_builder');
+  return badges;
+}
+
+/**
+ * Reconcile counts, points, and badges from live Firestore data.
+ * Used after deletions so other users' stats stay accurate.
+ */
+export async function reconcileUserGamification(userId: string): Promise<void> {
+  const userRef = getDb().collection('users').doc(userId);
+  const snap = await userRef.get();
+  if (!snap.exists) return;
+
+  const currentStats = normalizeStats(snap.data()?.stats as Partial<UserStats> | undefined);
+
+  const [postsSnap, commentsSnap, reactionsGivenSnap, reactionsReceivedSnap] = await Promise.all([
+    getDb().collection('posts').where('authorId', '==', userId).get(),
+    getDb().collection('comments').where('authorId', '==', userId).get(),
+    getDb().collection('reactions').where('userId', '==', userId).get(),
+    getDb().collection('reactions').where('postAuthorId', '==', userId).get(),
+  ]);
+
+  const ownPostIds = new Set(postsSnap.docs.map((postDoc) => postDoc.id));
+  let supportiveCommentsCount = 0;
+  commentsSnap.docs.forEach((commentDoc) => {
+    const postId = commentDoc.data().postId as string | undefined;
+    if (postId && !ownPostIds.has(postId)) supportiveCommentsCount += 1;
+  });
+
+  const reactionsGiven = reactionsGivenSnap.size;
+  const reactionsReceived = reactionsReceivedSnap.docs.filter(
+    (reactionDoc) => reactionDoc.data().userId !== userId,
+  ).length;
+
+  const streakDays = computeNextStreak(currentStats.lastActiveDate, currentStats.streakDays);
+
+  const nextStats: UserStats = {
+    postsCount: postsSnap.size,
+    commentsCount: commentsSnap.size,
+    supportiveCommentsCount,
+    reactionsGiven,
+    reactionsReceived,
+    streakDays,
+    points: 0,
+    lastActiveDate: currentStats.lastActiveDate,
+  };
+  nextStats.points = computePointsFromCounts(nextStats);
+
+  const nextBadges = computeBadgesFromStats(nextStats);
+
+  await userRef.update({
+    stats: nextStats,
+    badges: nextBadges,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  functions.logger.info('[gamification] reconciled', {
+    userId,
+    points: nextStats.points,
+    postsCount: nextStats.postsCount,
+    reactionsGiven: nextStats.reactionsGiven,
+    reactionsReceived: nextStats.reactionsReceived,
+  });
+}
+
 async function applyGamificationUpdate(
   userId: string,
   statsPatch: Partial<UserStats>,
