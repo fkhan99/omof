@@ -138,36 +138,41 @@ export default function SettingsScreen() {
         ))}
       </View>
 
-      {Platform.OS !== 'web' && (
-        <>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.testRow}
-              onPress={() => testPushMutation.mutate()}
-              disabled={!profile || testPushMutation.isPending}
-              accessibilityRole="button"
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={22}
-                color={colors.textSecondary}
-              />
-              <View style={styles.testText}>
-                <Text style={styles.testTitle}>Send test notification</Text>
-                <Text style={styles.testDescription}>
-                  Push a test to this device to confirm notifications work.
-                </Text>
-              </View>
-              {testPushMutation.isPending ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Ionicons name="paper-plane-outline" size={20} color={colors.primary} />
-              )}
-            </TouchableOpacity>
+      <Text style={styles.sectionTitle}>Notifications</Text>
+      <View style={styles.section}>
+        {Platform.OS === 'web' ? (
+          <View style={styles.testRow}>
+            <Ionicons name="notifications-off-outline" size={22} color={colors.textMuted} />
+            <View style={styles.testText}>
+              <Text style={styles.testTitle}>Not available on web</Text>
+              <Text style={styles.testDescription}>
+                Push notifications work in the iOS and Android apps. Install OMOF on your phone to
+                enable them.
+              </Text>
+            </View>
           </View>
-        </>
-      )}
+        ) : (
+          <TouchableOpacity
+            style={styles.testRow}
+            onPress={() => testPushMutation.mutate()}
+            disabled={!profile || testPushMutation.isPending}
+            accessibilityRole="button"
+          >
+            <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
+            <View style={styles.testText}>
+              <Text style={styles.testTitle}>Send test notification</Text>
+              <Text style={styles.testDescription}>
+                Push a test to this device to confirm notifications work.
+              </Text>
+            </View>
+            {testPushMutation.isPending ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Ionicons name="paper-plane-outline" size={20} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
 
       <Text style={styles.sectionTitle}>Safety & community</Text>
       <SettingsItem

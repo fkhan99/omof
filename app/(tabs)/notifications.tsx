@@ -227,7 +227,6 @@ export default function ActivityScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Activity</Text>
         <TouchableOpacity
           onPress={markAllRead}
           hitSlop={8}
@@ -286,17 +285,12 @@ function createStyles(colors: ThemeColors) {
     topBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
       paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.md,
+      paddingVertical: SPACING.sm,
       backgroundColor: colors.surface,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
-    },
-    topBarTitle: {
-      fontSize: FONT_SIZES.md,
-      fontWeight: '700',
-      color: colors.text,
     },
     markAllText: {
       color: colors.primary,

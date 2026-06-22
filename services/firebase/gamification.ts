@@ -253,5 +253,5 @@ export async function onReactionReceived(userId: string): Promise<void> {
 
 export async function awardPoints(userId: string, amount: number, reason: string): Promise<void> {
   await applyGamificationUpdate(userId, {}, amount);
-  console.log('[gamification] manual points award', { userId, amount, reason });
+  if (__DEV__) console.log('[gamification] manual points award', { userId, amount, reason });
 }
