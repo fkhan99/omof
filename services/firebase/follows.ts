@@ -7,7 +7,6 @@ import {
   query,
   where,
   serverTimestamp,
-  updateDoc,
   setDoc,
 } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseAuth } from './config';
@@ -48,29 +47,6 @@ export async function getActualFollowCounts(userId: string): Promise<FollowCount
     followingCount: followingSnap.size,
     followerCount: followersSnap.size,
   };
-}
-
-export async function syncUserFollowCounts(userId: string): Promise<FollowCounts> {
-  const counts = await getActualFollowCounts(userId);
-  const db = getFirebaseDb();
-  await updateDoc(doc(db, 'users', userId), {
-    followingCount: counts.followingCount,
-    followerCount: counts.followerCount,
-  });
-  return counts;
-}
-
-async function syncRelationshipCounts(followerId: string, followingId: string): Promise<void> {
-  try {
-    await Promise.all([
-      syncUserFollowCounts(followerId),
-      syncUserFollowCounts(followingId),
-    ]);
-  } catch (error) {
-    if (__DEV__) {
-      console.warn('[syncRelationshipCounts] failed', error);
-    }
-  }
 }
 
 async function deleteFollowRelationship(followerId: string, followingId: string): Promise<boolean> {
@@ -145,8 +121,6 @@ async function followUserImmediately(followerId: string, followingId: string): P
       createdAt: serverTimestamp(),
     });
 
-    await syncRelationshipCounts(followerId, followingId);
-
     const actor = await getUserById(followerId);
     if (actor) {
       await createNotification({
@@ -177,8 +151,8 @@ export async function unfollowUser(followerId: string, followingId: string): Pro
     await cancelFollowRequest(followerId, followingId);
   }
 
-  if (removedFollow) {
-    await syncRelationshipCounts(followerId, followingId);
+  if (!removedFollow && !hadRequest) {
+    return;
   }
 }
 

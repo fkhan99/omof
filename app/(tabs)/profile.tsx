@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { getMyPosts } from '@/services/firebase/posts';
-import { syncUserFollowCounts } from '@/services/firebase/follows';
+import { getActualFollowCounts } from '@/services/firebase/follows';
 import { logOut } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { Avatar } from '@/components/ui/Avatar';
@@ -33,10 +33,7 @@ export default function ProfileScreen() {
 
   const { data: followCounts } = useQuery({
     queryKey: ['followCounts', authUid],
-    queryFn: async () => {
-      const counts = await syncUserFollowCounts(authUid!);
-      return counts;
-    },
+    queryFn: () => getActualFollowCounts(authUid!),
     enabled: !!authUid,
     staleTime: Infinity,
   });

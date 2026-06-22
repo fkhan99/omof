@@ -17,9 +17,8 @@ import { mapCommentDoc } from './mappers';
 import { Comment, PaginatedResult } from '@/types';
 import { COMMENTS_PAGE_SIZE } from '@/constants/theme';
 import { filterProfanity } from '@/utils';
-import { incrementCommentCount, decrementCommentCount, getPost } from './posts';
+import { getPost } from './posts';
 import { createNotification } from './notifications';
-import { onCommentCreated } from './gamification';
 
 export async function addComment(
   postId: string,
@@ -39,8 +38,6 @@ export async function addComment(
     createdAt: serverTimestamp(),
   });
 
-  await incrementCommentCount(postId);
-
   const snap = await getDoc(docRef);
   const comment = mapCommentDoc(docRef.id, snap.data()!);
 
@@ -59,8 +56,6 @@ export async function addComment(
       commentId: docRef.id,
     });
   }
-
-  void onCommentCreated(author.id, post?.authorId === author.id);
 
   return comment;
 }
@@ -138,13 +133,5 @@ export async function deleteComment(commentId: string, postId: string): Promise<
     );
   }
 
-  try {
-    await decrementCommentCount(resolvedPostId);
-  } catch (error) {
-    console.warn('comment deleted but commentCount update failed', {
-      commentId,
-      postId: resolvedPostId,
-      error,
-    });
-  }
+  // commentCount is decremented server-side when the comment doc is deleted.
 }

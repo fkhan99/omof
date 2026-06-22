@@ -15,7 +15,6 @@ import { FollowRequest } from '@/types';
 import { getFollowRequestDocId, getFollowDocId } from '@/utils';
 import { getUserById } from './users';
 import { createNotification, createFollowReceivedNotification } from './notifications';
-import { syncUserFollowCounts } from './follows';
 
 export async function hasPendingFollowRequest(
   requesterId: string,
@@ -138,17 +137,6 @@ export async function acceptFollowRequest(
         );
       }
       throw error;
-    }
-
-    try {
-      await Promise.all([
-        syncUserFollowCounts(requesterId),
-        syncUserFollowCounts(targetId),
-      ]);
-    } catch (error) {
-      if (__DEV__) {
-        console.warn('[acceptFollowRequest] count sync failed', error);
-      }
     }
   }
 

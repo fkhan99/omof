@@ -23,11 +23,6 @@ service cloud.firestore {
       return tag in ['Frustrated', 'Embarrassed', 'Overwhelmed', 'Lonely', 'Disappointed', 'Exhausted', 'Anxious', 'Other'];
     }
 
-    function isFollowCountOnlyUpdate() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followerCount'])
-        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followingCount']);
-    }
-
     function pendingFollowRequestExists(requesterId, targetId) {
       return exists(/databases/$(database)/documents/followRequests/$(requesterId + '_' + targetId));
     }
@@ -98,7 +93,6 @@ service cloud.firestore {
             && request.resource.data.caption.size() <= 280
             && isValidMoodTag(request.resource.data.moodTag)
           )
-          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactionCounts', 'commentCount'])
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageURL'])
             && resource.data.mediaType == 'video'
@@ -281,17 +275,6 @@ service cloud.firestore {
               == request.auth.uid
           )
         );
-    }
-
-    match /transactions_mock/{transactionId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.plan == 'plus'
-        && request.resource.data.status == 'mock_completed'
-        && request.resource.data.isTestPurchase == true
-        && request.resource.data.amount == 0;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

@@ -5,7 +5,6 @@ import {
   deleteDoc,
   serverTimestamp,
   updateDoc,
-  increment,
 } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseAuth } from './config';
 import { mapReactionDoc } from './mappers';
@@ -14,7 +13,6 @@ import { getReactionDocId } from '@/utils';
 import { getPost } from './posts';
 import { getUserById } from './users';
 import { upsertReactionNotification } from './notifications';
-import { onReactionGiven, onReactionReceived } from './gamification';
 
 async function notifyPostAuthorOfReaction(
   postId: string,
@@ -52,8 +50,6 @@ async function notifyPostAuthorOfReaction(
       reactionType: type,
     });
   }
-
-  void onReactionReceived(postAuthorId);
 }
 
 export async function removeReaction(postId: string, userId: string): Promise<void> {
@@ -64,11 +60,7 @@ export async function removeReaction(postId: string, userId: string): Promise<vo
 
   if (!existing.exists()) return;
 
-  const oldType = existing.data().type as ReactionType;
   await deleteDoc(reactionRef);
-  await updateDoc(doc(db, 'posts', postId), {
-    [`reactionCounts.${oldType}`]: increment(-1),
-  });
 }
 
 export async function setReaction(
@@ -99,11 +91,6 @@ export async function setReaction(
     const existingData = existing.data();
     const oldType = existingData.type as ReactionType;
 
-    await updateDoc(doc(db, 'posts', postId), {
-      [`reactionCounts.${oldType}`]: increment(-1),
-      [`reactionCounts.${type}`]: increment(1),
-    });
-
     await updateDoc(reactionRef, {
       type,
       postAuthorId: post.authorId,
@@ -122,7 +109,6 @@ export async function setReaction(
       actor,
       post.imageURL,
     );
-    void onReactionGiven(userId);
 
     return reaction;
   }
@@ -137,10 +123,6 @@ export async function setReaction(
     ...denormalized,
   });
 
-  await updateDoc(doc(db, 'posts', postId), {
-    [`reactionCounts.${type}`]: increment(1),
-  });
-
   const snap = await getDoc(reactionRef);
   const reaction = mapReactionDoc(reactionId, snap.data()!);
 
@@ -152,7 +134,6 @@ export async function setReaction(
     actor,
     post.imageURL,
   );
-  void onReactionGiven(userId);
 
   return reaction;
 }

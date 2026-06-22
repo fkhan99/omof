@@ -12,7 +12,6 @@ import {
   startAfter,
   serverTimestamp,
   updateDoc,
-  increment,
   QueryDocumentSnapshot,
   DocumentData,
 } from 'firebase/firestore';
@@ -28,7 +27,6 @@ import {
   optimizeImageForUpload,
   prepareVideoForUpload,
 } from '@/utils/media';
-import { onPostCreated } from './gamification';
 
 function filterPostsByAuthor(posts: Post[], authorId: string): Post[] {
   return posts.filter((post) => post.authorId === authorId);
@@ -77,7 +75,6 @@ export async function createPost(
 
     const snap = await getDoc(docRef);
     const post = mapPostDoc(snap.id, snap.data()!);
-    void onPostCreated(author.id);
     return post;
   }
 
@@ -129,7 +126,6 @@ export async function createPost(
 
   const snap = await getDoc(docRef);
   const post = mapPostDoc(snap.id, snap.data()!);
-  void onPostCreated(author.id);
   return post;
 }
 
@@ -335,18 +331,4 @@ export async function getMyPosts(
     console.error('[getMyPosts] Firestore error:', error);
     throw error;
   }
-}
-
-export async function incrementCommentCount(postId: string): Promise<void> {
-  const db = getFirebaseDb();
-  await updateDoc(doc(db, 'posts', postId), {
-    commentCount: increment(1),
-  });
-}
-
-export async function decrementCommentCount(postId: string): Promise<void> {
-  const db = getFirebaseDb();
-  await updateDoc(doc(db, 'posts', postId), {
-    commentCount: increment(-1),
-  });
 }

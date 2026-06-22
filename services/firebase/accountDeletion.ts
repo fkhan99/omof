@@ -104,10 +104,6 @@ async function deleteSocialAndAccountData(userId: string): Promise<void> {
       label: 'promotions',
       run: () => deleteQueryBatch('promotions', 'ownerId', userId),
     },
-    {
-      label: 'transactions',
-      run: () => deleteQueryBatch('transactions_mock', 'userId', userId),
-    },
   ];
 
   for (const step of criticalSteps) {

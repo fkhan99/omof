@@ -1,38 +1,16 @@
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useMutation } from '@tanstack/react-query';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
-import { startMockPlusTrial } from '@/services/firebase/subscriptions';
-import { getUserProfile } from '@/services/firebase/auth';
 import { PLANS } from '@/constants/plans';
-import { Button } from '@/components/ui/Button';
 import { PlusBadge } from '@/components/users/PlusBadge';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function SubscriptionScreen() {
-  const { profile, firebaseUser, setProfile } = useAuthStore();
+  const { profile } = useAuthStore();
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
-  const authUid = firebaseUser?.uid;
-
-  const trialMutation = useMutation({
-    mutationFn: () => startMockPlusTrial(authUid!),
-    onSuccess: async () => {
-      if (authUid) {
-        const refreshed = await getUserProfile(authUid);
-        if (refreshed) setProfile(refreshed);
-      }
-      Alert.alert(
-        'OMOF Plus activated',
-        'This is a mock trial for testing. No real payment was processed.',
-      );
-    },
-    onError: (err) => {
-      Alert.alert('Upgrade failed', err instanceof Error ? err.message : 'Try again.');
-    },
-  });
 
   if (!profile) return null;
 
@@ -42,10 +20,11 @@ export default function SubscriptionScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.mockBanner}>
-        <Ionicons name="flask-outline" size={18} color={colors.warning} />
-        <Text style={styles.mockBannerText}>
-          MOCK / TEST ONLY — No real payments are processed.
+      <View style={styles.comingSoonBanner}>
+        <Ionicons name="time-outline" size={18} color={colors.primary} />
+        <Text style={styles.comingSoonText}>
+          In-app subscriptions are coming soon. OMOF Plus will be available through the App Store
+          when billing is enabled.
         </Text>
       </View>
 
@@ -94,18 +73,11 @@ export default function SubscriptionScreen() {
             </Text>
           </View>
         ) : (
-          <Button
-            title={trialMutation.isPending ? 'Activating...' : 'Start OMOF Plus trial'}
-            onPress={() => trialMutation.mutate()}
-            loading={trialMutation.isPending}
-            style={styles.trialButton}
-          />
+          <Text style={styles.unavailableText}>
+            Upgrade will be available in a future update via the App Store.
+          </Text>
         )}
       </View>
-
-      <Text style={styles.footnote}>
-        Real billing integration (Stripe / App Store) will replace this mock flow in production.
-      </Text>
     </ScrollView>
   );
 }
@@ -120,21 +92,21 @@ function createStyles(colors: ThemeColors) {
       padding: SPACING.lg,
       gap: SPACING.md,
     },
-    mockBanner: {
+    comingSoonBanner: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: SPACING.sm,
-      backgroundColor: colors.warning + '18',
+      backgroundColor: colors.accentSoft + '44',
       borderWidth: 1,
-      borderColor: colors.warning + '44',
+      borderColor: colors.primary + '44',
       borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md,
     },
-    mockBannerText: {
+    comingSoonText: {
       flex: 1,
       fontSize: FONT_SIZES.sm,
-      fontWeight: '600',
-      color: colors.warning,
+      color: colors.textSecondary,
+      lineHeight: 20,
     },
     title: {
       fontSize: FONT_SIZES.xl,
@@ -209,15 +181,11 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
     },
-    trialButton: {
-      marginTop: SPACING.sm,
-    },
-    footnote: {
-      fontSize: FONT_SIZES.xs,
+    unavailableText: {
+      fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
-      lineHeight: 18,
-      textAlign: 'center',
-      marginTop: SPACING.md,
+      lineHeight: 20,
+      marginTop: SPACING.sm,
     },
   });
 }
