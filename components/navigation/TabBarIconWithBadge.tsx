@@ -6,7 +6,7 @@ type TabIconName = keyof typeof Ionicons.glyphMap;
 
 interface TabBarIconWithBadgeProps {
   name: TabIconName;
-  color: string;
+  color: string | import('react-native').ColorValue;
   size?: number;
   badgeCount?: number;
 }

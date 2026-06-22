@@ -9,6 +9,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+dist-web/
+firebase/hosting/
 .env
 .env.local
 .git/backup-push.log
