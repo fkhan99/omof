@@ -12,16 +12,7 @@ import {
 import { getFirebaseDb } from './config';
 import { BadgeId, UserStats } from '@/types';
 import { BADGE_DEFINITIONS, DEFAULT_USER_STATS, POINT_VALUES } from '@/constants/gamification';
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function yesterdayKey(): string {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
+import { computeNextStreak, todayKey } from '@/utils/streak';
 
 function normalizeStats(raw: Partial<UserStats> | undefined): UserStats {
   return {
@@ -37,18 +28,7 @@ function normalizeStats(raw: Partial<UserStats> | undefined): UserStats {
 }
 
 function computeStreakDays(current: UserStats): number {
-  const today = todayKey();
-  const yesterday = yesterdayKey();
-
-  if (current.lastActiveDate === today) {
-    return current.streakDays;
-  }
-
-  if (current.lastActiveDate === yesterday) {
-    return current.streakDays + 1;
-  }
-
-  return 1;
+  return computeNextStreak(current.lastActiveDate, current.streakDays);
 }
 
 function badgesToUnlock(stats: UserStats, existing: BadgeId[]): BadgeId[] {
@@ -156,10 +136,7 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
     (reactionDoc) => reactionDoc.data().userId !== userId,
   ).length;
 
-  const alreadyActiveToday = currentStats.lastActiveDate === todayKey();
-  const streakDays = alreadyActiveToday
-    ? currentStats.streakDays
-    : computeStreakDays(currentStats);
+  const streakDays = computeStreakDays(currentStats);
 
   const nextStats: UserStats = {
     ...currentStats,
