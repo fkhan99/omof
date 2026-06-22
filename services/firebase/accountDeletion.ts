@@ -101,8 +101,8 @@ async function deleteSocialAndAccountData(userId: string): Promise<void> {
 
   const optionalSteps: { label: string; run: () => Promise<void> }[] = [
     {
-      label: 'prootions',
-      run: () => deleteQueryBatch('prootions', 'ownerId', userId),
+      label: 'promotions',
+      run: () => deleteQueryBatch('promotions', 'ownerId', userId),
     },
     {
       label: 'transactions',
