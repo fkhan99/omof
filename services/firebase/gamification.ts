@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { getFirebaseDb } from './config';
 import { BadgeId, UserStats } from '@/types';
+import { POINT_VALUES } from '@/constants/gamification';
 import { computeNextStreak, todayKey } from '@/utils/streak';
 
 function normalizeStats(raw: Partial<UserStats> | undefined): UserStats {
@@ -29,23 +30,24 @@ function computeStreakDays(current: UserStats): number {
   return computeNextStreak(current.lastActiveDate, current.streakDays);
 }
 
-function badgesToUnlock(stats: UserStats, existing: BadgeId[]): BadgeId[] {
-  const unlocked: BadgeId[] = [];
+function computePointsFromCounts(
+  stats: Pick<UserStats, 'postsCount' | 'supportiveCommentsCount' | 'reactionsGiven' | 'reactionsReceived'>,
+): number {
+  return (
+    stats.postsCount * POINT_VALUES.createPost
+    + stats.supportiveCommentsCount * POINT_VALUES.supportiveComment
+    + stats.reactionsGiven * POINT_VALUES.reactionGiven
+    + stats.reactionsReceived * POINT_VALUES.reactionReceived
+  );
+}
 
-  if (stats.postsCount >= 1 && !existing.includes('first_real_post')) {
-    unlocked.push('first_real_post');
-  }
-  if (stats.supportiveCommentsCount >= 5 && !existing.includes('supportive_friend')) {
-    unlocked.push('supportive_friend');
-  }
-  if (stats.streakDays >= 7 && !existing.includes('authenticity_streak_7')) {
-    unlocked.push('authenticity_streak_7');
-  }
-  if (stats.postsCount >= 10 && !existing.includes('community_builder')) {
-    unlocked.push('community_builder');
-  }
-
-  return unlocked;
+function computeBadgesFromStats(stats: UserStats): BadgeId[] {
+  const badges: BadgeId[] = [];
+  if (stats.postsCount >= 1) badges.push('first_real_post');
+  if (stats.supportiveCommentsCount >= 5) badges.push('supportive_friend');
+  if (stats.streakDays >= 7) badges.push('authenticity_streak_7');
+  if (stats.postsCount >= 10) badges.push('community_builder');
+  return badges;
 }
 
 /**
@@ -89,18 +91,18 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
   const streakDays = computeStreakDays(currentStats);
 
   const nextStats: UserStats = {
-    ...currentStats,
     postsCount: postsSnap.size,
     commentsCount: commentsSnap.size,
     supportiveCommentsCount,
     reactionsGiven,
     reactionsReceived,
     streakDays,
+    points: 0,
     lastActiveDate: todayKey(),
   };
+  nextStats.points = computePointsFromCounts(nextStats);
 
-  const newBadges = badgesToUnlock(nextStats, currentBadges);
-  const allBadges = [...currentBadges, ...newBadges];
+  const allBadges = computeBadgesFromStats(nextStats);
 
   const statsChanged =
     nextStats.postsCount !== currentStats.postsCount
@@ -109,9 +111,15 @@ export async function syncUserProgress(userId: string): Promise<UserStats | null
     || nextStats.reactionsGiven !== currentStats.reactionsGiven
     || nextStats.reactionsReceived !== currentStats.reactionsReceived
     || nextStats.streakDays !== currentStats.streakDays
+    || nextStats.points !== currentStats.points
     || nextStats.lastActiveDate !== currentStats.lastActiveDate;
 
-  if (statsChanged || newBadges.length > 0) {
+  const badgesChanged =
+    allBadges.length !== currentBadges.length
+    || allBadges.some((badge) => !currentBadges.includes(badge))
+    || currentBadges.some((badge) => !allBadges.includes(badge));
+
+  if (statsChanged || badgesChanged) {
     await updateDoc(userRef, {
       stats: nextStats,
       badges: allBadges,

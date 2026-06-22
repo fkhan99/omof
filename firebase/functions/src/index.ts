@@ -6,6 +6,7 @@ import {
   handlePostCreatedGamification,
   handleReactionGivenGamification,
   handleReactionReceivedGamification,
+  reconcileUserGamification,
   syncFollowCounts,
 } from './gamification';
 import { createAdminPurgeUserDataCallable, createOnAuthUserDeleted } from './userDeletion';
@@ -167,15 +168,20 @@ export const onCommentDeleted = functions.firestore
   .onDelete(async (snap) => {
     const comment = snap.data();
     const postId = comment.postId as string | undefined;
+    const authorId = comment.authorId as string | undefined;
     if (!postId) return;
 
     const postRef = db.collection('posts').doc(postId);
     const postSnap = await postRef.get();
-    if (!postSnap.exists) return;
+    if (postSnap.exists) {
+      await postRef.update({
+        commentCount: FieldValue.increment(-1),
+      });
+    }
 
-    await postRef.update({
-      commentCount: FieldValue.increment(-1),
-    });
+    if (authorId) {
+      await reconcileUserGamification(authorId);
+    }
   });
 
 export const onReactionCreated = functions.firestore
@@ -239,11 +245,24 @@ export const onReactionDeleted = functions.firestore
   .onDelete(async (snap) => {
     const reaction = snap.data();
     const postSnap = await db.collection('posts').doc(reaction.postId).get();
-    if (!postSnap.exists) return;
 
-    await postSnap.ref.update({
-      [`reactionCounts.${reaction.type}`]: FieldValue.increment(-1),
-    });
+    if (postSnap.exists) {
+      await postSnap.ref.update({
+        [`reactionCounts.${reaction.type}`]: FieldValue.increment(-1),
+      });
+    }
+
+    const reactorId = reaction.userId as string | undefined;
+    const postAuthorId = postSnap.exists
+      ? (postSnap.data()?.authorId as string | undefined)
+      : (reaction.postAuthorId as string | undefined);
+
+    if (reactorId) {
+      await reconcileUserGamification(reactorId);
+    }
+    if (postAuthorId && postAuthorId !== reactorId) {
+      await reconcileUserGamification(postAuthorId);
+    }
   });
 
 export const onFollowCreated = functions.firestore

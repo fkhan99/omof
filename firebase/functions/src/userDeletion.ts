@@ -99,6 +99,65 @@ async function deletePostTree(
   await getDb().collection('posts').doc(postId).delete().catch(() => undefined);
 }
 
+async function collectAffectedUserIds(userId: string): Promise<Set<string>> {
+  const affected = new Set<string>();
+
+  const [postsSnap, reactionsByUser, followsAsFollower, followsAsFollowing] =
+    await Promise.all([
+      getDb().collection('posts').where('authorId', '==', userId).get(),
+      getDb().collection('reactions').where('userId', '==', userId).get(),
+      getDb().collection('follows').where('followerId', '==', userId).get(),
+      getDb().collection('follows').where('followingId', '==', userId).get(),
+    ]);
+
+  for (const postDoc of postsSnap.docs) {
+    const [reactionsOnPost, commentsOnPost] = await Promise.all([
+      getDb().collection('reactions').where('postId', '==', postDoc.id).get(),
+      getDb().collection('comments').where('postId', '==', postDoc.id).get(),
+    ]);
+
+    reactionsOnPost.docs.forEach((reactionDoc) => {
+      const reactorId = reactionDoc.data().userId as string | undefined;
+      if (reactorId && reactorId !== userId) affected.add(reactorId);
+    });
+
+    commentsOnPost.docs.forEach((commentDoc) => {
+      const authorId = commentDoc.data().authorId as string | undefined;
+      if (authorId && authorId !== userId) affected.add(authorId);
+    });
+  }
+
+  reactionsByUser.docs.forEach((reactionDoc) => {
+    const postAuthorId = reactionDoc.data().postAuthorId as string | undefined;
+    if (postAuthorId && postAuthorId !== userId) affected.add(postAuthorId);
+  });
+
+  followsAsFollower.docs.forEach((followDoc) => {
+    const followingId = followDoc.data().followingId as string | undefined;
+    if (followingId && followingId !== userId) affected.add(followingId);
+  });
+
+  followsAsFollowing.docs.forEach((followDoc) => {
+    const followerId = followDoc.data().followerId as string | undefined;
+    if (followerId && followerId !== userId) affected.add(followerId);
+  });
+
+  affected.delete(userId);
+  return affected;
+}
+
+async function reconcileAffectedUsers(userIds: Set<string>): Promise<void> {
+  await Promise.all(
+    [...userIds].map(async (uid) => {
+      try {
+        await reconcileUserGamification(uid);
+      } catch (error) {
+        functions.logger.warn('[userDeletion] gamification reconcile failed', { uid, error });
+      }
+    }),
+  );
+}
+
 export interface PurgeUserDataSummary {
   userId: string;
   postsDeleted: number;
@@ -141,6 +200,8 @@ export async function purgeAllUserData(userId: string): Promise<PurgeUserDataSum
   const usernameLower =
     (userData?.usernameLower as string | undefined)
     ?? (typeof userData?.username === 'string' ? userData.username.toLowerCase() : null);
+
+  const affectedUserIds = await collectAffectedUserIds(userId);
 
   const postsSnap = await getDb().collection('posts').where('authorId', '==', userId).get();
   for (const postDoc of postsSnap.docs) {
@@ -198,6 +259,8 @@ export async function purgeAllUserData(userId: string): Promise<PurgeUserDataSum
   } catch (error) {
     functions.logger.warn('[userDeletion] user doc delete failed', { userId, error });
   }
+
+  await reconcileAffectedUsers(affectedUserIds);
 
   functions.logger.info('[userDeletion] purge complete', summary);
   return summary;
