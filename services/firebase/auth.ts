@@ -84,8 +84,49 @@ export async function sendVerificationEmail(): Promise<void> {
   }
 
   try {
-    await deliverVerificationEmail(user);
+    const { getFunctions, httpsCallable } = await import('firebase/functions');
+    const functions = getFunctions(getFirebaseApp());
+    const requestVerificationEmail = httpsCallable(functions, 'requestVerificationEmail');
+    await requestVerificationEmail();
+    return;
   } catch (error) {
+    const code =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      typeof (error as { code?: unknown }).code === 'string'
+        ? (error as { code: string }).code
+        : null;
+
+    if (code === 'functions/failed-precondition') {
+      // SMTP not configured on Cloud Functions — fall back to Firebase Auth mail.
+      try {
+        await deliverVerificationEmail(user);
+        return;
+      } catch (clientError) {
+        throw new Error(
+          getFirebaseAuthErrorMessage(
+            clientError,
+            'Failed to send verification email. Ask the OMOF team to finish email setup, or try again later.',
+          ),
+        );
+      }
+    }
+
+    if (code === 'functions/unavailable' || code === 'functions/internal') {
+      try {
+        await deliverVerificationEmail(user);
+        return;
+      } catch (clientError) {
+        throw new Error(
+          getFirebaseAuthErrorMessage(
+            clientError,
+            'Failed to send verification email. Please try again.',
+          ),
+        );
+      }
+    }
+
     throw new Error(
       getFirebaseAuthErrorMessage(error, 'Failed to send verification email. Please try again.'),
     );
