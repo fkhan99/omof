@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Comment } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
@@ -13,7 +14,7 @@ interface CommentItemProps {
   onReport?: () => void;
 }
 
-export function CommentItem({ comment, canDelete, isDeleting, onDelete, onReport }: CommentItemProps) {
+function CommentItemComponent({ comment, canDelete, isDeleting, onDelete, onReport }: CommentItemProps) {
   const styles = useThemedStyles(createStyles);
 
   return (
@@ -45,6 +46,8 @@ export function CommentItem({ comment, canDelete, isDeleting, onDelete, onReport
     </View>
   );
 }
+
+export const CommentItem = memo(CommentItemComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({

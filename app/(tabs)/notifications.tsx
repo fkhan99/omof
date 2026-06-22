@@ -228,7 +228,12 @@ export default function ActivityScreen() {
     <View style={styles.container}>
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Activity</Text>
-        <TouchableOpacity onPress={markAllRead} hitSlop={8}>
+        <TouchableOpacity
+          onPress={markAllRead}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Mark all notifications as read"
+        >
           <Text style={styles.markAllText}>Mark all read</Text>
         </TouchableOpacity>
       </View>

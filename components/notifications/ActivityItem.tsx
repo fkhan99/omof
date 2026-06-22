@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +15,7 @@ interface ActivityItemProps {
   onPress: () => void;
 }
 
-export function ActivityItem({ notification, onPress }: ActivityItemProps) {
+function ActivityItemComponent({ notification, onPress }: ActivityItemProps) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
   const actionText = getActivityActionText(notification);
@@ -78,6 +79,8 @@ export function ActivityItem({ notification, onPress }: ActivityItemProps) {
     </TouchableOpacity>
   );
 }
+
+export const ActivityItem = memo(ActivityItemComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({

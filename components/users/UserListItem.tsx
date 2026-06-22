@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { User } from '@/types';
@@ -15,7 +16,7 @@ interface UserListItemProps {
   onUnfollow?: () => void;
 }
 
-export function UserListItem({
+function UserListItemComponent({
   user,
   showFollowButton,
   isFollowing,
@@ -60,6 +61,8 @@ export function UserListItem({
     </View>
   );
 }
+
+export const UserListItem = memo(UserListItemComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({

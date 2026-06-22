@@ -49,11 +49,12 @@ export function CrisisSupportModal({ visible, onEdit, onDismiss }: CrisisSupport
                 key={resource.name}
                 style={styles.resourceItem}
                 onPress={() => {
-                  if (resource.contact.startsWith('http')) {
-                    Linking.openURL(resource.contact);
-                  }
+                  void Linking.openURL(resource.action).catch(() => {
+                    // Device may not support the scheme (e.g. no SIM for tel:).
+                  });
                 }}
                 accessibilityRole="link"
+                accessibilityLabel={`${resource.name}. ${resource.contact}`}
               >
                 <Text style={styles.resourceName}>{resource.name}</Text>
                 <Text style={styles.resourceContact}>{resource.contact}</Text>

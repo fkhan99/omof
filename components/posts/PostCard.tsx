@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PostWithPromotion } from '@/types';
@@ -18,7 +18,7 @@ interface PostCardProps {
   variant?: 'feed' | 'card';
 }
 
-export function PostCard({ post, variant = 'feed' }: PostCardProps) {
+function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const isFeed = variant === 'feed';
@@ -86,7 +86,11 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
         <ReactionBar userReaction={userReaction} onReact={react} />
 
         {post.commentCount > 0 ? (
-          <TouchableOpacity onPress={openPost} accessibilityRole="button">
+          <TouchableOpacity
+            onPress={openPost}
+            accessibilityRole="button"
+            accessibilityLabel={`View all ${post.commentCount} comments`}
+          >
             <Text style={styles.viewComments}>
               View all {post.commentCount} comments
             </Text>
@@ -96,6 +100,8 @@ export function PostCard({ post, variant = 'feed' }: PostCardProps) {
     </View>
   );
 }
+
+export const PostCard = memo(PostCardComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
