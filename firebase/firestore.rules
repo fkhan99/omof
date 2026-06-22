@@ -44,14 +44,14 @@ service cloud.firestore {
       return days in [1, 3, 7];
     }
 
-    function isOwnerStatsUpdate() {
-      return isOwner(userId)
+    function isOwnerStatsUpdate(uid) {
+      return isOwner(uid)
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['stats', 'badges', 'updatedAt']);
     }
 
-    function isPromotionCreditDecrement() {
-      return isOwner(userId)
+    function isPromotionCreditDecrement(uid) {
+      return isOwner(uid)
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['promotionCredits', 'updatedAt'])
         && request.resource.data.promotionCredits <= resource.data.promotionCredits
@@ -64,8 +64,8 @@ service cloud.firestore {
       allow update: if isOwner(userId)
         && (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'displayNameLower', 'bio', 'photoURL', 'isPrivate', 'fcmToken', 'updatedAt'])
-          || isOwnerStatsUpdate()
-          || isPromotionCreditDecrement()
+          || isOwnerStatsUpdate(userId)
+          || isPromotionCreditDecrement(userId)
         );
       allow delete: if isOwner(userId);
     }

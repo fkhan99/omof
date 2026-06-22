@@ -97,7 +97,7 @@ async function applyGamificationUpdate(
   statsPatch: Partial<UserStats>,
   pointsDelta: number,
 ): Promise<void> {
-  const userRef = db.collection('users').doc(userId);
+  const userRef = getDb().collection('users').doc(userId);
   const snap = await userRef.get();
   if (!snap.exists) return;
 
@@ -130,7 +130,7 @@ async function applyGamificationUpdate(
 }
 
 export async function handlePostCreatedGamification(authorId: string): Promise<void> {
-  const userRef = db.collection('users').doc(authorId);
+  const userRef = getDb().collection('users').doc(authorId);
   const snap = await userRef.get();
   if (!snap.exists) return;
 
@@ -147,7 +147,7 @@ export async function handleCommentCreatedGamification(
   authorId: string,
   isOwnPost: boolean,
 ): Promise<void> {
-  const userRef = db.collection('users').doc(authorId);
+  const userRef = getDb().collection('users').doc(authorId);
   const snap = await userRef.get();
   if (!snap.exists) return;
 
@@ -166,7 +166,7 @@ export async function handleCommentCreatedGamification(
 }
 
 export async function handleReactionGivenGamification(userId: string): Promise<void> {
-  const userRef = db.collection('users').doc(userId);
+  const userRef = getDb().collection('users').doc(userId);
   const snap = await userRef.get();
   if (!snap.exists) return;
 
@@ -180,7 +180,7 @@ export async function handleReactionGivenGamification(userId: string): Promise<v
 }
 
 export async function handleReactionReceivedGamification(userId: string): Promise<void> {
-  const userRef = db.collection('users').doc(userId);
+  const userRef = getDb().collection('users').doc(userId);
   const snap = await userRef.get();
   if (!snap.exists) return;
 
@@ -202,11 +202,11 @@ export async function syncFollowCounts(followerId: string, followingId: string):
 
 async function syncUserFollowCounts(userId: string): Promise<void> {
   const [followingSnap, followersSnap] = await Promise.all([
-    db.collection('follows').where('followerId', '==', userId).get(),
-    db.collection('follows').where('followingId', '==', userId).get(),
+    getDb().collection('follows').where('followerId', '==', userId).get(),
+    getDb().collection('follows').where('followingId', '==', userId).get(),
   ]);
 
-  await db.collection('users').doc(userId).update({
+  await getDb().collection('users').doc(userId).update({
     followerCount: followersSnap.size,
     followingCount: followingSnap.size,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
