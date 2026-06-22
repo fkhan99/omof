@@ -1,10 +1,18 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { sendExpoPushNotification } from './expoPush';
+import {
+  handleCommentCreatedGamification,
+  handlePostCreatedGamification,
+  handleReactionGivenGamification,
+  handleReactionReceivedGamification,
+  syncFollowCounts,
+} from './gamification';
 
 admin.initializeApp();
 
 const db = admin.firestore();
+const FieldValue = admin.firestore.FieldValue;
 
 interface UserData {
   id: string;
@@ -112,6 +120,15 @@ async function createNotification(data: {
   });
 }
 
+export const onPostCreated = functions.firestore
+  .document('posts/{postId}')
+  .onCreate(async (snap) => {
+    const post = snap.data();
+    if (!post.authorId) return;
+
+    await handlePostCreatedGamification(post.authorId as string);
+  });
+
 export const onCommentCreated = functions.firestore
   .document('comments/{commentId}')
   .onCreate(async (snap) => {
@@ -122,6 +139,13 @@ export const onCommentCreated = functions.firestore
     const post = postSnap.data()!;
     const actor = await getUser(comment.authorId);
     if (!actor) return;
+
+    await postSnap.ref.update({
+      commentCount: FieldValue.increment(1),
+    });
+
+    const isOwnPost = post.authorId === comment.authorId;
+    await handleCommentCreatedGamification(comment.authorId, isOwnPost);
 
     await createNotification({
       recipientId: post.authorId,
@@ -137,6 +161,22 @@ export const onCommentCreated = functions.firestore
     });
   });
 
+export const onCommentDeleted = functions.firestore
+  .document('comments/{commentId}')
+  .onDelete(async (snap) => {
+    const comment = snap.data();
+    const postId = comment.postId as string | undefined;
+    if (!postId) return;
+
+    const postRef = db.collection('posts').doc(postId);
+    const postSnap = await postRef.get();
+    if (!postSnap.exists) return;
+
+    await postRef.update({
+      commentCount: FieldValue.increment(-1),
+    });
+  });
+
 export const onReactionCreated = functions.firestore
   .document('reactions/{reactionId}')
   .onCreate(async (snap) => {
@@ -147,6 +187,15 @@ export const onReactionCreated = functions.firestore
     const post = postSnap.data()!;
     const actor = await getUser(reaction.userId);
     if (!actor) return;
+
+    await postSnap.ref.update({
+      [`reactionCounts.${reaction.type}`]: FieldValue.increment(1),
+    });
+
+    await handleReactionGivenGamification(reaction.userId);
+    if (post.authorId !== reaction.userId) {
+      await handleReactionReceivedGamification(post.authorId);
+    }
 
     await createNotification({
       recipientId: post.authorId,
@@ -161,12 +210,49 @@ export const onReactionCreated = functions.firestore
     });
   });
 
+export const onReactionUpdated = functions.firestore
+  .document('reactions/{reactionId}')
+  .onUpdate(async (change) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    if (before.type === after.type) return;
+
+    const postSnap = await db.collection('posts').doc(after.postId).get();
+    if (!postSnap.exists) return;
+
+    const post = postSnap.data()!;
+
+    await postSnap.ref.update({
+      [`reactionCounts.${before.type}`]: FieldValue.increment(-1),
+      [`reactionCounts.${after.type}`]: FieldValue.increment(1),
+    });
+
+    await handleReactionGivenGamification(after.userId);
+    if (post.authorId !== after.userId) {
+      await handleReactionReceivedGamification(post.authorId);
+    }
+  });
+
+export const onReactionDeleted = functions.firestore
+  .document('reactions/{reactionId}')
+  .onDelete(async (snap) => {
+    const reaction = snap.data();
+    const postSnap = await db.collection('posts').doc(reaction.postId).get();
+    if (!postSnap.exists) return;
+
+    await postSnap.ref.update({
+      [`reactionCounts.${reaction.type}`]: FieldValue.increment(-1),
+    });
+  });
+
 export const onFollowCreated = functions.firestore
   .document('follows/{followId}')
   .onCreate(async (snap) => {
     const follow = snap.data();
     const actor = await getUser(follow.followerId);
     if (!actor) return;
+
+    await syncFollowCounts(follow.followerId, follow.followingId);
 
     await createNotification({
       recipientId: follow.followingId,
@@ -176,6 +262,13 @@ export const onFollowCreated = functions.firestore
       actorDisplayName: actor.displayName,
       actorPhotoURL: actor.photoURL ?? null,
     });
+  });
+
+export const onFollowDeleted = functions.firestore
+  .document('follows/{followId}')
+  .onDelete(async (snap) => {
+    const follow = snap.data();
+    await syncFollowCounts(follow.followerId, follow.followingId);
   });
 
 async function deleteDocsByQuery(
