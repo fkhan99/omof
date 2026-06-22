@@ -1,9 +1,4 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  sendEmailVerification,
+import { sendEmailVerification,
   reload,
   onAuthStateChanged,
   EmailAuthProvider,
