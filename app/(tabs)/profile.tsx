@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { getMyPosts } from '@/services/firebase/posts';
 import { getActualFollowCounts } from '@/services/firebase/follows';
-import { clearUserPostQueries } from '@/lib/queryClient';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { PostGrid } from '@/components/posts/PostGrid';
@@ -27,7 +26,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
-  const reset = useAuthStore((s) => s.reset);
 
   const authUid = firebaseUser?.uid;
 
@@ -64,31 +62,6 @@ export default function ProfileScreen() {
     return postsData.items.filter((post) => post.authorId === authUid);
   }, [authUid, postsData?.items]);
 
-  const performLogout = async () => {
-    try {
-      clearUserPostQueries();
-      await logOut();
-      reset();
-      router.replace('/(auth)/login');
-    } catch (err) {
-      Alert.alert(
-        'Sign out failed',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
-    }
-  };
-
-  const handleLogout = () => {
-    confirmAction(
-      'Sign out',
-      'Are you sure you want to sign out?',
-      () => {
-        void performLogout();
-      },
-      'Sign Out',
-    );
-  };
-
   if (!profile || !authUid) {
     return <LoadingState />;
   }
@@ -99,27 +72,6 @@ export default function ProfileScreen() {
   const renderListHeader = () => (
     <>
       <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerActionButton}
-              onPress={handleLogout}
-              accessibilityRole="button"
-              accessibilityLabel="Sign out"
-            >
-              <Ionicons name="log-out-outline" size={22} color={colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerActionButton}
-              onPress={() => router.push('/settings')}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-            >
-              <Ionicons name="settings-outline" size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <View style={styles.profileRow}>
           <Avatar uri={profile.photoURL} name={profile.displayName} size={88} showRing />
           <View style={styles.stats}>
@@ -225,21 +177,6 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: SPACING.lg,
       marginBottom: SPACING.md,
-    },
-    headerTopRow: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
-      marginBottom: Platform.select({ web: SPACING.sm, default: SPACING.md }),
-    },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Platform.select({ web: SPACING.xs, default: SPACING.sm }),
-    },
-    headerActionButton: {
-      padding: SPACING.sm,
-      margin: -SPACING.sm,
     },
     displayName: {
       fontSize: FONT_SIZES.md,
