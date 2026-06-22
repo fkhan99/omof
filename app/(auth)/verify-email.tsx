@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, AppState, Alert } from 'react-native';
+import { View, Text, StyleSheet, AppState } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -7,6 +7,8 @@ import {
   reloadCurrentUser,
   sendVerificationEmail,
 } from '@/services/firebase/auth';
+import { clearUserPostQueries } from '@/lib/queryClient';
+import { confirmAction } from '@/utils/confirm';
 import { Button } from '@/components/ui/Button';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
