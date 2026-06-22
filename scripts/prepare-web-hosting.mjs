@@ -36,7 +36,7 @@ function collectReferencedAssets(exportDir) {
   for (const jsFile of collectJsFiles(exportDir)) {
     const content = readFileSync(jsFile, 'utf8');
     for (const match of content.matchAll(assetPathPattern)) {
-      assetPaths.add(match[0]);
+      assetPaths.add(match[0].replace(/\\+$/, ''));
     }
   }
 

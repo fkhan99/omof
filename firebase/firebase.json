@@ -8,7 +8,7 @@
   },
   "hosting": {
     "public": "hosting",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": ["firebase.json", "**/.*", "node_modules/**"],
     "headers": [
       {
         "source": "**/*.@(js|css|webp|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)",
