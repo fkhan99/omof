@@ -125,6 +125,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
+          headerRight: () => <ProfileHeaderActions />,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? TAB_ICONS.profile.active : TAB_ICONS.profile.inactive}

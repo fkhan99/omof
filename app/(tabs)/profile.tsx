@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { getMyPosts } from '@/services/firebase/posts';
 import { getActualFollowCounts } from '@/services/firebase/follows';
-import { logOut } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
-import { confirmAction } from '@/utils/confirm';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { PostGrid } from '@/components/posts/PostGrid';
