@@ -28,9 +28,9 @@ export default function Index() {
 
     const usersDocExists = profile !== null;
 
-    // New signups must verify their email before onboarding. Existing accounts
-    // (those that already have a profile) are grandfathered in.
-    if (firebaseUser && !firebaseUser.emailVerified && !usersDocExists) {
+    // Every account must have a verified email — including existing ones —
+    // before reaching onboarding or the main app.
+    if (firebaseUser && !firebaseUser.emailVerified) {
       console.log('[Route] email not verified → verify-email', { uid });
       router.replace('/(auth)/verify-email');
       return;
