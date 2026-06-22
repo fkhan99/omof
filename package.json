@@ -21,6 +21,8 @@
     "firebase:deploy:storage": "cd firebase && npx firebase-tools deploy --only storage --project omof-eed24",
     "firebase:deploy:rules": "cd firebase && npx firebase-tools deploy --only firestore:rules,firestore:indexes --project omof-eed24",
     "firebase:deploy:functions": "cd firebase && npx firebase-tools deploy --only functions --project omof-eed24",
+    "firebase:deploy:backend": "npm run firebase:build:functions && cd firebase && npx firebase-tools deploy --only functions,firestore:rules --project omof-eed24",
+    "firebase:build:functions": "cd firebase/functions && npm run build",
     "firebase:deploy:media-rules": "cd firebase && npx firebase-tools deploy --only firestore:rules,storage --project omof-eed24",
     "backup:push": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/git-backup.ps1",
     "backup:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-github-backup.ps1",
