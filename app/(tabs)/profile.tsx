@@ -164,13 +164,6 @@ export default function ProfileScreen() {
           onPress={() => router.push('/profile/edit')}
           style={styles.editButton}
         />
-
-        <Button
-          title="Sign Out"
-          variant="ghost"
-          onPress={handleLogout}
-          style={styles.logoutHeader}
-        />
       </View>
 
       <View style={styles.postsHeader}>
@@ -288,11 +281,6 @@ function createStyles(colors: ThemeColors) {
       marginTop: SPACING.md,
       alignSelf: 'flex-start',
       minWidth: 140,
-    },
-    logoutHeader: {
-      marginTop: SPACING.sm,
-      alignSelf: 'flex-start',
-      paddingHorizontal: 0,
     },
     postsHeader: {
       flexDirection: 'row',
