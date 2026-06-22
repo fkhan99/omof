@@ -269,6 +269,36 @@ export interface OptimizedImage {
   uri: string;
   width: number;
   height: number;
+  contentType: 'image/webp' | 'image/jpeg';
+  extension: 'webp' | 'jpg';
+}
+
+function getUploadImageEncoding(): Pick<OptimizedImage, 'contentType' | 'extension'> & {
+  format: SaveFormat;
+} {
+  if (Platform.OS === 'web') {
+    return { format: SaveFormat.JPEG, contentType: 'image/jpeg', extension: 'jpg' };
+  }
+  return { format: SaveFormat.WEBP, contentType: 'image/webp', extension: 'webp' };
+}
+
+async function saveOptimizedImage(
+  image: Awaited<ReturnType<Awaited<ReturnType<typeof ImageManipulator.manipulate>>['renderAsync']>>,
+  compress: number,
+): Promise<OptimizedImage> {
+  const encoding = getUploadImageEncoding();
+  const result = await image.saveAsync({
+    format: encoding.format,
+    compress,
+  });
+
+  return {
+    uri: result.uri,
+    width: result.width,
+    height: result.height,
+    contentType: encoding.contentType,
+    extension: encoding.extension,
+  };
 }
 
 /**
