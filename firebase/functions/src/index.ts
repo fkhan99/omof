@@ -8,6 +8,7 @@ import {
   handleReactionReceivedGamification,
   syncFollowCounts,
 } from './gamification';
+import { createAdminPurgeUserDataCallable, createOnAuthUserDeleted } from './userDeletion';
 
 admin.initializeApp();
 
@@ -420,6 +421,13 @@ export const deleteMyAuthUser = functions.https.onCall(async (_data, context) =>
     );
   }
 
+  // Firestore cleanup runs in onAuthUserDeleted after this succeeds.
   await admin.auth().deleteUser(context.auth.uid);
   return { success: true };
 });
+
+/** When Auth is removed (console, admin SDK, or deleteMyAuthUser), wipe all user data. */
+export const onAuthUserDeleted = createOnAuthUserDeleted();
+
+/** Admin-only: purge orphaned data for a uid whose Auth account is already gone. */
+export const adminPurgeUserData = createAdminPurgeUserDataCallable();
