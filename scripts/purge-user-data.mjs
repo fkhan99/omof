@@ -19,9 +19,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(resolve(__dirname, '../firebase/functions/package.json'));
 
-const userId = process.argv[2]?.trim();
-if (!userId) {
-  console.error('Usage: node scripts/purge-user-data.mjs <firebaseAuthUid>');
+const input = process.argv[2]?.trim().replace(/^@/, '');
+if (!input) {
+  console.error('Usage: node scripts/purge-user-data.mjs <firebaseAuthUid|username>');
   process.exit(1);
 }
 
@@ -37,9 +37,38 @@ const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT 
 admin.initializeApp({ projectId });
 const { purgeAllUserData } = require(compiledPath);
 
-console.log(`Purging all OMOF data for user ${userId} in project ${projectId}...`);
+async function resolveUserId(value: string): Promise<string> {
+  if (/^[A-Za-z0-9]{20,}$/.test(value) && !value.includes('@')) {
+    return value;
+  }
+
+  const db = admin.firestore();
+  const usernameLower = value.toLowerCase();
+
+  const usernameSnap = await db.collection('usernames').doc(usernameLower).get();
+  if (usernameSnap.exists) {
+    const userId = usernameSnap.data()?.userId as string | undefined;
+    if (userId) return userId;
+  }
+
+  const usersSnap = await db
+    .collection('users')
+    .where('usernameLower', '==', usernameLower)
+    .limit(1)
+    .get();
+
+  if (!usersSnap.empty) {
+    return usersSnap.docs[0].id;
+  }
+
+  throw new Error(`No user found for username "${value}". Pass the Firebase Auth UID instead.`);
+}
+
+console.log(`Resolving user "${input}" in project ${projectId}...`);
 
 try {
+  const userId = await resolveUserId(input);
+  console.log(`Purging all OMOF data for user ${userId}...`);
   const summary = await purgeAllUserData(userId);
   console.log('Done:', JSON.stringify(summary, null, 2));
 } catch (error) {
