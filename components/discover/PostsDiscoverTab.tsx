@@ -42,8 +42,9 @@ export function PostsDiscoverTab({ authUid, profile, followingIds }: PostsDiscov
   });
 
   const onRefreshPosts = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    if (!profile) return;
+    await refetch({ cancelRefetch: false });
+  }, [profile, refetch]);
   const { refreshing, onRefresh: handleRefreshPosts } = usePullToRefresh(onRefreshPosts);
 
   const renderHeader = () => (

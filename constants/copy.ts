@@ -55,26 +55,41 @@ export const FEED = {
 } as const;
 
 export const SHARED_EXPERIENCES = {
-  title: 'Shared Experiences',
-  subtitle: "You're not alone. Browse real moments by how people feel.",
   moodFilterLabel: 'Browse by mood',
-  loading: 'Loading shared experiences...',
-  emptyTitle: 'No shared experiences yet',
-  emptyMessage: 'Be the first to share something real in this mood.',
-  spotlightTitle: 'Community spotlight',
-  spotlightSubtitle: 'Promoted posts from the community',
-  searchPlaceholder: 'Search by name or username',
-  nearbyTitle: 'People in your area',
-  nearbyEmpty: 'No one else in your area yet. Invite friends to join OMOF.',
-  contactsTitle: 'Find friends from contacts',
-  contactsHint: 'Import a contacts file (.vcf) or paste emails to find people on OMOF.',
-  contactsImport: 'Import contacts',
-  contactsSearch: 'Find on OMOF',
-  contactsPasteLabel: 'Friend emails',
-  contactsPastePlaceholder: 'friend@email.com, another@email.com',
-  contactsNone: 'No matching accounts found for those emails.',
   growthFilter: 'Growth updates',
   allMoods: 'All',
+} as const;
+
+export type DiscoverMode = 'people' | 'posts';
+
+export const DISCOVER_MODES = {
+  people: {
+    label: 'People',
+    title: 'Find people',
+    subtitle: 'Connect with people nearby or friends from your contacts.',
+    searchPlaceholder: 'Search by name or username',
+    searching: 'Searching...',
+    searchResultsTitle: 'Search results',
+    noResultsTitle: 'No results',
+    noResultsMessage: 'Try a different search term.',
+    nearbyTitle: 'People in your area',
+    nearbyEmpty: 'No one else in your area yet. Invite friends to join OMOF.',
+    contactsTitle: 'Find friends from contacts',
+    contactsHint: 'Import a contacts file (.vcf) or paste emails to find people on OMOF.',
+    contactsImport: 'Import contacts',
+    contactsSearch: 'Find on OMOF',
+    contactsPasteLabel: 'Friend emails',
+    contactsPastePlaceholder: 'friend@email.com, another@email.com',
+    contactsNone: 'No matching accounts found for those emails.',
+  },
+  posts: {
+    label: 'Posts',
+    title: 'Shared experiences',
+    subtitle: "You're not alone. Browse real moments by how people feel.",
+    loading: 'Loading shared experiences...',
+    emptyTitle: 'No shared experiences yet',
+    emptyMessage: 'Be the first to share something real in this mood.',
+  },
 } as const;
 
 export const POSTS = {

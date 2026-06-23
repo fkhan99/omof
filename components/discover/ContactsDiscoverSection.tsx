@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { UserListItem } from '@/components/users/UserListItem';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { SHARED_EXPERIENCES } from '@/constants/copy';
+import { DISCOVER_MODES } from '@/constants/copy';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import {
@@ -43,7 +43,7 @@ export function ContactsDiscoverSection({
     onSuccess: (users) => {
       setMatches(users);
       if (users.length === 0) {
-        Alert.alert('No matches', SHARED_EXPERIENCES.contactsNone);
+        Alert.alert('No matches', DISCOVER_MODES.people.contactsNone);
       }
     },
     onError: (error) => {
@@ -111,8 +111,8 @@ export function ContactsDiscoverSection({
     <View style={styles.section}>
       {vCardInput}
 
-      <Text style={styles.title}>{SHARED_EXPERIENCES.contactsTitle}</Text>
-      <Text style={styles.hint}>{SHARED_EXPERIENCES.contactsHint}</Text>
+      <Text style={styles.title}>{DISCOVER_MODES.people.contactsTitle}</Text>
+      <Text style={styles.hint}>{DISCOVER_MODES.people.contactsHint}</Text>
 
       {Platform.OS === 'web' ? (
         <Button
@@ -125,7 +125,7 @@ export function ContactsDiscoverSection({
         />
       ) : (
         <Button
-          title={SHARED_EXPERIENCES.contactsImport}
+          title={DISCOVER_MODES.people.contactsImport}
           variant="secondary"
           size="sm"
           onPress={() => void handleImportContacts()}
@@ -135,8 +135,8 @@ export function ContactsDiscoverSection({
       )}
 
       <Input
-        label={SHARED_EXPERIENCES.contactsPasteLabel}
-        placeholder={SHARED_EXPERIENCES.contactsPastePlaceholder}
+        label={DISCOVER_MODES.people.contactsPasteLabel}
+        placeholder={DISCOVER_MODES.people.contactsPastePlaceholder}
         value={emailInput}
         onChangeText={setEmailInput}
         autoCapitalize="none"
@@ -144,7 +144,7 @@ export function ContactsDiscoverSection({
       />
 
       <Button
-        title={SHARED_EXPERIENCES.contactsSearch}
+        title={DISCOVER_MODES.people.contactsSearch}
         size="sm"
         onPress={handleSearchEmails}
         loading={searchMutation.isPending}

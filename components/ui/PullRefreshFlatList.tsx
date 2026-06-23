@@ -54,8 +54,17 @@ export function PullRefreshFlatList<T>({
   const isDragging = useRef(false);
   const pullDistanceRef = useRef(0);
   const refreshingRef = useRef(refreshing);
+  const onRefreshRef = useRef(onRefresh);
   const [pullDistance, setPullDistance] = useState(0);
   refreshingRef.current = refreshing;
+  onRefreshRef.current = onRefresh;
+
+  const resetPullState = useCallback(() => {
+    touchStartY.current = null;
+    isDragging.current = false;
+    pullDistanceRef.current = 0;
+    setPullDistance(0);
+  }, []);
 
   const setPullDistanceSafe = useCallback((distance: number) => {
     pullDistanceRef.current = distance;
@@ -64,56 +73,70 @@ export function PullRefreshFlatList<T>({
 
   useEffect(() => {
     if (!refreshing) {
-      setPullDistanceSafe(0);
-      touchStartY.current = null;
-      isDragging.current = false;
+      resetPullState();
     }
-  }, [refreshing, setPullDistanceSafe]);
+  }, [refreshing, resetPullState]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      scrollY.current = event.nativeEvent.contentOffset.y;
+      const y = event.nativeEvent.contentOffset.y;
+      scrollY.current = y;
+
+      if (y > 1 && (pullDistanceRef.current > 0 || isDragging.current)) {
+        resetPullState();
+      }
+
       onScroll?.(event);
     },
-    [onScroll],
+    [onScroll, resetPullState],
   );
 
-  const updatePullDistance = useCallback((pageY: number) => {
-    if (refreshingRef.current || touchStartY.current == null) return;
+  const updatePullDistance = useCallback(
+    (pageY: number) => {
+      if (refreshingRef.current || touchStartY.current == null || !isDragging.current) return;
 
-    if (scrollY.current > 1) {
-      touchStartY.current = null;
-      isDragging.current = false;
-      setPullDistanceSafe(0);
-      return;
-    }
+      if (scrollY.current > 1) {
+        resetPullState();
+        return;
+      }
 
-    const delta = pageY - touchStartY.current;
-    if (delta > 0) {
-      setPullDistanceSafe(Math.min(delta, PULL_THRESHOLD * 1.5));
-    } else {
-      setPullDistanceSafe(0);
-    }
-  }, [setPullDistanceSafe]);
+      const delta = pageY - touchStartY.current;
+      if (delta > 0) {
+        setPullDistanceSafe(Math.min(delta, PULL_THRESHOLD * 1.5));
+      } else {
+        setPullDistanceSafe(0);
+      }
+    },
+    [resetPullState, setPullDistanceSafe],
+  );
 
-  const beginDrag = useCallback((pageY: number) => {
-    if (refreshingRef.current || scrollY.current > 1) return;
-    touchStartY.current = pageY;
-    isDragging.current = true;
-  }, []);
+  const beginDrag = useCallback(
+    (pageY: number) => {
+      if (refreshingRef.current || scrollY.current > 1) return;
+      touchStartY.current = pageY;
+      isDragging.current = true;
+    },
+    [],
+  );
 
   const endDrag = useCallback(() => {
     if (!isDragging.current) return;
 
-    if (pullDistanceRef.current >= PULL_THRESHOLD && !refreshingRef.current) {
-      void onRefresh();
-    } else if (!refreshingRef.current) {
-      setPullDistanceSafe(0);
+    const shouldRefresh =
+      pullDistanceRef.current >= PULL_THRESHOLD && !refreshingRef.current;
+
+    if (shouldRefresh) {
+      void onRefreshRef.current();
+    } else {
+      resetPullState();
+      return;
     }
 
     touchStartY.current = null;
     isDragging.current = false;
-  }, [onRefresh, setPullDistanceSafe]);
+    pullDistanceRef.current = 0;
+    setPullDistance(0);
+  }, [resetPullState]);
 
   const webPullHandlers =
     Platform.OS === 'web'
@@ -128,32 +151,18 @@ export function PullRefreshFlatList<T>({
             endDrag();
           },
           onTouchCancel: () => {
-            endDrag();
-          },
-          onMouseDown: (event: GestureResponderEvent) => {
-            beginDrag(event.nativeEvent.pageY);
-          },
-          onMouseMove: (event: GestureResponderEvent) => {
-            if (!isDragging.current) return;
-            updatePullDistance(event.nativeEvent.pageY);
-          },
-          onMouseUp: () => {
-            endDrag();
-          },
-          onMouseLeave: () => {
-            if (isDragging.current) {
-              endDrag();
-            }
+            resetPullState();
           },
         }
       : {};
 
-  const showIndicator = refreshing || pullDistance > 8;
+  const showIndicator = refreshing || (isDragging.current && pullDistance > 8);
   const pullProgress = refreshing ? 1 : Math.min(1, pullDistance / PULL_THRESHOLD);
-  const indicatorHeight = refreshing
-    ? REFRESH_BAR_HEIGHT
-    : showIndicator
-      ? Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
+  const indicatorHeight =
+    refreshing || (pullDistance > 8 && isDragging.current)
+      ? refreshing
+        ? REFRESH_BAR_HEIGHT
+        : Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
       : 0;
 
   const pullHeader = useMemo(
