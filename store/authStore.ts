@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { Platform } from 'react-native';
 import { User as FirebaseUser } from 'firebase/auth';
 import { User } from '@/types';
+import { clearProfileCache, writeProfileCache } from '@/utils/profileCache';
 
 export interface SignupCompliance {
   acceptedTerms: boolean;
