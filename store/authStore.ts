@@ -16,6 +16,10 @@ interface AuthState {
   pendingSignupFullName: string | null;
   isLoading: boolean;
   isInitialized: boolean;
+  /** True while the Firestore profile read is in flight. */
+  isProfileLoading: boolean;
+  /** True once the profile read finished (found, missing, or failed with cache). */
+  profileLoadComplete: boolean;
   /**
    * True when the most recent profile load failed (error/timeout) rather than
    * the profile genuinely not existing. Used to avoid misrouting an existing
