@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -21,9 +21,12 @@ function RefreshGearComponent({
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
   const spin = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (!spinning) {
+      animationRef.current?.stop();
+      animationRef.current = null;
       spin.stopAnimation();
       spin.setValue(0);
       return;
@@ -34,11 +37,16 @@ function RefreshGearComponent({
         toValue: 1,
         duration: 900,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     );
+    animationRef.current = animation;
     animation.start();
-    return () => animation.stop();
+
+    return () => {
+      animation.stop();
+      animationRef.current = null;
+    };
   }, [spinning, spin]);
 
   if (!visible) return null;
@@ -54,17 +62,17 @@ function RefreshGearComponent({
       style={[
         styles.container,
         compact && styles.containerCompact,
-        { opacity: Math.max(0.35, pullProgress) },
+        { opacity: spinning ? 1 : Math.max(0.35, pullProgress) },
       ]}
       accessibilityRole="progressbar"
       accessibilityLabel={spinning ? 'Refreshing' : 'Pull to refresh'}
     >
       {spinning ? (
-        <Animated.View style={{ transform: [{ rotate: spinRotate }] }}>
+        <Animated.View style={[styles.iconWrap, Platform.OS === 'web' && styles.webSpin, { transform: [{ rotate: spinRotate }] }]}>
           <Ionicons name="sync" size={22} color={colors.primary} />
         </Animated.View>
       ) : (
-        <View style={{ transform: [{ rotate: pullRotate }] }}>
+        <View style={[styles.iconWrap, { transform: [{ rotate: pullRotate }] }]}>
           <Ionicons name="sync" size={22} color={colors.primary} />
         </View>
       )}
@@ -75,7 +83,7 @@ function RefreshGearComponent({
 
 export const RefreshGear = memo(RefreshGearComponent);
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       flexDirection: 'row',
@@ -87,9 +95,21 @@ function createStyles(colors: ThemeColors) {
     containerCompact: {
       paddingVertical: SPACING.xs,
     },
+    iconWrap: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    webSpin: Platform.OS === 'web'
+      ? ({
+          animationName: 'refreshGearSpin',
+          animationDuration: '0.9s',
+          animationTimingFunction: 'linear',
+          animationIterationCount: 'infinite',
+        } as object)
+      : {},
     label: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: _colors.textMuted,
       fontWeight: '600',
     },
   });
