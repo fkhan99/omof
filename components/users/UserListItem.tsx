@@ -30,7 +30,7 @@ function UserListItemComponent({
   const getFollowButtonTitle = () => {
     if (isFollowing) return 'Following';
     if (isRequested) return 'Requested';
-    return user.isPrivate ? 'Request' : 'Follow';
+    return 'Follow';
   };
 
   return (

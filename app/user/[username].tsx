@@ -193,7 +193,7 @@ export default function UserProfileScreen() {
   const getFollowButtonTitle = () => {
     if (following) return 'Following';
     if (isRequestPending) return 'Requested';
-    return user?.isPrivate ? 'Request' : 'Follow';
+    return 'Follow';
   };
 
   const handleFollowPress = () => {
