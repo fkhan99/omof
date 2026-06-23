@@ -12,6 +12,12 @@ import {
 import { createAdminPurgeUserDataCallable, createOnAuthUserDeleted } from './userDeletion';
 import { createAdminEmailVerificationCallable } from './adminAuth';
 import { createRequestVerificationEmailCallable } from './verificationEmail';
+import { applyServerModeration } from './moderation/applyModeration';
+import { escalateReportedContent } from './moderation/reportEscalation';
+import {
+  createAdminListModerationQueueCallable,
+  createAdminModerationActionCallable,
+} from './moderation/adminModeration';
 
 admin.initializeApp();
 
@@ -32,8 +38,8 @@ const REACTION_LABELS: Record<string, string> = {
   sending_support: 'Sending support',
 };
 
-// Keep in sync with constants/safety.ts AUTO_REMOVAL_REPORT_THRESHOLD.
-const AUTO_REMOVAL_REPORT_THRESHOLD = 5;
+// Keep in sync with constants/moderation.ts REVIEW_REPORT_THRESHOLD.
+import { REVIEW_REPORT_THRESHOLD } from './moderation/phrases';
 
 async function getUser(userId: string): Promise<UserData | null> {
   const snap = await db.collection('users').doc(userId).get();
@@ -130,6 +136,12 @@ export const onPostCreated = functions.firestore
     const post = snap.data();
     if (!post.authorId) return;
 
+    const caption = typeof post.caption === 'string' ? post.caption : '';
+    await applyServerModeration(snap.ref, caption, {
+      reviewRequired: post.reviewRequired === true,
+      moderationStatus: post.moderationStatus,
+    });
+
     await handlePostCreatedGamification(post.authorId as string);
   });
 
@@ -141,6 +153,17 @@ export const onCommentCreated = functions.firestore
     if (!postSnap.exists) return;
 
     const post = postSnap.data()!;
+    const text = typeof comment.text === 'string' ? comment.text : '';
+
+    await applyServerModeration(snap.ref, text, {
+      reviewRequired: comment.reviewRequired === true,
+      moderationStatus: comment.moderationStatus,
+    });
+
+    const refreshed = await snap.ref.get();
+    const moderated = refreshed.data()!;
+    const isHidden = moderated.isHidden === true;
+
     const actor = await getUser(comment.authorId);
     if (!actor) return;
 
@@ -151,18 +174,47 @@ export const onCommentCreated = functions.firestore
     const isOwnPost = post.authorId === comment.authorId;
     await handleCommentCreatedGamification(comment.authorId, isOwnPost);
 
-    await createNotification({
-      recipientId: post.authorId,
-      type: 'comment',
-      actorId: comment.authorId,
-      actorUsername: actor.username,
-      actorDisplayName: actor.displayName,
-      actorPhotoURL: actor.photoURL ?? null,
-      postId: comment.postId,
-      postImageURL: post.imageURL ?? null,
-      commentText: comment.text,
-      commentId: snap.id,
-    });
+    if (isHidden) {
+      functions.logger.info('[moderation] skipping comment notification — hidden', {
+        commentId: snap.id,
+      });
+      return;
+    }
+
+    if (post.authorId !== comment.authorId) {
+      await createNotification({
+        recipientId: post.authorId,
+        type: 'comment',
+        actorId: comment.authorId,
+        actorUsername: actor.username,
+        actorDisplayName: actor.displayName,
+        actorPhotoURL: actor.photoURL ?? null,
+        postId: comment.postId,
+        postImageURL: post.imageURL ?? null,
+        commentText: comment.text,
+        commentId: snap.id,
+      });
+    }
+
+    const replyToUserId = comment.replyToUserId as string | null | undefined;
+    if (
+      replyToUserId
+      && replyToUserId !== comment.authorId
+      && replyToUserId !== post.authorId
+    ) {
+      await createNotification({
+        recipientId: replyToUserId,
+        type: 'comment',
+        actorId: comment.authorId,
+        actorUsername: actor.username,
+        actorDisplayName: actor.displayName,
+        actorPhotoURL: actor.photoURL ?? null,
+        postId: comment.postId,
+        postImageURL: post.imageURL ?? null,
+        commentText: comment.text,
+        commentId: snap.id,
+      });
+    }
   });
 
 export const onCommentDeleted = functions.firestore
@@ -341,68 +393,27 @@ async function deleteStorageFileFromUrl(url: string | null | undefined): Promise
 }
 
 /**
- * Auto-moderation: when a post accumulates flags from enough distinct users,
- * remove the post and notify the author in their activity feed.
+ * Auto-moderation: when content accumulates flags from enough distinct users,
+ * hide it and send to the admin review queue.
  */
 export const onReportCreated = functions.firestore
   .document('reports/{reportId}')
   .onCreate(async (snap) => {
     const report = snap.data();
-    if (report.targetType !== 'post') return;
+    const targetType = report.targetType as 'post' | 'comment' | undefined;
+    const targetId: string | undefined = report.targetId;
 
-    const postId: string = report.targetId;
-    if (!postId) return;
+    if (!targetId || (targetType !== 'post' && targetType !== 'comment')) return;
 
-    const postSnap = await db.collection('posts').doc(postId).get();
-    if (!postSnap.exists) {
-      functions.logger.info('[moderation] post already removed', { postId });
-      return;
-    }
+    const escalated = await escalateReportedContent(db, targetType, targetId);
 
-    // Single-field query (no composite index needed); filter type in code.
-    const reportsSnap = await db
-      .collection('reports')
-      .where('targetId', '==', postId)
-      .get();
+    if (!escalated || targetType !== 'post') return;
 
-    const distinctReporters = new Set<string>();
-    reportsSnap.docs.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data.targetType === 'post' && data.reporterId) {
-        distinctReporters.add(data.reporterId);
-      }
-    });
-
-    functions.logger.info('[moderation] evaluating post', {
-      postId,
-      distinctReporters: distinctReporters.size,
-      threshold: AUTO_REMOVAL_REPORT_THRESHOLD,
-    });
-
-    if (distinctReporters.size < AUTO_REMOVAL_REPORT_THRESHOLD) return;
+    const postSnap = await db.collection('posts').doc(targetId).get();
+    if (!postSnap.exists) return;
 
     const post = postSnap.data()!;
     const authorId: string = post.authorId;
-
-    await Promise.all([
-      deleteDocsByQuery(db.collection('comments').where('postId', '==', postId)),
-      deleteDocsByQuery(db.collection('reactions').where('postId', '==', postId)),
-    ]);
-
-    // Remove uploaded media. For videos, imageURL holds the thumbnail and
-    // videoURL the clip; for images, imageURL holds the photo.
-    await Promise.all([
-      deleteStorageFileFromUrl(post.imageURL),
-      deleteStorageFileFromUrl(post.videoURL),
-    ]);
-
-    await postSnap.ref.delete();
-
-    functions.logger.info('[moderation] post removed', {
-      postId,
-      authorId,
-      reporterCount: distinctReporters.size,
-    });
 
     if (authorId) {
       await db.collection('notifications').add({
@@ -412,12 +423,12 @@ export const onReportCreated = functions.firestore
         actorDisplayName: 'OMOF Safety',
         actorPhotoURL: null,
         type: 'post_removed',
-        postId: null,
-        postImageURL: null,
+        postId: targetId,
+        postImageURL: post.imageURL ?? null,
         commentText: null,
         commentId: null,
         reactionType: null,
-        reportCount: distinctReporters.size,
+        reportCount: post.reportCount ?? REVIEW_REPORT_THRESHOLD,
         read: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -427,7 +438,7 @@ export const onReportCreated = functions.firestore
         await sendExpoPushNotification(
           author.fcmToken,
           'OMOF',
-          'One of your posts was removed after multiple community reports.',
+          'One of your posts is under review after multiple community reports.',
           { type: 'post_removed' },
         );
       }
@@ -458,3 +469,9 @@ export const adminEmailVerification = createAdminEmailVerificationCallable();
 
 /** Signed-in users: send verification email via configured SMTP (falls back client-side). */
 export const requestVerificationEmail = createRequestVerificationEmailCallable();
+
+/** Admin-only: list posts and comments awaiting moderation review. */
+export const adminListModerationQueue = createAdminListModerationQueueCallable();
+
+/** Admin-only: approve, reject, or mark content as spam/blocked. */
+export const adminModerationAction = createAdminModerationActionCallable();

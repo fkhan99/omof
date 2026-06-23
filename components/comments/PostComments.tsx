@@ -56,6 +56,11 @@ export function PostComments({
   const [commentError, setCommentError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(variant === 'detail');
   const [replyTarget, setReplyTarget] = useState<CommentReplyTarget | null>(null);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | undefined>();
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showGrowthModal, setShowGrowthModal] = useState(false);
+  const [pendingCommentText, setPendingCommentText] = useState<string | null>(null);
 
   const {
     data: comments = [],
@@ -65,7 +70,7 @@ export function PostComments({
   } = useQuery({
     queryKey: ['comments', postId],
     queryFn: async () => {
-      const result = await getComments(postId);
+      const result = await getComments(postId, undefined, undefined, authUid);
       return result.items;
     },
     enabled: !!postId && (variant === 'detail' || expanded || commentCount > 0),
@@ -84,7 +89,11 @@ export function PostComments({
     : RESPONSES.placeholder;
 
   const addCommentMutation = useMutation({
-    mutationFn: (payload: { text: string; replyTo?: CommentReplyTarget }) =>
+    mutationFn: (payload: {
+      text: string;
+      moderation: ReturnType<typeof evaluatePrePublish>['moderationFields'];
+      replyTo?: CommentReplyTarget;
+    }) =>
       addComment(
         postId,
         {
@@ -94,9 +103,14 @@ export function PostComments({
           photoURL: profile!.photoURL,
         },
         payload.text,
+        payload.moderation,
         payload.replyTo,
       ),
-    onMutate: async ({ text, replyTo }) => {
+    onMutate: async ({ text, replyTo, moderation }) => {
+      if (moderation.isHidden) {
+        return { previousComments: queryClient.getQueryData<Comment[]>(['comments', postId]) ?? [] };
+      }
+
       await queryClient.cancelQueries({ queryKey: ['comments', postId] });
       const previousComments = queryClient.getQueryData<Comment[]>(['comments', postId]) ?? [];
 
@@ -111,6 +125,12 @@ export function PostComments({
         parentCommentId: replyTo?.parentCommentId ?? null,
         replyToUserId: replyTo?.replyToUserId ?? null,
         replyToUsername: replyTo?.replyToUsername ?? null,
+        moderationStatus: moderation.moderationStatus,
+        moderationReason: moderation.moderationReason,
+        moderationConfidence: moderation.moderationConfidence,
+        reviewRequired: moderation.reviewRequired,
+        isHidden: moderation.isHidden,
+        reportCount: moderation.reportCount ?? 0,
         createdAt: new Date(),
       };
 
@@ -132,11 +152,14 @@ export function PostComments({
       }));
       setCommentError(err instanceof Error ? err.message : RESPONSES.addError);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       reset();
       setCommentError(null);
       setReplyTarget(null);
       setExpanded(true);
+      if (variables.moderation.reviewRequired) {
+        Alert.alert('Submitted for review', MODERATION_COPY.commentReviewPending);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
@@ -182,16 +205,41 @@ export function PostComments({
     },
   });
 
-  const onSubmitComment = async (data: CommentFormData) => {
-    if (!profile || !authUid) return;
-    setCommentError(null);
-
-    if (containsProfanity(data.text)) {
-      setCommentError(RESPONSES.profanityError);
+  const submitComment = (
+    text: string,
+    options: { submitForReview?: boolean; reflectionApplied?: boolean } = {},
+  ) => {
+    const evaluation = evaluatePrePublish(text, options);
+    if (!evaluation.canPublish) {
+      if (evaluation.blockedMessage) {
+        setBlockedMessage(evaluation.blockedMessage);
+        setShowBlockedModal(true);
+        return;
+      }
+      if (evaluation.requiresSupportFlow) {
+        setPendingCommentText(text);
+        setShowSupportModal(true);
+        return;
+      }
+      if (evaluation.requiresGrowthFlow) {
+        setPendingCommentText(text);
+        setShowGrowthModal(true);
+        return;
+      }
       return;
     }
 
-    addCommentMutation.mutate({ text: data.text, replyTo: replyTarget ?? undefined });
+    addCommentMutation.mutate({
+      text: evaluation.caption,
+      moderation: evaluation.moderationFields,
+      replyTo: replyTarget ?? undefined,
+    });
+  };
+
+  const onSubmitComment = async (data: CommentFormData) => {
+    if (!profile || !authUid) return;
+    setCommentError(null);
+    submitComment(data.text);
   };
 
   const handleDeleteComment = (commentId: string) => {
