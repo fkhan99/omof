@@ -28,11 +28,10 @@ function publishActivity(
   pendingFollowRequestCount: number,
   queryClient: ReturnType<typeof useQueryClient>,
 ): void {
-  useNotificationStore.getState().setActivityItems(items);
+  const store = useNotificationStore.getState();
+  store.setActivityItems(items);
   queryClient.setQueryData(['activity', authUid], items);
-  useNotificationStore.getState().setUnreadCount(
-    computeActivityBadgeCount(items, pendingFollowRequestCount),
-  );
+  store.syncActivityBadge(pendingFollowRequestCount);
 }
 
 /** Real-time sync for activity badge, notifications list, and follow requests. */
