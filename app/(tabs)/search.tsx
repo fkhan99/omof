@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, Text } from 'react-native';
+import { View, FlatList, StyleSheet, Alert, Text, RefreshControl } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchUsers, getUsersByLocation } from '@/services/firebase/users';
 import { getPostsByMoodTag } from '@/services/firebase/posts';
@@ -21,16 +21,20 @@ import { Input } from '@/components/ui/Input';
 import { UserListItem } from '@/components/users/UserListItem';
 import { PostCard } from '@/components/posts/PostCard';
 import { MoodFilterBar } from '@/components/shared/MoodFilterBar';
+import { ContactsDiscoverSection } from '@/components/discover/ContactsDiscoverSection';
 import { OptionsMenu } from '@/components/ui/OptionsMenu';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { SHARED_EXPERIENCES } from '@/constants/copy';
 import { SPACING, FONT_SIZES, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useTheme } from '@/hooks/useTheme';
+import { RefreshGear } from '@/components/ui/RefreshGear';
 import { MoodTag, User } from '@/types';
 
 export default function SearchScreen() {
   const styles = useThemedStyles(createStyles);
+  const { colors } = useTheme();
   const profile = useAuthStore((s) => s.profile);
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const queryClient = useQueryClient();
@@ -38,6 +42,7 @@ export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMood, setSelectedMood] = useState<MoodTag | 'all' | 'growth'>('all');
   const [userToUnfollow, setUserToUnfollow] = useState<User | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { data: followingIds = [] } = useQuery({
     queryKey: ['followingIds', authUid],
@@ -80,7 +85,7 @@ export default function SearchScreen() {
   const moodTag = selectedMood !== 'all' && selectedMood !== 'growth' ? selectedMood : null;
   const postKind = selectedMood === 'growth' ? ('growth_update' as const) : null;
 
-  const { data: sharedPosts = [], isLoading: sharedLoading } = useQuery({
+  const { data: sharedPosts = [], isLoading: sharedLoading, refetch: refetchShared } = useQuery({
     queryKey: ['sharedExperiences', authUid, selectedMood],
     queryFn: async () => {
       if (!profile) return [];
@@ -190,9 +195,21 @@ export default function SearchScreen() {
         </View>
       ) : null}
 
+      <ContactsDiscoverSection
+        followingIds={followingIds}
+        requestedIds={requestedIds}
+        onFollowPress={handleFollowPress}
+      />
+
       <MoodFilterBar selectedMood={selectedMood} onSelect={setSelectedMood} />
     </View>
   );
+
+  const onRefreshDiscover = async () => {
+    setRefreshing(true);
+    await refetchShared();
+    setRefreshing(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -214,10 +231,23 @@ export default function SearchScreen() {
           <FlatList
             data={sharedPosts}
             keyExtractor={(item) => item.id}
-            ListHeaderComponent={renderDiscoverHeader}
+            ListHeaderComponent={() => (
+              <View>
+                {renderDiscoverHeader()}
+                <RefreshGear visible={refreshing} />
+              </View>
+            )}
             renderItem={({ item }) => <PostCard post={{ ...item, isPromoted: false }} variant="card" />}
             contentContainerStyle={styles.exploreList}
             keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void onRefreshDiscover()}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
             extraData={`${followingIds.join(',')}-${requestedIds.join(',')}-${nearbyUsers.length}`}
             ListEmptyComponent={
               <EmptyState

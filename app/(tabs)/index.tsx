@@ -9,6 +9,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { RefreshGear } from '@/components/ui/RefreshGear';
 import { FEED } from '@/constants/copy';
 import { PostWithPromotion } from '@/types';
 import { POSTS_PAGE_SIZE, SPACING, ThemeColors } from '@/constants/theme';
@@ -102,8 +103,14 @@ export default function FeedScreen() {
       renderItem={renderItem}
       contentContainerStyle={displayItems.length === 0 ? styles.emptyList : styles.list}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
       }
+      ListHeaderComponent={<RefreshGear visible={refreshing} />}
       ListEmptyComponent={
         <EmptyState
           icon="people-outline"
