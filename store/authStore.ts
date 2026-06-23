@@ -19,9 +19,12 @@ interface AuthState {
    * user to onboarding on a transient failure.
    */
   profileError: boolean;
+  /** Set when a brand-new profile is created; drives the one-time welcome modal. */
+  pendingWelcome: boolean;
   setFirebaseUser: (user: FirebaseUser | null) => void;
   setProfile: (profile: User | null) => void;
   setProfileError: (hasError: boolean) => void;
+  setPendingWelcome: (pendingWelcome: boolean) => void;
   setPendingSignupCompliance: (compliance: SignupCompliance | null) => void;
   setLoading: (loading: boolean) => void;
   setInitialized: (initialized: boolean) => void;

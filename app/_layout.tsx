@@ -8,6 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useFollowRelationshipSync } from '@/hooks/useFollowRelationshipSync';
 import { useActivitySync } from '@/hooks/useActivitySync';
 import { useTheme } from '@/hooks/useTheme';
+import { WelcomeModalHost } from '@/components/onboarding/WelcomeModalHost';
 
 function RootLayoutNav() {
   useAuthListener();
