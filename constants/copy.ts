@@ -67,7 +67,7 @@ export const SHARED_EXPERIENCES = {
   nearbyTitle: 'People in your area',
   nearbyEmpty: 'No one else in your area yet. Invite friends to join OMOF.',
   contactsTitle: 'Find friends from contacts',
-  contactsHint: 'Import contacts or paste emails to find people you know on OMOF.',
+  contactsHint: 'Import from your address book or a contacts file (.vcf), or paste emails to find people on OMOF.',
   contactsImport: 'Import contacts',
   contactsSearch: 'Find on OMOF',
   contactsPasteLabel: 'Friend emails',

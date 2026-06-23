@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { findUsersByEmails } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/authStore';
@@ -9,8 +9,13 @@ import { Button } from '@/components/ui/Button';
 import { SHARED_EXPERIENCES } from '@/constants/copy';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { importContactEmails, parseEmailList } from '@/utils/contactImport';
+import {
+  importContactEmails,
+  importContactEmailsFromVCardText,
+  parseEmailList,
+} from '@/utils/contactImport';
 import { User } from '@/types';
+import { useContactsFilePicker } from '@/components/discover/useContactsFilePicker';
 
 interface ContactsDiscoverSectionProps {
   followingIds: string[];
@@ -27,6 +32,7 @@ export function ContactsDiscoverSection({
   const authUid = useAuthStore((s) => s.firebaseUser?.uid);
   const [emailInput, setEmailInput] = useState('');
   const [matches, setMatches] = useState<User[]>([]);
+  const [importing, setImporting] = useState(false);
 
   const searchMutation = useMutation({
     mutationFn: async (emails: string[]) => {
@@ -48,17 +54,60 @@ export function ContactsDiscoverSection({
     },
   });
 
-  const handleImportContacts = async () => {
-    const imported = await importContactEmails();
-    if (imported.length === 0) {
-      Alert.alert(
-        'Contacts unavailable',
-        'Paste your friends’ emails below, or use a browser that supports contact import.',
-      );
+  const applyImportedEmails = (emails: string[]) => {
+    setEmailInput(emails.join(', '));
+    searchMutation.mutate(emails);
+  };
+
+  const handleImportResult = async (
+    result: Awaited<ReturnType<typeof importContactEmails>>,
+    openVCardPicker: () => void,
+  ) => {
+    if (result.errorCode === 'cancelled') return;
+
+    if (result.errorCode === 'unsupported' && Platform.OS === 'web') {
+      openVCardPicker();
       return;
     }
-    setEmailInput(imported.join(', '));
-    searchMutation.mutate(imported);
+
+    if (result.emails.length > 0) {
+      applyImportedEmails(result.emails);
+      return;
+    }
+
+    Alert.alert(
+      'Could not import contacts',
+      result.message ?? 'Try pasting email addresses manually.',
+    );
+  };
+
+  const { openPicker: openVCardPicker, input: vCardInput } = useContactsFilePicker((text) => {
+    void (async () => {
+      setImporting(true);
+      try {
+        const result = await importContactEmailsFromVCardText(text);
+        if (result.emails.length > 0) {
+          applyImportedEmails(result.emails);
+          return;
+        }
+        Alert.alert(
+          'Could not import contacts',
+          result.message ?? 'No email addresses were found in that file.',
+        );
+      } finally {
+        setImporting(false);
+      }
+    })();
+  });
+
+  const handleImportContacts = async () => {
+    setImporting(true);
+    try {
+      const result = await importContactEmails();
+      await handleImportResult(result, openVCardPicker);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleSearchEmails = () => {
@@ -72,6 +121,8 @@ export function ContactsDiscoverSection({
 
   return (
     <View style={styles.section}>
+      {vCardInput}
+
       <Text style={styles.title}>{SHARED_EXPERIENCES.contactsTitle}</Text>
       <Text style={styles.hint}>{SHARED_EXPERIENCES.contactsHint}</Text>
 
@@ -80,8 +131,20 @@ export function ContactsDiscoverSection({
         variant="secondary"
         size="sm"
         onPress={() => void handleImportContacts()}
+        loading={importing || searchMutation.isPending}
         style={styles.importButton}
       />
+
+      {Platform.OS === 'web' ? (
+        <Button
+          title="Import contacts file (.vcf)"
+          variant="secondary"
+          size="sm"
+          onPress={openVCardPicker}
+          disabled={importing || searchMutation.isPending}
+          style={styles.importButton}
+        />
+      ) : null}
 
       <Input
         label={SHARED_EXPERIENCES.contactsPasteLabel}

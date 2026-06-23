@@ -408,6 +408,7 @@ export async function createUserProfile(
       transaction.set(usernameRef, { userId });
       transaction.set(userRef, {
         email: resolvedEmail,
+        emailLower: resolvedEmail.toLowerCase(),
         username: data.username,
         usernameLower,
         fullName: data.fullName.trim(),

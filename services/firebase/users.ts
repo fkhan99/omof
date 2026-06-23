@@ -155,10 +155,12 @@ export async function findUsersByEmails(emails: string[]): Promise<User[]> {
 
   for (let index = 0; index < normalized.length; index += 10) {
     const batch = normalized.slice(index, index + 10);
-    const snap = await getDocs(
-      query(collection(db, 'users'), where('email', 'in', batch), limit(10)),
-    );
-    snap.docs.forEach((docSnap) => {
+    const [lowerSnap, emailSnap] = await Promise.all([
+      getDocs(query(collection(db, 'users'), where('emailLower', 'in', batch), limit(10))),
+      getDocs(query(collection(db, 'users'), where('email', 'in', batch), limit(10))),
+    ]);
+
+    [...lowerSnap.docs, ...emailSnap.docs].forEach((docSnap) => {
       usersMap.set(docSnap.id, mapUserDoc(docSnap.id, docSnap.data()));
     });
   }
