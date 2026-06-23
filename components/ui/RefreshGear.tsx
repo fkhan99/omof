@@ -9,12 +9,14 @@ interface RefreshGearProps {
   visible?: boolean;
   spinning?: boolean;
   pullProgress?: number;
+  compact?: boolean;
 }
 
 function RefreshGearComponent({
   visible = true,
   spinning = true,
   pullProgress = 1,
+  compact = false,
 }: RefreshGearProps) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
@@ -49,7 +51,11 @@ function RefreshGearComponent({
 
   return (
     <View
-      style={[styles.container, { opacity: Math.max(0.35, pullProgress) }]}
+      style={[
+        styles.container,
+        compact && styles.containerCompact,
+        { opacity: Math.max(0.35, pullProgress) },
+      ]}
       accessibilityRole="progressbar"
       accessibilityLabel={spinning ? 'Refreshing' : 'Pull to refresh'}
     >
@@ -77,6 +83,9 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       gap: SPACING.sm,
       paddingVertical: SPACING.md,
+    },
+    containerCompact: {
+      paddingVertical: SPACING.xs,
     },
     label: {
       fontSize: 13,

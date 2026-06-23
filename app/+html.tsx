@@ -29,7 +29,10 @@ export default function Root({ children }: { children: ReactNode }) {
         <style dangerouslySetInnerHTML={{ __html: bootSplash }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
-      <body>{children}</body>
+      <body>
+        <div id="omof-boot-overlay" aria-hidden="true"></div>
+        {children}
+      </body>
     </html>
   );
 }
@@ -45,22 +48,22 @@ body {
 }`;
 
 const bootSplash = `
-#root:empty::before {
-  content: '';
+#omof-boot-overlay {
   position: fixed;
   inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #F7F3EE;
 }
 @media (prefers-color-scheme: dark) {
-  #root:empty::before {
+  #omof-boot-overlay {
     background: #1A1D1F;
   }
 }
-#root:empty::after {
+#omof-boot-overlay::after {
   content: '';
-  position: fixed;
-  top: calc(50% - 28px);
-  left: calc(50% - 28px);
   width: 56px;
   height: 56px;
   border: 4px solid rgba(192, 86, 33, 0.2);

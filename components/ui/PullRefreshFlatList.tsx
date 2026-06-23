@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { RefreshGear } from '@/components/ui/RefreshGear';
 import { useTheme } from '@/hooks/useTheme';
+import { SPACING } from '@/constants/theme';
 
 const PULL_THRESHOLD = 72;
+const REFRESH_BAR_HEIGHT = 52;
 
 type PullRefreshFlatListProps<T> = FlatListProps<T> & {
   refreshing: boolean;
@@ -128,20 +130,22 @@ export function PullRefreshFlatList<T>({
 
   const showIndicator = refreshing || pullDistance > 8;
   const pullProgress = refreshing ? 1 : Math.min(1, pullDistance / PULL_THRESHOLD);
-  const indicatorOffset = refreshing ? PULL_THRESHOLD * 0.35 : Math.min(pullDistance * 0.45, PULL_THRESHOLD * 0.45);
+  const indicatorHeight = refreshing
+    ? REFRESH_BAR_HEIGHT
+    : showIndicator
+      ? Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
+      : 0;
 
   return (
     <View style={styles.wrapper}>
-      {showIndicator ? (
-        <View
-          style={[styles.indicator, { transform: [{ translateY: indicatorOffset }] }]}
-          pointerEvents="none"
-        >
-          <RefreshGear spinning={refreshing} pullProgress={pullProgress} />
+      {Platform.OS === 'web' && indicatorHeight > 0 ? (
+        <View style={[styles.refreshBar, { height: indicatorHeight }]}>
+          <RefreshGear spinning={refreshing} pullProgress={pullProgress} compact />
         </View>
       ) : null}
       <FlatList
         {...rest}
+        style={[styles.list, rest.style]}
         {...webPullHandlers}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -164,13 +168,12 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
   },
-  indicator: {
-    position: 'absolute',
-    top: 8,
-    left: 0,
-    right: 0,
+  refreshBar: {
     alignItems: 'center',
-    zIndex: 10,
-    elevation: 10,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  list: {
+    flex: 1,
   },
 });

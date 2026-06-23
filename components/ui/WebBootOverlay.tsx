@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -11,6 +12,11 @@ export function WebBootOverlay() {
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const profileLoading = useAuthStore((s) => s.profileLoading);
   const profileLoadComplete = useAuthStore((s) => s.profileLoadComplete);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.getElementById('omof-boot-overlay')?.remove();
+  }, []);
 
   if (Platform.OS !== 'web') return null;
 

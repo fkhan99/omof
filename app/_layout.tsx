@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { DeferredAppServices } from '@/components/providers/DeferredAppServices';
+import { WebBootOverlay } from '@/components/ui/WebBootOverlay';
 import { StackBackButton } from '@/components/navigation/StackBackButton';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useEmailActionHandler } from '@/hooks/useEmailActionHandler';
@@ -59,6 +60,7 @@ export default function RootLayout() {
     <AppProviders>
       <DeferredAppServices>
         <RootLayoutNav />
+        <WebBootOverlay />
       </DeferredAppServices>
     </AppProviders>
   );
