@@ -8,14 +8,15 @@ import { ReactionIcon } from '@/components/reactions/ReactionIcon';
 interface ReactionBarProps {
   userReaction: ReactionType | null;
   onReact: (type: ReactionType) => void;
+  disabled?: boolean;
 }
 
-export function ReactionBar({ userReaction, onReact }: ReactionBarProps) {
+export function ReactionBar({ userReaction, onReact, disabled = false }: ReactionBarProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, disabled && styles.containerDisabled]}>
       {REACTION_TYPES.map((type) => {
         const isActive = userReaction === type;
         const iconColor = isActive ? colors.selected : colors.textSecondary;
@@ -23,8 +24,9 @@ export function ReactionBar({ userReaction, onReact }: ReactionBarProps) {
         return (
           <TouchableOpacity
             key={type}
-            style={[styles.reaction, isActive && styles.reactionActive]}
-            onPress={() => onReact(type)}
+            style={[styles.reaction, isActive && styles.reactionActive, disabled && styles.reactionDisabled]}
+            onPress={() => !disabled && onReact(type)}
+            disabled={disabled}
             accessibilityRole="button"
             accessibilityLabel={
               isActive ? `Remove ${REACTION_LABELS[type]}` : REACTION_LABELS[type]
@@ -81,6 +83,12 @@ function createStyles(colors: ThemeColors) {
     labelActive: {
       color: colors.selected,
       fontWeight: '700',
+    },
+    containerDisabled: {
+      opacity: 0.45,
+    },
+    reactionDisabled: {
+      opacity: 0.8,
     },
   });
 }

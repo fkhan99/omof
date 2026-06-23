@@ -6,16 +6,20 @@ import { upsertActivityNotification } from '@/services/firebase/activityFeed';
 interface NotificationState {
   unreadCount: number;
   activityItems: Notification[];
+  readKeysVersion: number;
   setUnreadCount: (count: number) => void;
   setActivityItems: (items: Notification[]) => void;
+  notifyReadKeysChanged: () => void;
   upsertActivityItem: (item: Notification) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
   unreadCount: 0,
   activityItems: [],
+  readKeysVersion: 0,
   setUnreadCount: (unreadCount) => set({ unreadCount }),
   setActivityItems: (activityItems) => set({ activityItems }),
+  notifyReadKeysChanged: () => set((state) => ({ readKeysVersion: state.readKeysVersion + 1 })),
   upsertActivityItem: (item) =>
     set((state) => {
       const activityItems = upsertActivityNotification(state.activityItems, item);

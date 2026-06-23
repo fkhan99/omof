@@ -43,6 +43,20 @@ export function useActivitySync() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const readKeysRef = useRef(new Set<string>());
   const pendingFollowRequestCountRef = useRef(0);
+  const readKeysVersion = useNotificationStore((s) => s.readKeysVersion);
+
+  useEffect(() => {
+    if (!authUid) return;
+    void loadReadActivityKeys(authUid).then((keys) => {
+      readKeysRef.current = keys;
+      const items = useNotificationStore.getState().activityItems;
+      if (items.length === 0) return;
+      const followRequests =
+        queryClient.getQueryData<FollowRequestWithRequester[]>(['followRequests', authUid]) ?? [];
+      const withRead = applyPersistedReadState(items, keys);
+      publishActivity(authUid, withRead, followRequests.length, queryClient);
+    });
+  }, [authUid, readKeysVersion, queryClient]);
 
   useEffect(() => {
     if (!authUid || !profile || !isFirebaseConfigured()) {
@@ -55,7 +69,10 @@ export function useActivitySync() {
 
     const upsertActivity = (incoming: Notification, bumpUnread = false) => {
       const key = getActivityReadKey(incoming);
-      if (bumpUnread) {
+      if (readKeysRef.current.has(key)) {
+        incoming = { ...incoming, read: true };
+        bumpUnread = false;
+      } else if (bumpUnread) {
         readKeysRef.current.delete(key);
         void clearActivityKeyRead(authUid, key);
         incoming = { ...incoming, read: false };
@@ -134,9 +151,6 @@ export function useActivitySync() {
       ingestReaction(change.doc.id, change.doc.data(), bumpUnread);
     };
 
-    void loadReadActivityKeys(authUid).then((keys) => {
-      readKeysRef.current = keys;
-    });
     void refreshActivity();
 
     const unsubReactionsByAuthor = onSnapshot(
@@ -226,7 +240,7 @@ export function useActivitySync() {
       unsubRequests();
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [authUid, profile, queryClient]);
+  }, [authUid, profile, queryClient, readKeysVersion]);
 }
 
 /** @deprecated Use useActivitySync */

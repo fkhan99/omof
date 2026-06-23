@@ -138,19 +138,11 @@ export async function markAllNotificationsRead(
   await markActivityKeysRead(recipientId, readKeys);
 
   const db = getFirebaseDb();
-  const persistedIds = new Set(
-    notifications.filter((item) => !isDerivedActivityId(item.id)).map((item) => item.id),
-  );
-
-  if (persistedIds.size === 0) return;
-
   const snap = await getDocs(
     query(collection(db, 'notifications'), where('recipientId', '==', recipientId), limit(200)),
   );
 
-  const unread = snap.docs.filter(
-    (docSnap) => persistedIds.has(docSnap.id) && docSnap.data().read !== true,
-  );
+  const unread = snap.docs.filter((docSnap) => docSnap.data().read !== true);
 
   await Promise.all(
     unread.map((docSnap) =>

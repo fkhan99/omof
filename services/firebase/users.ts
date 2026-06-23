@@ -145,3 +145,23 @@ export async function getUsersByLocation(
 
   return users.slice(0, 20);
 }
+
+export async function findUsersByEmails(emails: string[]): Promise<User[]> {
+  const db = getFirebaseDb();
+  const normalized = [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))];
+  if (normalized.length === 0) return [];
+
+  const usersMap = new Map<string, User>();
+
+  for (let index = 0; index < normalized.length; index += 10) {
+    const batch = normalized.slice(index, index + 10);
+    const snap = await getDocs(
+      query(collection(db, 'users'), where('email', 'in', batch), limit(10)),
+    );
+    snap.docs.forEach((docSnap) => {
+      usersMap.set(docSnap.id, mapUserDoc(docSnap.id, docSnap.data()));
+    });
+  }
+
+  return Array.from(usersMap.values());
+}

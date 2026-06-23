@@ -104,6 +104,9 @@ export function mapCommentDoc(id: string, data: DocumentData): Comment {
     authorDisplayName: data.authorDisplayName,
     authorPhotoURL: data.authorPhotoURL ?? null,
     text: data.text,
+    parentCommentId: data.parentCommentId ?? null,
+    replyToUserId: data.replyToUserId ?? null,
+    replyToUsername: data.replyToUsername ?? null,
     createdAt: timestampToDate(data.createdAt),
   };
 }

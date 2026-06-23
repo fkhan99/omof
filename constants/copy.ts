@@ -26,6 +26,10 @@ export const CONNECTIONS = {
 export const RESPONSES = {
   sectionTitle: (count: number) => `Responses (${count})`,
   view: (count: number) => `View ${count} responses`,
+  hide: 'Hide responses',
+  reply: 'Reply',
+  replyPlaceholder: (username: string) => `Reply to @${username}...`,
+  replyCancel: 'Cancel reply',
   loading: 'Loading responses...',
   loadError: 'Could not load responses.',
   empty: 'No responses yet. Be the first to share support.',
@@ -62,6 +66,13 @@ export const SHARED_EXPERIENCES = {
   searchPlaceholder: 'Search by name or username',
   nearbyTitle: 'People in your area',
   nearbyEmpty: 'No one else in your area yet. Invite friends to join OMOF.',
+  contactsTitle: 'Find friends from contacts',
+  contactsHint: 'Import contacts or paste emails to find people you know on OMOF.',
+  contactsImport: 'Import contacts',
+  contactsSearch: 'Find on OMOF',
+  contactsPasteLabel: 'Friend emails',
+  contactsPastePlaceholder: 'friend@email.com, another@email.com',
+  contactsNone: 'No matching accounts found for those emails.',
   growthFilter: 'Growth updates',
   allMoods: 'All',
 } as const;
@@ -91,6 +102,7 @@ export const ACTIVITY = {
   follow: 'connected with you',
   followRequest: 'requested to connect',
   followAccepted: 'accepted your connection request',
+  connectBack: 'Connect back',
   growthUpdate: 'shared a growth update',
 } as const;
 

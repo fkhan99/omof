@@ -38,7 +38,8 @@ type GrowthFormData = z.infer<typeof growthSchema>;
 
 export default function GrowthUpdateScreen() {
   const styles = useThemedStyles(createStyles);
-  const { parentId } = useLocalSearchParams<{ parentId: string }>();
+  const params = useLocalSearchParams<{ parentId: string | string[] }>();
+  const parentId = Array.isArray(params.parentId) ? params.parentId[0] : params.parentId;
   const router = useRouter();
   const queryClient = useQueryClient();
   const profile = useAuthStore((s) => s.profile);
@@ -60,17 +61,21 @@ export default function GrowthUpdateScreen() {
   });
 
   const mutation = useMutation({
-    mutationFn: (caption: string) =>
-      createGrowthUpdate(
+    mutationFn: (caption: string) => {
+      if (!profile || !parentId) {
+        throw new Error('Your profile is still loading. Please try again.');
+      }
+      return createGrowthUpdate(
         {
-          id: profile!.id,
-          username: profile!.username,
-          displayName: profile!.displayName,
-          photoURL: profile!.photoURL,
+          id: profile.id,
+          username: profile.username,
+          displayName: profile.displayName,
+          photoURL: profile.photoURL,
         },
-        parentId!,
+        parentId,
         caption,
-      ),
+      );
+    },
     onSuccess: (post) => {
       queryClient.invalidateQueries({ queryKey: ['myPosts'] });
       queryClient.invalidateQueries({ queryKey: ['authorPosts'] });
@@ -87,6 +92,14 @@ export default function GrowthUpdateScreen() {
   });
 
   const onSubmit = (data: GrowthFormData) => {
+    if (!profile) {
+      Alert.alert('Please wait', 'Your profile is still loading. Try again in a moment.');
+      return;
+    }
+    if (!parentId) {
+      Alert.alert('Missing post', 'Could not find the original moment.');
+      return;
+    }
     if (containsProfanity(data.caption)) {
       Alert.alert('Please revise', 'Remove inappropriate language before sharing.');
       return;
@@ -97,6 +110,10 @@ export default function GrowthUpdateScreen() {
     }
     mutation.mutate(data.caption.trim());
   };
+
+  if (!parentId) {
+    return <ErrorState message="Original moment not found." />;
+  }
 
   if (isLoading) return <LoadingState />;
   if (error || !parentPost) {
@@ -139,6 +156,7 @@ export default function GrowthUpdateScreen() {
           title="Share growth update"
           onPress={handleSubmit(onSubmit)}
           loading={isSubmitting || mutation.isPending}
+          disabled={!profile}
           style={styles.submit}
         />
       </ScrollView>

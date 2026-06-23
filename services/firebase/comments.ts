@@ -20,10 +20,17 @@ import { filterProfanity } from '@/utils';
 import { getPost } from './posts';
 import { createNotification } from './notifications';
 
+export interface CommentReplyTarget {
+  parentCommentId: string;
+  replyToUserId: string;
+  replyToUsername: string;
+}
+
 export async function addComment(
   postId: string,
   author: { id: string; username: string; displayName: string; photoURL: string | null },
   text: string,
+  replyTo?: CommentReplyTarget,
 ): Promise<Comment> {
   const db = getFirebaseDb();
   const filteredText = filterProfanity(text);
@@ -35,6 +42,9 @@ export async function addComment(
     authorDisplayName: author.displayName,
     authorPhotoURL: author.photoURL,
     text: filteredText,
+    parentCommentId: replyTo?.parentCommentId ?? null,
+    replyToUserId: replyTo?.replyToUserId ?? null,
+    replyToUsername: replyTo?.replyToUsername ?? null,
     createdAt: serverTimestamp(),
   });
 
@@ -57,6 +67,25 @@ export async function addComment(
     });
   }
 
+  if (
+    replyTo
+    && replyTo.replyToUserId !== author.id
+    && replyTo.replyToUserId !== post?.authorId
+  ) {
+    await createNotification({
+      recipientId: replyTo.replyToUserId,
+      actorId: author.id,
+      actorUsername: author.username,
+      actorDisplayName: author.displayName,
+      actorPhotoURL: author.photoURL,
+      type: 'comment',
+      postId,
+      postImageURL: post?.imageURL ?? null,
+      commentText: filteredText,
+      commentId: docRef.id,
+    });
+  }
+
   return comment;
 }
 
@@ -67,7 +96,6 @@ export async function getComments(
 ): Promise<PaginatedResult<Comment>> {
   const db = getFirebaseDb();
 
-  // Single-field query — sort client-side to avoid requiring a composite index.
   const snap = await getDocs(
     query(collection(db, 'comments'), where('postId', '==', postId), limit(200)),
   );
@@ -132,6 +160,4 @@ export async function deleteComment(commentId: string, postId: string): Promise<
         : 'Failed to delete comment. Please try again.',
     );
   }
-
-  // commentCount is decremented server-side when the comment doc is deleted.
 }

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Reaction, ReactionType } from '@/types';
 import { applyReactionCountDelta, patchPostInCaches } from '@/lib/postQueryCache';
 
-export function usePostReaction(postId: string) {
+export function usePostReaction(postId: string, postAuthorId?: string) {
   const { firebaseUser } = useAuthStore();
   const queryClient = useQueryClient();
   const userId = firebaseUser?.uid;
@@ -63,7 +63,9 @@ export function usePostReaction(postId: string) {
   return {
     userReaction: userReaction?.type ?? null,
     react: (type: ReactionType) => {
-      if (userId) mutation.mutate(type);
+      if (!userId) return;
+      if (postAuthorId && postAuthorId === userId) return;
+      mutation.mutate(type);
     },
     isReacting: mutation.isPending,
   };

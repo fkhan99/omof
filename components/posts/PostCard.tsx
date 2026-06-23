@@ -34,7 +34,7 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
   const isOwnPost = authUid === post.authorId;
   const [menuVisible, setMenuVisible] = useState(false);
   const impressionTracked = useRef(false);
-  const { userReaction, react } = usePostReaction(post.id);
+  const { userReaction, react } = usePostReaction(post.id, post.authorId);
   usePostLiveCounts(post.id);
 
   useEffect(() => {
@@ -117,7 +117,7 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
           {post.caption}
         </Text>
 
-        <ReactionBar userReaction={userReaction} onReact={react} />
+        <ReactionBar userReaction={userReaction} onReact={react} disabled={isOwnPost} />
 
         <PostComments
           postId={post.id}

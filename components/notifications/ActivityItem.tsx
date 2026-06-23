@@ -4,7 +4,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Notification } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
+import { Button } from '@/components/ui/Button';
 import { getActivityActionText, isSystemNotification } from '@/utils/notifications';
+import { ACTIVITY } from '@/constants/copy';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
@@ -13,9 +15,18 @@ import { formatRelativeTime } from '@/utils';
 interface ActivityItemProps {
   notification: Notification;
   onPress: () => void;
+  showConnectBack?: boolean;
+  connectBackLoading?: boolean;
+  onConnectBack?: () => void;
 }
 
-function ActivityItemComponent({ notification, onPress }: ActivityItemProps) {
+function ActivityItemComponent({
+  notification,
+  onPress,
+  showConnectBack = false,
+  connectBackLoading = false,
+  onConnectBack,
+}: ActivityItemProps) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
   const actionText = getActivityActionText(notification);
@@ -44,39 +55,51 @@ function ActivityItemComponent({ notification, onPress }: ActivityItemProps) {
   }
 
   return (
-    <TouchableOpacity
-      style={[styles.item, !notification.read && styles.unread]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${notification.actorUsername} ${actionText}`}
-    >
-      <Avatar
-        uri={notification.actorPhotoURL}
-        name={notification.actorDisplayName}
-        size={48}
-        showRing
-      />
+    <View style={[styles.item, !notification.read && styles.unread]}>
+      <TouchableOpacity
+        style={styles.mainPressable}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${notification.actorUsername} ${actionText}`}
+      >
+        <Avatar
+          uri={notification.actorPhotoURL}
+          name={notification.actorDisplayName}
+          size={48}
+          showRing
+        />
 
-      <View style={styles.content}>
-        <Text style={styles.message}>
-          <Text style={styles.actorName}>{notification.actorUsername}</Text>
-          {' '}
-          {actionText}
-        </Text>
-        <Text style={styles.time}>{formatRelativeTime(notification.createdAt)}</Text>
-      </View>
+        <View style={styles.content}>
+          <Text style={styles.message}>
+            <Text style={styles.actorName}>{notification.actorUsername}</Text>
+            {' '}
+            {actionText}
+          </Text>
+          <Text style={styles.time}>{formatRelativeTime(notification.createdAt)}</Text>
+        </View>
 
-      {notification.postImageURL ? (
-        <Image
-          source={{ uri: notification.postImageURL }}
-          style={styles.thumbnail}
-          contentFit="cover"
-          accessibilityLabel="Related post"
+        {notification.postImageURL ? (
+          <Image
+            source={{ uri: notification.postImageURL }}
+            style={styles.thumbnail}
+            contentFit="cover"
+            accessibilityLabel="Related post"
+          />
+        ) : null}
+
+        {!notification.read ? <View style={styles.unreadDot} /> : null}
+      </TouchableOpacity>
+
+      {showConnectBack && onConnectBack ? (
+        <Button
+          title={ACTIVITY.connectBack}
+          size="sm"
+          onPress={onConnectBack}
+          loading={connectBackLoading}
+          style={styles.connectBackButton}
         />
       ) : null}
-
-      {!notification.read ? <View style={styles.unreadDot} /> : null}
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -93,6 +116,13 @@ function createStyles(colors: ThemeColors) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
       backgroundColor: colors.surface,
+    },
+    mainPressable: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      minWidth: 0,
     },
     unread: {
       backgroundColor: colors.accentSoft + '55',
@@ -138,6 +168,9 @@ function createStyles(colors: ThemeColors) {
       borderRadius: 4,
       backgroundColor: colors.danger,
       marginTop: -4,
+    },
+    connectBackButton: {
+      minWidth: 108,
     },
   });
 }

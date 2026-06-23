@@ -50,7 +50,7 @@ export default function PostDetailScreen() {
   });
 
   usePostLiveCounts(id);
-  const { userReaction, react } = usePostReaction(id!);
+  const { userReaction, react } = usePostReaction(id!, post?.authorId);
 
   const handleDeletePost = () => {
     if (!authUid) return;
@@ -143,7 +143,7 @@ export default function PostDetailScreen() {
             {post.caption}
           </Text>
 
-          <ReactionBar userReaction={userReaction} onReact={react} />
+          <ReactionBar userReaction={userReaction} onReact={react} disabled={isOwnPost} />
 
           {isOwnPost && isOriginalMoment ? (
             <Button
