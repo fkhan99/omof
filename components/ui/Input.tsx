@@ -29,7 +29,7 @@ export function Input({
       {label ? (
         <Text style={styles.label}>
           {label}
-          {required ? <Text style={styles.required}> *</Text> : null}
+          {required ? <Text style={styles.required}>*</Text> : null}
         </Text>
       ) : null}
       <View style={styles.inputRow}>
@@ -67,6 +67,7 @@ function createStyles(colors: ThemeColors) {
     required: {
       color: colors.danger,
       fontWeight: '700',
+      marginLeft: 2,
     },
     inputRow: {
       position: 'relative',

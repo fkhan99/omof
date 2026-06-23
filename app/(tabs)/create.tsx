@@ -418,8 +418,13 @@ function createStyles(colors: ThemeColors) {
     subheading: {
       fontSize: FONT_SIZES.sm,
       color: colors.textSecondary,
-      marginBottom: SPACING.lg,
+      marginBottom: SPACING.xs,
       lineHeight: 20,
+    },
+    requiredNote: {
+      fontSize: FONT_SIZES.xs,
+      color: colors.textMuted,
+      marginBottom: SPACING.lg,
     },
     mediaPicker: {
       aspectRatio: 1,
@@ -499,6 +504,9 @@ function createStyles(colors: ThemeColors) {
     },
     required: {
       color: colors.danger,
+      fontSize: FONT_SIZES.sm,
+      fontWeight: '700',
+      marginLeft: 2,
       textTransform: 'none',
       letterSpacing: 0,
     },
