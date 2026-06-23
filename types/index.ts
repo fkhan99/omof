@@ -128,6 +128,9 @@ export interface Post {
   videoURL: string | null;
   caption: string;
   moodTag: MoodTag;
+  postKind: PostKind;
+  parentPostId: string | null;
+  parentCaption: string | null;
   reactionCounts: Record<ReactionType, number>;
   commentCount: number;
   createdAt: Date;
