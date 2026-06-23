@@ -21,7 +21,7 @@ export default function FeedScreen() {
   const profile = useAuthStore((s) => s.profile);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: followingIds = [] } = useQuery({
+  const { data: followingIds = [], isSuccess: followingIdsReady } = useQuery({
     queryKey: ['followingIds', profile?.id],
     queryFn: () => getFollowingIds(profile!.id),
     enabled: !!profile?.id,
@@ -37,7 +37,7 @@ export default function FeedScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['feed', profile?.id],
+    queryKey: ['feed', profile?.id, followingIds.join(',')],
     initialPageParam: null as Date | null,
     queryFn: async ({ pageParam }) => {
       if (!profile) return { feedItems: [] as PostWithPromotion[], hasMore: false, nextCursor: null as Date | null };
@@ -68,7 +68,7 @@ export default function FeedScreen() {
       };
     },
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
-    enabled: !!profile,
+    enabled: !!profile && followingIdsReady,
   });
 
   const displayItems = useMemo(

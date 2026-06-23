@@ -156,7 +156,7 @@ export default function ProfileScreen() {
       ListHeaderComponent={renderListHeader}
       ListEmptyComponent={renderListEmpty}
       ListFooterComponent={renderListFooter}
-      extraData={`${authUid}-${displayedFollowerCount}-${displayedFollowingCount}-${profile.stats.points}`}
+      extraData={`${authUid}-${myPosts.length}-${profile.stats.points}`}
     />
   );
 }

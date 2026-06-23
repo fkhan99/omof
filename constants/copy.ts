@@ -43,7 +43,7 @@ export const FEED = {
   loadError: "Couldn't load your circle.",
   emptyTitle: 'Your circle is quiet',
   emptyMessage:
-    'Connect with people to see their moments here. Pull down to refresh. Your own posts appear on your profile.',
+    'Connect with people in Discover to see their moments here. Your own posts appear on your profile.',
   spotlightTitle: 'Community spotlight',
   spotlightSubtitle: 'Optional promoted posts — your circle feed below stays chronological.',
   connectionsTitle: 'From your connections',
