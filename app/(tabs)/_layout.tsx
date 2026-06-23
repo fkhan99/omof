@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, StyleSheet } from 'react-native';
@@ -8,8 +8,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge';
 import { OmofWordmark } from '@/components/branding/OmofWordmark';
 import { ProfileHeaderActions } from '@/components/profile/ProfileHeaderActions';
-import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
-import { isWelcomePending, markWelcomeSeen } from '@/utils/welcomeState';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
