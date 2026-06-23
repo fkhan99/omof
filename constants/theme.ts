@@ -8,10 +8,19 @@ export type ThemeColors = {
   textSecondary: string;
   textMuted: string;
   border: string;
+  /** Filled buttons, strong brand actions */
   primary: string;
+  /** Text/icons on top of `primary` backgrounds */
+  onPrimary: string;
   primaryLight: string;
+  /** Inline links (Terms, Privacy, Sign in, etc.) */
+  link: string;
   accent: string;
   accentSoft: string;
+  /** Selected / pressed interactive states (reactions, mood chips, etc.) */
+  selected: string;
+  selectedBackground: string;
+  selectedBorder: string;
   danger: string;
   dangerSoft: string;
   success: string;
@@ -24,19 +33,24 @@ export type ThemeColors = {
 export const LIGHT_COLORS: ThemeColors = {
   background: '#FAFAFA',
   surface: '#FFFFFF',
-  surfaceMuted: '#F3F3F3',
-  text: '#121212',
-  textSecondary: '#525252',
-  textMuted: '#8E8E8E',
-  border: '#EBEBEB',
-  primary: '#3D4F59',
-  primaryLight: '#5C6B73',
-  accent: '#6B7F8F',
-  accentSoft: '#E8EEF2',
-  danger: '#ED4956',
+  surfaceMuted: '#EBEBEB',
+  text: '#111111',
+  textSecondary: '#3A3A3A',
+  textMuted: '#666666',
+  border: '#CFCFCF',
+  primary: '#1F3440',
+  onPrimary: '#FFFFFF',
+  primaryLight: '#3A5563',
+  link: '#0A5F8F',
+  accent: '#4A6270',
+  accentSoft: '#E8F2F8',
+  selected: '#0A4D71',
+  selectedBackground: '#C5E4F5',
+  selectedBorder: '#1976A8',
+  danger: '#D93040',
   dangerSoft: '#FFF0F1',
-  success: '#2E9B57',
-  warning: '#C9A227',
+  success: '#1F7A45',
+  warning: '#9A7B0A',
   overlay: 'rgba(0, 0, 0, 0.45)',
   white: '#FFFFFF',
   black: '#000000',
@@ -45,19 +59,24 @@ export const LIGHT_COLORS: ThemeColors = {
 export const DARK_COLORS: ThemeColors = {
   background: '#000000',
   surface: '#121212',
-  surfaceMuted: '#1C1C1C',
-  text: '#FAFAFA',
-  textSecondary: '#C7C7C7',
-  textMuted: '#8E8E8E',
-  border: '#262626',
-  primary: '#B8C5CE',
-  primaryLight: '#D4DCE3',
-  accent: '#9AABB5',
-  accentSoft: '#2A343B',
-  danger: '#FF6B6B',
+  surfaceMuted: '#262626',
+  text: '#F5F5F5',
+  textSecondary: '#DCDCDC',
+  textMuted: '#A8A8A8',
+  border: '#404040',
+  primary: '#6EC1F0',
+  onPrimary: '#051018',
+  primaryLight: '#9DD4F7',
+  link: '#82D0FF',
+  accent: '#8AB4CC',
+  accentSoft: '#1A2833',
+  selected: '#E8F6FF',
+  selectedBackground: '#173448',
+  selectedBorder: '#6EC1F0',
+  danger: '#FF7B7B',
   dangerSoft: '#2D1A1A',
-  success: '#4CD787',
-  warning: '#E0B84A',
+  success: '#5CE08F',
+  warning: '#E8C04A',
   overlay: 'rgba(0, 0, 0, 0.7)',
   white: '#FFFFFF',
   black: '#000000',

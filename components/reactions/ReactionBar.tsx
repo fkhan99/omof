@@ -18,7 +18,7 @@ export function ReactionBar({ userReaction, onReact }: ReactionBarProps) {
     <View style={styles.container}>
       {REACTION_TYPES.map((type) => {
         const isActive = userReaction === type;
-        const iconColor = isActive ? colors.primary : colors.textSecondary;
+        const iconColor = isActive ? colors.selected : colors.textMuted;
 
         return (
           <TouchableOpacity
