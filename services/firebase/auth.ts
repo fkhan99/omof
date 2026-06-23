@@ -35,7 +35,7 @@ import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
 import { VERIFICATION_TOO_MANY_REQUESTS_MESSAGE } from '@/constants/emailVerification';
-import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
+import { getEmailVerificationActionSettings } from '@/utils/emailVerificationSettings';
 import {
   assertVerificationResendAllowed,
   markVerificationEmailSent,
