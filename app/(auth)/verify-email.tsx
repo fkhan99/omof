@@ -6,6 +6,7 @@ import {
   reloadCurrentUser,
   loadAuthUserProfile,
 } from '@/services/firebase/auth';
+import { abandonUnverifiedSignup } from '@/services/firebase/abandonUnverifiedSignup';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { confirmAction } from '@/utils/confirm';
 import {
@@ -40,6 +41,7 @@ export default function VerifyEmailScreen() {
 
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
+  const [switchingEmail, setSwitchingEmail] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -185,9 +187,9 @@ export default function VerifyEmailScreen() {
 
   const performSwitchEmail = async () => {
     isSwitchingEmailRef.current = true;
+    setSwitchingEmail(true);
     setError(null);
     try {
-      const { abandonUnverifiedSignup } = await import('@/services/firebase/accountDeletion');
       await abandonUnverifiedSignup();
       clearUserPostQueries();
       reset();
@@ -196,6 +198,8 @@ export default function VerifyEmailScreen() {
     } catch (err) {
       isSwitchingEmailRef.current = false;
       setError(err instanceof Error ? err.message : 'Could not remove this account. Please try again.');
+    } finally {
+      setSwitchingEmail(false);
     }
   };
 
@@ -248,6 +252,8 @@ export default function VerifyEmailScreen() {
         <Button
           title="Use a different email"
           onPress={handleUseDifferentEmail}
+          loading={switchingEmail}
+          disabled={switchingEmail || checking || resending}
           variant="ghost"
         />
       </View>
