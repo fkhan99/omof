@@ -14,6 +14,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { User } from '@/types';
+import { CONNECTIONS } from '@/constants/copy';
 import { SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
@@ -59,7 +60,7 @@ export default function FollowingScreen() {
     onError: (err) => {
       invalidateFollowQueries(queryClient, authUid);
       Alert.alert(
-        'Could not unfollow',
+        'Could not disconnect',
         err instanceof Error ? err.message : 'Please try again.',
       );
     },
@@ -67,12 +68,12 @@ export default function FollowingScreen() {
 
   if (!profile || !authUid) return <LoadingState />;
 
-  if (isLoading) return <LoadingState message="Loading following..." />;
+  if (isLoading) return <LoadingState message="Loading connections..." />;
 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : 'Could not load following list.'}
+        message={error instanceof Error ? error.message : 'Could not load your connections.'}
         onRetry={() => refetch()}
       />
     );
@@ -82,8 +83,8 @@ export default function FollowingScreen() {
     return (
       <EmptyState
         icon="people-outline"
-        title="Not following anyone yet"
-        message="When you follow people, they'll show up here so you can manage who you follow."
+        title={CONNECTIONS.noFollowing}
+        message="People you connect with will show up here."
       />
     );
   }
@@ -112,7 +113,7 @@ export default function FollowingScreen() {
           userToUnfollow
             ? [
                 {
-                  label: `Unfollow ${userToUnfollow.username}`,
+                  label: `Disconnect from ${userToUnfollow.username}`,
                   destructive: true,
                   onPress: () => unfollowMutation.mutate(userToUnfollow.id),
                 },

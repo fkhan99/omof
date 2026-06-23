@@ -38,11 +38,12 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
         <Stack.Screen name="post/edit/[id]" options={{ title: 'Edit Post' }} />
+        <Stack.Screen name="post/growth/[parentId]" options={{ title: 'Growth Update' }} />
         <Stack.Screen name="post/promote/[id]" options={{ title: 'Promote Post' }} />
         <Stack.Screen name="user/[username]" options={{ title: 'Profile' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit Profile' }} />
-        <Stack.Screen name="profile/following" options={{ title: 'Following' }} />
-        <Stack.Screen name="profile/followers" options={{ title: 'Followers' }} />
+        <Stack.Screen name="profile/following" options={{ title: 'Connected to' }} />
+        <Stack.Screen name="profile/followers" options={{ title: 'Connections' }} />
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
         <Stack.Screen name="settings/subscription" options={{ title: 'OMOF Plus' }} />
         <Stack.Screen name="settings/privacy" options={{ title: 'Privacy & Data' }} />

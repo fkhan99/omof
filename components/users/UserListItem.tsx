@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { User } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
+import { CONNECTIONS } from '@/constants/copy';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 interface UserListItemProps {
@@ -28,9 +28,9 @@ function UserListItemComponent({
   const styles = useThemedStyles(createStyles);
 
   const getFollowButtonTitle = () => {
-    if (isFollowing) return 'Following';
-    if (isRequested) return 'Requested';
-    return 'Follow';
+    if (isFollowing) return CONNECTIONS.followingAction;
+    if (isRequested) return CONNECTIONS.requestedAction;
+    return CONNECTIONS.followAction;
   };
 
   return (

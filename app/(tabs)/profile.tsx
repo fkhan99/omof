@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GamificationStats } from '@/components/profile/GamificationStats';
 import { PlusBadge } from '@/components/users/PlusBadge';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
+import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
+import { Post } from '@/types';
 import { Post } from '@/types';
 
 export default function ProfileScreen() {
@@ -69,6 +71,15 @@ export default function ProfileScreen() {
   const displayedFollowerCount = followCounts?.followerCount ?? profile.followerCount;
   const displayedFollowingCount = followCounts?.followingCount ?? profile.followingCount;
 
+  const momentPosts = useMemo(
+    () => myPosts.filter((post) => post.postKind !== 'growth_update'),
+    [myPosts],
+  );
+  const growthPosts = useMemo(
+    () => myPosts.filter((post) => post.postKind === 'growth_update'),
+    [myPosts],
+  );
+
   const renderListHeader = () => (
     <>
       <View style={styles.header}>
@@ -77,25 +88,25 @@ export default function ProfileScreen() {
           <View style={styles.stats}>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>{myPosts.length}</Text>
-              <Text style={styles.statLabel}>posts</Text>
+              <Text style={styles.statLabel}>{POSTS.postsLabel}</Text>
             </View>
             <TouchableOpacity
               style={styles.stat}
               onPress={() => router.push('/profile/followers')}
               accessibilityRole="button"
-              accessibilityLabel="View followers"
+              accessibilityLabel={CONNECTIONS.viewFollowersA11y}
             >
               <Text style={styles.statNumber}>{displayedFollowerCount}</Text>
-              <Text style={styles.statLabel}>followers</Text>
+              <Text style={styles.statLabel}>{CONNECTIONS.followers}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.stat}
               onPress={() => router.push('/profile/following')}
               accessibilityRole="button"
-              accessibilityLabel="View following"
+              accessibilityLabel={CONNECTIONS.viewFollowingA11y}
             >
               <Text style={styles.statNumber}>{displayedFollowingCount}</Text>
-              <Text style={styles.statLabel}>following</Text>
+              <Text style={styles.statLabel}>{CONNECTIONS.following}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -120,7 +131,12 @@ export default function ProfileScreen() {
 
       <View style={styles.postsHeader}>
         <Ionicons name="grid-outline" size={22} color={colors.text} />
-        <Text style={styles.postsTitle}>Posts</Text>
+        <Text style={styles.postsTitle}>{POSTS.postsSection}</Text>
+        {growthPosts.length > 0 ? (
+          <Text style={styles.postsMeta}>
+            {momentPosts.length} moments · {growthPosts.length} growth
+          </Text>
+        ) : null}
       </View>
 
       {isLoading ? <LoadingState message="Loading posts..." /> : null}
@@ -138,9 +154,9 @@ export default function ProfileScreen() {
 
     return (
       <EmptyState
-        title="No posts yet"
+        title={POSTS.noPosts}
         message="Share your first authentic moment."
-        actionLabel="Create post"
+        actionLabel="Share a moment"
         onAction={() => router.push('/(tabs)/create')}
       />
     );
@@ -238,6 +254,11 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
       letterSpacing: 0.5,
       textTransform: 'uppercase',
+    },
+    postsMeta: {
+      fontSize: FONT_SIZES.xs,
+      color: colors.textMuted,
+      marginLeft: SPACING.sm,
     },
   });
 }

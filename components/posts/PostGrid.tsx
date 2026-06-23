@@ -44,6 +44,11 @@ export function PostGrid({
           <Ionicons name="play" size={14} color={colors.white} />
         </View>
       ) : null}
+      {item.postKind === 'growth_update' ? (
+        <View style={styles.growthBadge} pointerEvents="none">
+          <Ionicons name="trending-up" size={12} color={colors.white} />
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 
@@ -87,6 +92,14 @@ function createStyles(colors: ThemeColors) {
       position: 'absolute',
       top: 6,
       right: 6,
+    },
+    growthBadge: {
+      position: 'absolute',
+      bottom: 6,
+      left: 6,
+      backgroundColor: 'rgba(192, 86, 33, 0.85)',
+      borderRadius: 10,
+      padding: 4,
     },
   });
 }

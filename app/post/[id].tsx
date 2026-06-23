@@ -26,7 +26,9 @@ import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 import { formatRelativeTime, formatReactionCount } from '@/utils';
-import { OptionsMenu } from '@/components/ui/OptionsMenu';
+import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
+import { POSTS } from '@/constants/copy';
+import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/utils/confirm';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -80,6 +82,7 @@ export default function PostDetailScreen() {
   if (error || !post) return <ErrorState message="Post not found." onRetry={() => refetch()} />;
 
   const isOwnPost = authUid === post.authorId;
+  const isOriginalMoment = post.postKind !== 'growth_update';
   const totalReactions =
     post.reactionCounts.relate +
     post.reactionCounts.been_there +
@@ -127,6 +130,7 @@ export default function PostDetailScreen() {
         <PostMedia post={post} mode="player" />
 
         <View style={styles.body}>
+          {post.postKind === 'growth_update' ? <GrowthUpdateCard post={post} /> : null}
           <MoodTagBadge mood={post.moodTag} />
 
           {totalReactions > 0 ? (
@@ -139,6 +143,16 @@ export default function PostDetailScreen() {
           </Text>
 
           <ReactionBar userReaction={userReaction} onReact={react} />
+
+          {isOwnPost && isOriginalMoment ? (
+            <Button
+              title={POSTS.shareGrowthUpdate}
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push(`/post/growth/${post.id}`)}
+              style={styles.growthButton}
+            />
+          ) : null}
         </View>
 
         <PostComments postId={post.id} commentCount={post.commentCount} variant="detail" />
@@ -238,6 +252,10 @@ function createStyles(colors: ThemeColors) {
     captionUser: {
       fontWeight: '700',
       color: colors.text,
+    },
+    growthButton: {
+      marginTop: SPACING.sm,
+      alignSelf: 'flex-start',
     },
   });
 }

@@ -1,0 +1,175 @@
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { getPost, createGrowthUpdate } from '@/services/firebase/posts';
+import { useAuthStore } from '@/store/authStore';
+import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { POSTS } from '@/constants/copy';
+import { CAPTION_MAX_LENGTH, FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { containsProfanity, containsCrisisLanguage } from '@/utils';
+import { CrisisSupportModal } from '@/components/safety/CrisisSupportModal';
+
+const growthSchema = z.object({
+  caption: z
+    .string()
+    .trim()
+    .min(1, 'Share what changed')
+    .max(CAPTION_MAX_LENGTH, `Keep it under ${CAPTION_MAX_LENGTH} characters`),
+});
+
+type GrowthFormData = z.infer<typeof growthSchema>;
+
+export default function GrowthUpdateScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { parentId } = useLocalSearchParams<{ parentId: string }>();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const profile = useAuthStore((s) => s.profile);
+  const [crisisVisible, setCrisisVisible] = useState(false);
+
+  const { data: parentPost, isLoading, error, refetch } = useQuery({
+    queryKey: ['post', parentId],
+    queryFn: () => getPost(parentId!),
+    enabled: !!parentId,
+  });
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<GrowthFormData>({
+    resolver: zodResolver(growthSchema),
+    defaultValues: { caption: '' },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (caption: string) =>
+      createGrowthUpdate(
+        {
+          id: profile!.id,
+          username: profile!.username,
+          displayName: profile!.displayName,
+          photoURL: profile!.photoURL,
+        },
+        parentId!,
+        caption,
+      ),
+    onSuccess: (post) => {
+      queryClient.invalidateQueries({ queryKey: ['myPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['authorPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['sharedExperiences'] });
+      router.replace(`/post/${post.id}`);
+    },
+    onError: (err) => {
+      Alert.alert(
+        'Could not share update',
+        err instanceof Error ? err.message : 'Please try again.',
+      );
+    },
+  });
+
+  const onSubmit = (data: GrowthFormData) => {
+    if (containsProfanity(data.caption)) {
+      Alert.alert('Please revise', 'Remove inappropriate language before sharing.');
+      return;
+    }
+    if (containsCrisisLanguage(data.caption)) {
+      setCrisisVisible(true);
+      return;
+    }
+    mutation.mutate(data.caption.trim());
+  };
+
+  if (isLoading) return <LoadingState />;
+  if (error || !parentPost) {
+    return <ErrorState message="Original moment not found." onRetry={() => refetch()} />;
+  }
+
+  if (profile?.id !== parentPost.authorId) {
+    return <ErrorState message="You can only add growth updates to your own moments." />;
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>{POSTS.growthUpdateTitle}</Text>
+        <Text style={styles.hint}>{POSTS.growthUpdateHint}</Text>
+
+        <GrowthUpdateCard post={parentPost} />
+
+        <Controller
+          control={control}
+          name="caption"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Your growth update"
+              placeholder="What changed? What helped? What did you learn?"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              multiline
+              error={errors.caption?.message}
+              required
+            />
+          )}
+        />
+
+        <Button
+          title="Share growth update"
+          onPress={handleSubmit(onSubmit)}
+          loading={isSubmitting || mutation.isPending}
+          style={styles.submit}
+        />
+      </ScrollView>
+
+      <CrisisSupportModal visible={crisisVisible} onDismiss={() => setCrisisVisible(false)} />
+    </KeyboardAvoidingView>
+  );
+}
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      padding: SPACING.md,
+      gap: SPACING.md,
+    },
+    title: {
+      fontSize: FONT_SIZES.xl,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    hint: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textMuted,
+      lineHeight: 20,
+    },
+    submit: {
+      marginTop: SPACING.sm,
+    },
+  });
+}

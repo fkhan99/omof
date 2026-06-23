@@ -6,7 +6,7 @@ import { UserListItem } from '@/components/users/UserListItem';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { SPACING, ThemeColors } from '@/constants/theme';
+import { CONNECTIONS } from '@/constants/copy';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 export default function FollowersScreen() {
@@ -29,12 +29,12 @@ export default function FollowersScreen() {
 
   if (!profile || !authUid) return <LoadingState />;
 
-  if (isLoading) return <LoadingState message="Loading followers..." />;
+  if (isLoading) return <LoadingState message="Loading connections..." />;
 
   if (isError) {
     return (
       <ErrorState
-        message={error instanceof Error ? error.message : 'Could not load followers.'}
+        message={error instanceof Error ? error.message : 'Could not load connections.'}
         onRetry={() => refetch()}
       />
     );
@@ -44,8 +44,8 @@ export default function FollowersScreen() {
     return (
       <EmptyState
         icon="people-outline"
-        title="No followers yet"
-        message="When people follow you, they'll show up here."
+        title={CONNECTIONS.noFollowers}
+        message="When people connect with you, they'll show up here."
       />
     );
   }

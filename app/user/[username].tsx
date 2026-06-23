@@ -27,6 +27,7 @@ import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 import { canViewUserPosts } from '@/utils/users';
+import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
 
 export default function UserProfileScreen() {
@@ -191,9 +192,9 @@ export default function UserProfileScreen() {
   };
 
   const getFollowButtonTitle = () => {
-    if (following) return 'Following';
-    if (isRequestPending) return 'Requested';
-    return 'Follow';
+    if (following) return CONNECTIONS.followingAction;
+    if (isRequestPending) return CONNECTIONS.requestedAction;
+    return CONNECTIONS.followAction;
   };
 
   const handleFollowPress = () => {
@@ -211,6 +212,8 @@ export default function UserProfileScreen() {
   if (isLoading) return <LoadingState />;
   if (error || !user) return <ErrorState message="User not found." onRetry={() => refetch()} />;
 
+  const showConnectionCounts = isOwnProfile || following || !user.isPrivate;
+
   const renderListHeader = () => (
     <>
       <View style={styles.header}>
@@ -219,17 +222,25 @@ export default function UserProfileScreen() {
           <View style={styles.stats}>
             <View style={styles.stat}>
               <Text style={styles.statNumber}>
-                {canViewPosts ? authorPosts.length : '—'}
+                {canViewPosts ? authorPosts.length : PROFILE.connectionsHidden}
               </Text>
-              <Text style={styles.statLabel}>posts</Text>
+              <Text style={styles.statLabel}>{POSTS.postsLabel}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>{viewedUserCounts?.followerCount ?? user.followerCount}</Text>
-              <Text style={styles.statLabel}>followers</Text>
+              <Text style={styles.statNumber}>
+                {showConnectionCounts
+                  ? (viewedUserCounts?.followerCount ?? user.followerCount)
+                  : PROFILE.connectionsHidden}
+              </Text>
+              <Text style={styles.statLabel}>{CONNECTIONS.followers}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>{viewedUserCounts?.followingCount ?? user.followingCount}</Text>
-              <Text style={styles.statLabel}>following</Text>
+              <Text style={styles.statNumber}>
+                {showConnectionCounts
+                  ? (viewedUserCounts?.followingCount ?? user.followingCount)
+                  : PROFILE.connectionsHidden}
+              </Text>
+              <Text style={styles.statLabel}>{CONNECTIONS.following}</Text>
             </View>
           </View>
         </View>
@@ -242,7 +253,12 @@ export default function UserProfileScreen() {
           ) : null}
         </View>
         <Text style={styles.username}>@{user.username}</Text>
-        {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+        {user.bio ? (
+          <View style={styles.storyBlock}>
+            <Text style={styles.storyLabel}>{PROFILE.storyLabel}</Text>
+            <Text style={styles.bio}>{user.bio}</Text>
+          </View>
+        ) : null}
 
         {!isOwnProfile && !blocked && (
           <View style={styles.actions}>
@@ -262,14 +278,12 @@ export default function UserProfileScreen() {
         <View style={styles.privateNotice}>
           <Ionicons name="lock-closed-outline" size={40} color={colors.textMuted} />
           <Text style={styles.privateTitle}>This account is private</Text>
-          <Text style={styles.privateMessage}>
-            Follow this account to see their posts.
-          </Text>
+          <Text style={styles.privateMessage}>{PROFILE.privateFollowHint}</Text>
         </View>
       ) : (
         <View style={styles.postsHeader}>
           <Ionicons name="grid-outline" size={22} color={colors.text} />
-          <Text style={styles.postsTitle}>Posts</Text>
+          <Text style={styles.postsTitle}>{POSTS.postsSection}</Text>
         </View>
       )}
 
@@ -289,7 +303,7 @@ export default function UserProfileScreen() {
     if (!canViewPosts || postsLoading || postsError) return null;
 
     return (
-      <EmptyState title="No posts yet" message="This user hasn't shared anything yet." />
+      <EmptyState title={POSTS.noPosts} message={POSTS.noPostsOther} />
     );
   };
 
@@ -308,7 +322,7 @@ export default function UserProfileScreen() {
         onClose={() => setShowFollowMenu(false)}
         options={[
           {
-            label: `Unfollow ${user.username}`,
+            label: `Disconnect from ${user.username}`,
             destructive: true,
             onPress: () => unfollowMutation.mutate(),
           },
@@ -353,9 +367,19 @@ function createStyles(colors: ThemeColors) {
     },
     bio: {
       fontSize: FONT_SIZES.sm,
-      color: colors.text,
-      marginTop: SPACING.sm,
+      color: colors.textSecondary,
       lineHeight: 20,
+    },
+    storyBlock: {
+      marginTop: SPACING.sm,
+    },
+    storyLabel: {
+      fontSize: FONT_SIZES.xs,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 4,
     },
     stats: {
       flex: 1,
