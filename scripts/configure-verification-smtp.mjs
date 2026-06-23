@@ -26,7 +26,8 @@ const firebaseDir = resolve(root, 'firebase');
 const projectId = process.env.FIREBASE_PROJECT_ID ?? 'omof-eed24';
 
 const smtpUser = process.env.OMOF_SMTP_USER ?? 'omofverification@gmail.com';
-const smtpPass = process.env.OMOF_SMTP_PASS?.trim() ?? '';
+// Google displays app passwords in 4-character groups; SMTP needs 16 chars, no spaces.
+const smtpPass = (process.env.OMOF_SMTP_PASS ?? '').replace(/\s/g, '');
 const smtpFrom = process.env.OMOF_SMTP_FROM ?? `OMOF <${smtpUser}>`;
 const smtpHost = process.env.OMOF_SMTP_HOST ?? 'smtp.gmail.com';
 const smtpPort = process.env.OMOF_SMTP_PORT ?? '587';
