@@ -9,6 +9,8 @@ import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge
 import { OmofWordmark } from '@/components/branding/OmofWordmark';
 import { ProfileHeaderActions } from '@/components/profile/ProfileHeaderActions';
 
+import { TAB_LABELS } from '@/constants/copy';
+
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
 const TAB_ICONS: Record<string, { active: TabIconName; inactive: TabIconName }> = {
@@ -71,7 +73,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Feed',
+          title: TAB_LABELS.feed,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? TAB_ICONS.index.active : TAB_ICONS.index.inactive}
@@ -84,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: TAB_LABELS.discover,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? TAB_ICONS.search.active : TAB_ICONS.search.inactive}
@@ -97,7 +99,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="create"
         options={{
-          title: 'Share',
+          title: TAB_LABELS.share,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? TAB_ICONS.create.active : TAB_ICONS.create.inactive}
@@ -110,7 +112,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Activity',
+          title: TAB_LABELS.activity,
           tabBarBadge: undefined,
           tabBarIcon: ({ color, focused }) => (
             <TabBarIconWithBadge
@@ -124,7 +126,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: TAB_LABELS.profile,
           headerRight: () => <ProfileHeaderActions />,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons

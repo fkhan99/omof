@@ -199,13 +199,9 @@ export async function getPromotedPosts(
     });
   }
 
-  posts.sort((a, b) => {
-    const promoA = promotions.find((p) => p.postId === a.id);
-    const promoB = promotions.find((p) => p.postId === b.id);
-    const scoreA = (promoA?.clicks ?? 0) * 2 + (promoA?.impressions ?? 0);
-    const scoreB = (promoB?.clicks ?? 0) * 2 + (promoB?.impressions ?? 0);
-    return scoreB - scoreA;
-  });
+  posts.sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  );
 
   return posts;
 }

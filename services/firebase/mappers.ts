@@ -80,6 +80,9 @@ export function mapPostDoc(id: string, data: DocumentData): Post {
     videoURL: data.videoURL ?? null,
     caption: data.caption,
     moodTag: data.moodTag as MoodTag,
+    postKind: (data.postKind as Post['postKind']) ?? 'moment',
+    parentPostId: data.parentPostId ?? null,
+    parentCaption: data.parentCaption ?? null,
     reactionCounts: data.reactionCounts ?? {
       relate: 0,
       been_there: 0,

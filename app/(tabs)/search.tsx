@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, FlatList, StyleSheet, Alert, Text } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchUsers } from '@/services/firebase/users';
+import { getPostsByMoodTag } from '@/services/firebase/posts';
 import { getPromotedPosts } from '@/services/firebase/promotions';
 import { useAuthStore } from '@/store/authStore';
 import { getBlockedUserIds } from '@/services/firebase/safety';
@@ -20,12 +21,14 @@ import {
 import { Input } from '@/components/ui/Input';
 import { UserListItem } from '@/components/users/UserListItem';
 import { PostCard } from '@/components/posts/PostCard';
+import { MoodFilterBar } from '@/components/shared/MoodFilterBar';
 import { OptionsMenu } from '@/components/ui/OptionsMenu';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { SHARED_EXPERIENCES } from '@/constants/copy';
 import { SPACING, FONT_SIZES, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { User } from '@/types';
+import { MoodTag, User } from '@/types';
 
 export default function SearchScreen() {
   const styles = useThemedStyles(createStyles);
@@ -34,6 +37,7 @@ export default function SearchScreen() {
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMood, setSelectedMood] = useState<MoodTag | 'all' | 'growth'>('all');
   const [userToUnfollow, setUserToUnfollow] = useState<User | null>(null);
 
   const { data: followingIds = [] } = useQuery({
@@ -62,14 +66,31 @@ export default function SearchScreen() {
     enabled: searchTerm.length >= 2,
   });
 
-  const { data: explorePosts = [], isLoading: exploreLoading } = useQuery({
-    queryKey: ['explore', authUid],
+  const moodTag = selectedMood !== 'all' && selectedMood !== 'growth' ? selectedMood : null;
+  const postKind = selectedMood === 'growth' ? ('growth_update' as const) : null;
+
+  const { data: sharedPosts = [], isLoading: sharedLoading } = useQuery({
+    queryKey: ['sharedExperiences', authUid, selectedMood],
+    queryFn: async () => {
+      if (!profile) return [];
+      const blockedIds = await getBlockedUserIds(profile.id);
+      const result = await getPostsByMoodTag(moodTag, profile.id, followingIds, blockedIds, {
+        postKind,
+      });
+      return result.items;
+    },
+    enabled: !!authUid && searchTerm.length < 2,
+  });
+
+  const { data: spotlightPosts = [] } = useQuery({
+    queryKey: ['spotlight', authUid],
     queryFn: async () => {
       if (!profile) return [];
       const blockedIds = await getBlockedUserIds(profile.id);
       return getPromotedPosts([profile.id], blockedIds);
     },
     enabled: !!authUid && searchTerm.length < 2,
+    staleTime: 60_000,
   });
 
   const followMutation = useMutation({
@@ -86,15 +107,15 @@ export default function SearchScreen() {
         });
       }
     },
-    onSuccess: (result, targetUser) => {
-      setFollowRelationshipCache(queryClient, authUid!, targetUser.id, {
-        following: result === 'followed',
-        requested: result === 'requested',
-      });
+    onSuccess: (_data, targetUser) => {
       invalidateFollowSideEffects(queryClient, authUid, targetUser.id);
     },
-    onError: (_err, targetUser) => {
-      invalidateFollowQueries(queryClient, authUid, targetUser.id);
+    onError: (err) => {
+      invalidateFollowQueries(queryClient, authUid);
+      Alert.alert(
+        'Could not connect',
+        err instanceof Error ? err.message : 'Please try again.',
+      );
     },
   });
 
@@ -120,7 +141,7 @@ export default function SearchScreen() {
     onError: (err) => {
       invalidateFollowQueries(queryClient, authUid);
       Alert.alert(
-        'Could not unfollow',
+        'Could not disconnect',
         err instanceof Error ? err.message : 'Please try again.',
       );
     },
@@ -140,11 +161,30 @@ export default function SearchScreen() {
     followMutation.mutate(user);
   };
 
+  const renderDiscoverHeader = () => (
+    <View>
+      <View style={styles.discoverHeader}>
+        <Text style={styles.discoverTitle}>{SHARED_EXPERIENCES.title}</Text>
+        <Text style={styles.discoverSubtitle}>{SHARED_EXPERIENCES.subtitle}</Text>
+      </View>
+      <MoodFilterBar selectedMood={selectedMood} onSelect={setSelectedMood} />
+      {spotlightPosts.length > 0 ? (
+        <View style={styles.spotlightSection}>
+          <Text style={styles.spotlightTitle}>{SHARED_EXPERIENCES.spotlightTitle}</Text>
+          <Text style={styles.spotlightSubtitle}>{SHARED_EXPERIENCES.spotlightSubtitle}</Text>
+          {spotlightPosts.map((post) => (
+            <PostCard key={`spotlight-${post.id}`} post={post} variant="card" />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
         <Input
-          placeholder="Search people"
+          placeholder={SHARED_EXPERIENCES.searchPlaceholder}
           value={searchTerm}
           onChangeText={setSearchTerm}
           autoCapitalize="none"
@@ -154,27 +194,23 @@ export default function SearchScreen() {
       </View>
 
       {searchTerm.length < 2 ? (
-        exploreLoading ? (
-          <LoadingState message="Loading explore..." />
-        ) : explorePosts.length === 0 ? (
-          <EmptyState
-            icon="compass-outline"
-            title="Explore"
-            message="Promoted posts from the community will appear here. Promote your own posts to get started."
-          />
+        sharedLoading ? (
+          <LoadingState message={SHARED_EXPERIENCES.loading} />
         ) : (
           <FlatList
-            data={explorePosts}
+            data={sharedPosts}
             keyExtractor={(item) => item.id}
-            ListHeaderComponent={
-              <View style={styles.exploreHeader}>
-                <Text style={styles.exploreTitle}>Explore</Text>
-                <Text style={styles.exploreSubtitle}>Promoted posts from the community</Text>
-              </View>
-            }
-            renderItem={({ item }) => <PostCard post={item} variant="card" />}
+            ListHeaderComponent={renderDiscoverHeader}
+            renderItem={({ item }) => <PostCard post={{ ...item, isPromoted: false }} variant="card" />}
             contentContainerStyle={styles.exploreList}
             keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <EmptyState
+                icon="heart-outline"
+                title={SHARED_EXPERIENCES.emptyTitle}
+                message={SHARED_EXPERIENCES.emptyMessage}
+              />
+            }
           />
         )
       ) : isLoading ? (
@@ -208,7 +244,7 @@ export default function SearchScreen() {
           userToUnfollow
             ? [
                 {
-                  label: `Unfollow ${userToUnfollow.username}`,
+                  label: `Disconnect from ${userToUnfollow.username}`,
                   destructive: true,
                   onPress: () => unfollowMutation.mutate(userToUnfollow.id),
                 },
@@ -229,28 +265,42 @@ function createStyles(colors: ThemeColors) {
     searchContainer: {
       padding: SPACING.md,
       paddingBottom: SPACING.sm,
-      backgroundColor: colors.surface,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
     },
-    exploreHeader: {
+    discoverHeader: {
       paddingHorizontal: SPACING.md,
-      paddingTop: SPACING.md,
-      paddingBottom: SPACING.sm,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.xs,
     },
-    exploreTitle: {
+    discoverTitle: {
       fontSize: FONT_SIZES.lg,
       fontWeight: '700',
       color: colors.text,
     },
-    exploreSubtitle: {
+    discoverSubtitle: {
       fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
-      marginTop: SPACING.xs,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    spotlightSection: {
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.md,
+      gap: SPACING.sm,
+    },
+    spotlightTitle: {
+      fontSize: FONT_SIZES.sm,
+      fontWeight: '700',
+      color: colors.text,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    spotlightSubtitle: {
+      fontSize: FONT_SIZES.xs,
+      color: colors.textMuted,
+      marginBottom: SPACING.sm,
     },
     exploreList: {
-      paddingHorizontal: SPACING.md,
-      paddingBottom: SPACING.lg,
+      paddingBottom: SPACING.xl,
     },
   });
 }

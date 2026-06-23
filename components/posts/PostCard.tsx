@@ -6,7 +6,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { MoodTagBadge } from '@/components/ui/MoodTagBadge';
 import { PostMedia } from '@/components/posts/PostMedia';
 import { PromotedLabel } from '@/components/posts/PromotedLabel';
-import { ReactionBar } from '@/components/reactions/ReactionBar';
+import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
 import { PostComments } from '@/components/comments/PostComments';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -73,6 +73,7 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
 
       <View style={styles.body}>
         {post.isPromoted ? <PromotedLabel /> : null}
+        {post.postKind === 'growth_update' ? <GrowthUpdateCard post={post} compact /> : null}
         <View style={styles.moodRow}>
           <MoodTagBadge mood={post.moodTag} />
         </View>

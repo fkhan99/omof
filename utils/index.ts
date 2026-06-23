@@ -1,5 +1,6 @@
 import { Filter } from 'bad-words';
 import { CRISIS_PHRASES } from '@/constants/safety';
+import { SUPPORT } from '@/constants/copy';
 
 export { validateUsername } from './validation';
 
@@ -34,7 +35,7 @@ export function formatRelativeTime(date: Date): string {
 }
 
 export function formatReactionCount(count: number): string {
-  return count === 1 ? '1 person reacted' : `${count} people reacted`;
+  return SUPPORT.reactionCount(count);
 }
 
 export function normalizeEmail(email: string): string {

@@ -1,25 +1,26 @@
 import { Notification, REACTION_LABELS, ReactionType } from '@/types';
+import { ACTIVITY } from '@/constants/copy';
 
 export function getActivityActionText(notification: Notification): string {
   switch (notification.type) {
     case 'follow':
-      return 'started following you';
+      return ACTIVITY.follow;
     case 'follow_request':
-      return 'requested to follow you';
+      return ACTIVITY.followRequest;
     case 'follow_accepted':
-      return 'accepted your follow request';
+      return ACTIVITY.followAccepted;
     case 'comment':
-      return `commented: ${notification.commentText ?? ''}`;
+      return ACTIVITY.commented(notification.commentText ?? '');
     case 'reaction': {
       const label = notification.reactionType
         ? REACTION_LABELS[notification.reactionType as ReactionType]
         : null;
-      return label
-        ? `reacted with "${label}" to your post`
-        : 'reacted to your post';
+      return label ? ACTIVITY.reacted(label) : ACTIVITY.reactedGeneric;
     }
     case 'like':
-      return 'liked your post';
+      return ACTIVITY.reactedGeneric;
+    case 'growth_update':
+      return ACTIVITY.growthUpdate;
     case 'post_removed':
       return 'Your post was removed after being flagged by multiple people for violating community guidelines.';
     default:

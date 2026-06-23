@@ -15,6 +15,7 @@ import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { containsProfanity } from '@/utils';
 import { confirmAction } from '@/utils/confirm';
+import { RESPONSES } from '@/constants/copy';
 import { patchPostInCaches } from '@/lib/postQueryCache';
 
 interface PostCommentsProps {
@@ -100,7 +101,7 @@ export function PostComments({
         ...post,
         commentCount: Math.max(0, post.commentCount - 1),
       }));
-      setCommentError(err instanceof Error ? err.message : 'Failed to add comment');
+      setCommentError(err instanceof Error ? err.message : RESPONSES.addError);
     },
     onSuccess: () => {
       reset();
@@ -156,7 +157,7 @@ export function PostComments({
     setCommentError(null);
 
     if (containsProfanity(data.text)) {
-      setCommentError('Please remove inappropriate language from your comment.');
+      setCommentError(RESPONSES.profanityError);
       return;
     }
 
@@ -164,7 +165,7 @@ export function PostComments({
   };
 
   const handleDeleteComment = (commentId: string) => {
-    confirmAction('Delete comment', 'Are you sure you want to delete this comment?', () => {
+    confirmAction(RESPONSES.deleteTitle, RESPONSES.deleteMessage, () => {
       deleteCommentMutation.mutate(commentId);
     });
   };
@@ -175,26 +176,26 @@ export function PostComments({
   return (
     <View style={[styles.container, variant === 'detail' && styles.containerDetail]}>
       {variant === 'detail' ? (
-        <Text style={styles.sectionTitle}>Comments ({displayedCount})</Text>
+        <Text style={styles.sectionTitle}>{RESPONSES.sectionTitle(displayedCount)}</Text>
       ) : null}
 
       {showToggle ? (
         <TouchableOpacity
           onPress={() => setExpanded(true)}
           accessibilityRole="button"
-          accessibilityLabel={`View ${commentCount} comments`}
+          accessibilityLabel={RESPONSES.view(commentCount)}
         >
-          <Text style={styles.viewComments}>View {commentCount} comments</Text>
+          <Text style={styles.viewComments}>{RESPONSES.view(commentCount)}</Text>
         </TouchableOpacity>
       ) : null}
 
       {expanded && isLoading ? (
-        <Text style={styles.statusText}>Loading comments...</Text>
+        <Text style={styles.statusText}>{RESPONSES.loading}</Text>
       ) : null}
 
       {expanded && isError ? (
         <View style={styles.statusBlock}>
-          <Text style={styles.statusText}>Could not load comments.</Text>
+          <Text style={styles.statusText}>{RESPONSES.loadError}</Text>
           <TouchableOpacity onPress={() => refetch()}>
             <Text style={styles.retryLink}>Try again</Text>
           </TouchableOpacity>
@@ -202,7 +203,7 @@ export function PostComments({
       ) : null}
 
       {expanded && !isLoading && !isError && comments.length === 0 ? (
-        <Text style={styles.statusText}>No comments yet. Be the first to share support.</Text>
+        <Text style={styles.statusText}>{RESPONSES.empty}</Text>
       ) : null}
 
       {expanded
@@ -239,7 +240,7 @@ export function PostComments({
               name="text"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  placeholder="Add a comment..."
+                  placeholder={RESPONSES.placeholder}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -255,7 +256,7 @@ export function PostComments({
             disabled={isSubmitting || addCommentMutation.isPending || !commentText?.trim()}
             style={styles.postButton}
             accessibilityRole="button"
-            accessibilityLabel="Post comment"
+            accessibilityLabel={RESPONSES.postA11y}
           >
             <Text
               style={[
@@ -264,7 +265,7 @@ export function PostComments({
                   styles.postButtonDisabled,
               ]}
             >
-              {isSubmitting || addCommentMutation.isPending ? '...' : 'Post'}
+              {isSubmitting || addCommentMutation.isPending ? '...' : RESPONSES.postButton}
             </Text>
           </TouchableOpacity>
         </View>

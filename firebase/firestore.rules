@@ -79,12 +79,28 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    function isValidPostKind(kind) {
+      return kind == 'moment' || kind == 'growth_update';
+    }
+
+    function isValidGrowthUpdateCreate() {
+      return request.resource.data.postKind != 'growth_update'
+        || (
+          request.resource.data.parentPostId != null
+          && request.resource.data.parentCaption != null
+          && get(/databases/$(database)/documents/posts/$(request.resource.data.parentPostId)).data.authorId == request.auth.uid
+          && get(/databases/$(database)/documents/posts/$(request.resource.data.parentPostId)).data.postKind == 'moment'
+        );
+    }
+
     match /posts/{postId} {
       allow read: if isAuthenticated();
       allow create: if isVerified()
         && request.resource.data.authorId == request.auth.uid
         && request.resource.data.caption.size() <= 280
-        && isValidMoodTag(request.resource.data.moodTag);
+        && isValidMoodTag(request.resource.data.moodTag)
+        && (request.resource.data.postKind == null || isValidPostKind(request.resource.data.postKind))
+        && isValidGrowthUpdateCreate();
       allow update: if isAuthenticated()
         && (
           (

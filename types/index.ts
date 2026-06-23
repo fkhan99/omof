@@ -200,6 +200,7 @@ export interface PaginatedResult<T> {
   items: T[];
   lastDoc: unknown | null;
   hasMore: boolean;
+  nextCursor?: Date | null;
 }
 
 export type UserPlan = 'free' | 'plus';
@@ -229,8 +230,8 @@ export type PromotionGoal = 'views' | 'reactions' | 'profile_visits';
 export const PROMOTION_GOALS: PromotionGoal[] = ['views', 'reactions', 'profile_visits'];
 
 export const PROMOTION_GOAL_LABELS: Record<PromotionGoal, string> = {
-  views: 'More views',
-  reactions: 'More reactions',
+  views: 'Reach more people',
+  reactions: 'More support',
   profile_visits: 'More profile visits',
 };
 

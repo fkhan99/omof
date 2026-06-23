@@ -18,8 +18,9 @@ import {
 import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth } from './config';
 import { uploadLocalFile, uploadPlaceholderThumbnail } from './upload';
 import { mapPostDoc } from './mappers';
-import { Post, PaginatedResult, MoodTag, PostMediaType } from '@/types';
+import { Post, PaginatedResult, MoodTag, PostMediaType, PostKind } from '@/types';
 import { POSTS_PAGE_SIZE, VIDEO_THUMBNAIL_MAX_DIMENSION } from '@/constants/theme';
+import { filterPostsForViewer } from '@/utils/postVisibility';
 import {
   getVideoContentType,
   getVideoExtension,
@@ -68,6 +69,9 @@ export async function createPost(
       videoURL: null,
       caption,
       moodTag,
+      postKind: 'moment',
+      parentPostId: null,
+      parentCaption: null,
       reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
       commentCount: 0,
       createdAt: serverTimestamp(),
@@ -119,6 +123,9 @@ export async function createPost(
     videoURL,
     caption,
     moodTag,
+    postKind: 'moment',
+    parentPostId: null,
+    parentCaption: null,
     reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
     commentCount: 0,
     createdAt: serverTimestamp(),
@@ -191,6 +198,7 @@ export async function getFeedPosts(
   followingIds: string[],
   pageSize: number = POSTS_PAGE_SIZE,
   lastDoc?: QueryDocumentSnapshot<DocumentData>,
+  beforeCreatedAt?: Date,
 ): Promise<PaginatedResult<Post>> {
   const db = getFirebaseDb();
   const authorIds = [...new Set(followingIds)];
@@ -225,12 +233,18 @@ export async function getFeedPosts(
   }
 
   allPosts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  const items = allPosts.slice(0, pageSize);
+
+  const filtered = beforeCreatedAt
+    ? allPosts.filter((post) => post.createdAt.getTime() < beforeCreatedAt.getTime())
+    : allPosts;
+
+  const items = filtered.slice(0, pageSize);
 
   return {
     items,
     lastDoc: items.length > 0 ? null : lastDoc ?? null,
-    hasMore: allPosts.length >= pageSize,
+    hasMore: filtered.length >= pageSize,
+    nextCursor: items.length > 0 ? items[items.length - 1].createdAt : null,
   };
 }
 
@@ -331,4 +345,115 @@ export async function getMyPosts(
     console.error('[getMyPosts] Firestore error:', error);
     throw error;
   }
+}
+
+export async function createGrowthUpdate(
+  author: { id: string; username: string; displayName: string; photoURL: string | null },
+  parentPostId: string,
+  caption: string,
+): Promise<Post> {
+  const authUid = getFirebaseAuth().currentUser?.uid ?? null;
+  if (!authUid || authUid !== author.id) {
+    throw new Error('You can only add growth updates to your own moments.');
+  }
+
+  const parent = await getPost(parentPostId);
+  if (!parent || parent.authorId !== author.id) {
+    throw new Error('Original moment not found.');
+  }
+  if (parent.postKind === 'growth_update') {
+    throw new Error('Add a growth update to the original moment, not another update.');
+  }
+
+  const db = getFirebaseDb();
+  const docRef = await addDoc(collection(db, 'posts'), {
+    authorId: author.id,
+    authorUsername: author.username,
+    authorDisplayName: author.displayName,
+    authorPhotoURL: author.photoURL,
+    mediaType: parent.mediaType,
+    imageURL: parent.imageURL,
+    videoURL: parent.videoURL,
+    caption,
+    moodTag: parent.moodTag,
+    postKind: 'growth_update' satisfies PostKind,
+    parentPostId,
+    parentCaption: parent.caption.length > 120 ? `${parent.caption.slice(0, 117)}...` : parent.caption,
+    reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
+    commentCount: 0,
+    createdAt: serverTimestamp(),
+  });
+
+  const snap = await getDoc(docRef);
+  return mapPostDoc(snap.id, snap.data()!);
+}
+
+export async function getPostsByMoodTag(
+  moodTag: MoodTag | null,
+  viewerId: string,
+  followingIds: string[],
+  blockedIds: string[],
+  options: {
+    postKind?: PostKind | null;
+    pageSize?: number;
+    lastDoc?: QueryDocumentSnapshot<DocumentData>;
+  } = {},
+): Promise<PaginatedResult<Post>> {
+  const db = getFirebaseDb();
+  const pageSize = options.pageSize ?? POSTS_PAGE_SIZE;
+  const fetchSize = Math.min(pageSize * 4, 40);
+
+  let q;
+
+  if (options.postKind === 'growth_update') {
+    q = query(
+      collection(db, 'posts'),
+      where('postKind', '==', 'growth_update'),
+      orderBy('createdAt', 'desc'),
+      limit(fetchSize),
+    );
+  } else if (moodTag) {
+    q = query(
+      collection(db, 'posts'),
+      where('moodTag', '==', moodTag),
+      orderBy('createdAt', 'desc'),
+      limit(fetchSize),
+    );
+  } else {
+    q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(fetchSize));
+  }
+
+  if (options.lastDoc) {
+    q = query(q, startAfter(options.lastDoc));
+  }
+
+  const snap = await getDocs(q);
+  let items = snap.docs.map((docSnap) => mapPostDoc(docSnap.id, docSnap.data()));
+
+  if (options.postKind === 'growth_update' && moodTag) {
+    items = items.filter((post) => post.moodTag === moodTag);
+  }
+
+  items = await filterPostsForViewer(items, viewerId, followingIds, blockedIds);
+  items = items.slice(0, pageSize);
+
+  const lastVisibleDoc = snap.docs[snap.docs.length - 1] ?? null;
+
+  return {
+    items,
+    lastDoc: lastVisibleDoc,
+    hasMore: snap.docs.length === fetchSize,
+  };
+}
+
+export async function getGrowthUpdatesForPost(parentPostId: string): Promise<Post[]> {
+  const db = getFirebaseDb();
+  const snap = await getDocs(
+    query(
+      collection(db, 'posts'),
+      where('parentPostId', '==', parentPostId),
+      orderBy('createdAt', 'asc'),
+    ),
+  );
+  return snap.docs.map((docSnap) => mapPostDoc(docSnap.id, docSnap.data()));
 }
