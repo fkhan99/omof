@@ -5,6 +5,8 @@ import {
   Modal,
   ScrollView,
   Pressable,
+  Platform,
+  type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
@@ -39,65 +41,92 @@ export function WelcomeModal({ visible, onDismiss }: WelcomeModalProps) {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
 
+  if (!visible) {
+    return null;
+  }
+
   const openGuidelines = () => {
     onDismiss();
     router.push('/settings/community-guidelines');
   };
 
+  const body = (
+    <>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss welcome message"
+      />
+      <View style={styles.modal}>
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <Text style={styles.title} accessibilityRole="header">
+            Welcome to OMOF
+          </Text>
+          <Text style={styles.intro}>
+            You’re in. Here’s what makes this community different:
+          </Text>
+
+          {WELCOME_POINTS.map((point) => (
+            <View key={point.title} style={styles.point}>
+              <Text style={styles.pointTitle}>{point.title}</Text>
+              <Text style={styles.pointBody}>{point.body}</Text>
+            </View>
+          ))}
+
+          <Pressable
+            onPress={openGuidelines}
+            accessibilityRole="link"
+            accessibilityLabel="Read community guidelines"
+          >
+            <Text style={styles.link}>Read the community guidelines</Text>
+          </Pressable>
+        </ScrollView>
+
+        <Button title="Got it" onPress={onDismiss} style={styles.button} />
+      </View>
+    </>
+  );
+
+  // RN Modal is unreliable on web inside Expo Router — use a fixed overlay instead.
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.webRoot} accessibilityViewIsModal>
+        {body}
+      </View>
+    );
+  }
+
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
       animationType="fade"
       onRequestClose={onDismiss}
       accessibilityViewIsModal
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <Pressable
-          style={styles.backdrop}
-          onPress={onDismiss}
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss welcome message"
-        />
-        <View style={styles.modal}>
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            <Text style={styles.title} accessibilityRole="header">
-              Welcome to OMOF
-            </Text>
-            <Text style={styles.intro}>
-              You’re in. Here’s what makes this community different:
-            </Text>
-
-            {WELCOME_POINTS.map((point) => (
-              <View key={point.title} style={styles.point}>
-                <Text style={styles.pointTitle}>{point.title}</Text>
-                <Text style={styles.pointBody}>{point.body}</Text>
-              </View>
-            ))}
-
-            <Pressable
-              onPress={openGuidelines}
-              accessibilityRole="link"
-              accessibilityLabel="Read community guidelines"
-            >
-              <Text style={styles.link}>Read the community guidelines</Text>
-            </Pressable>
-          </ScrollView>
-
-          <Button title="Got it" onPress={onDismiss} style={styles.button} />
-        </View>
-      </View>
+      <View style={styles.overlay}>{body}</View>
     </Modal>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    webRoot: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 999999,
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    } as ViewStyle,
     overlay: {
       flex: 1,
       justifyContent: 'center',
@@ -114,6 +143,7 @@ function createStyles(colors: ThemeColors) {
       maxHeight: '85%',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      zIndex: 1,
     },
     scrollContent: {
       paddingBottom: SPACING.sm,

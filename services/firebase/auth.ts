@@ -35,6 +35,8 @@ import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
 import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
 import { markVerificationEmailSent } from '@/utils/verificationEmailSendState';
+import { scheduleWelcome } from '@/utils/welcomeState';
+import { useAuthStore } from '@/store/authStore';
 import { updateFcmToken } from './pushToken';
 
 async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {
@@ -469,6 +471,9 @@ export async function createUserProfile(
   } catch (error) {
     throw new Error(getFirestoreWriteErrorMessage(error));
   }
+
+  useAuthStore.getState().setPendingWelcome(true);
+  void scheduleWelcome(userId);
 
   const user = await loadCreatedUserProfile(userId);
   if (user) return user;

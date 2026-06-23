@@ -29,3 +29,13 @@ export async function markWelcomeSeen(uid: string): Promise<void> {
     [pendingKey(uid), '0'],
   ]);
 }
+
+/** Re-show welcome if profile was created but the modal was never dismissed. */
+export async function resumeWelcomeIfPending(
+  uid: string,
+  setPendingWelcome: (pending: boolean) => void,
+): Promise<void> {
+  if (await isWelcomePending(uid)) {
+    setPendingWelcome(true);
+  }
+}

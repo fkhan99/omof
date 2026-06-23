@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { scheduleWelcome } from '@/utils/welcomeState';
+import { resumeWelcomeIfPending } from '@/utils/welcomeState';
 
 export default function OnboardingScreen() {
   const styles = useThemedStyles(createStyles);
@@ -106,12 +106,13 @@ export default function OnboardingScreen() {
   useEffect(() => {
     if (!firebaseUser?.uid) return;
 
-    loadAuthUserProfile(firebaseUser.uid).then((existing) => {
+    loadAuthUserProfile(firebaseUser.uid).then(async (existing) => {
       if (existing) {
         console.log('[Onboarding] users/{uid} already exists — redirecting to main app', {
           uid: firebaseUser.uid,
         });
         setProfile(existing);
+        await resumeWelcomeIfPending(firebaseUser.uid, setPendingWelcome);
         router.replace('/(tabs)');
       } else {
         console.log('[Onboarding] users/{uid} missing — showing setup', {
@@ -119,7 +120,7 @@ export default function OnboardingScreen() {
         });
       }
     });
-  }, [firebaseUser?.uid, router, setProfile]);
+  }, [firebaseUser?.uid, router, setProfile, setPendingWelcome]);
 
   const handleSignInInstead = async () => {
     await logOut();
@@ -177,6 +178,7 @@ export default function OnboardingScreen() {
           uid: firebaseUser.uid,
         });
         setProfile(existing);
+        await resumeWelcomeIfPending(refreshed.uid, setPendingWelcome);
         router.replace('/(tabs)');
         return;
       }
@@ -205,13 +207,12 @@ export default function OnboardingScreen() {
       );
 
       setProfile(profile);
-      setPendingWelcome(true);
-      await scheduleWelcome(refreshed.uid);
       router.replace('/(tabs)');
     } catch (err) {
       const existingAfterError = await loadAuthUserProfile(firebaseUser.uid);
       if (existingAfterError) {
         setProfile(existingAfterError);
+        await resumeWelcomeIfPending(firebaseUser.uid, setPendingWelcome);
         router.replace('/(tabs)');
         return;
       }
