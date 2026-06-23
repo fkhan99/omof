@@ -365,6 +365,11 @@ export async function createGrowthUpdate(
     throw new Error('Add a growth update to the original moment, not another update.');
   }
 
+  const parentKind = parent.postKind ?? 'moment';
+  if (parentKind !== 'moment') {
+    throw new Error('Original moment not found.');
+  }
+
   const db = getFirebaseDb();
   const docRef = await addDoc(collection(db, 'posts'), {
     authorId: author.id,

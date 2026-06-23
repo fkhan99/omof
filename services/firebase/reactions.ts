@@ -73,6 +73,9 @@ export async function setReaction(
   if (!post) {
     throw new Error('Post not found');
   }
+  if (post.authorId === userId) {
+    throw new Error('You cannot react to your own post.');
+  }
   if (!actor) {
     throw new Error('User not found');
   }

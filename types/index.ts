@@ -148,6 +148,9 @@ export interface Comment {
   authorDisplayName: string;
   authorPhotoURL: string | null;
   text: string;
+  parentCommentId: string | null;
+  replyToUserId: string | null;
+  replyToUsername: string | null;
   createdAt: Date;
 }
 
