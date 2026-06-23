@@ -54,10 +54,6 @@ export default function ProfileScreen() {
     return postsData.items.filter((post) => post.authorId === authUid);
   }, [authUid, postsData?.items]);
 
-  if (!profile || !authUid) {
-    return <LoadingState />;
-  }
-
   const momentPosts = useMemo(
     () => myPosts.filter((post) => post.postKind !== 'growth_update'),
     [myPosts],
@@ -66,6 +62,10 @@ export default function ProfileScreen() {
     () => myPosts.filter((post) => post.postKind === 'growth_update'),
     [myPosts],
   );
+
+  if (!profile || !authUid) {
+    return <LoadingState />;
+  }
 
   const renderListHeader = () => (
     <>
