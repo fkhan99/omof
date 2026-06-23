@@ -16,7 +16,10 @@ import {
   navigateAfterEmailVerification,
   stripEmailActionQueryFromUrl,
 } from '@/utils/firebaseEmailActions';
-import { Button } from '@/components/ui/Button';
+import {
+  FIREBASE_AUTH_FALLBACK_SENDER,
+  VERIFICATION_SENDER_EMAIL,
+} from '@/constants/email';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 

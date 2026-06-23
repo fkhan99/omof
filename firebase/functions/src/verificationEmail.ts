@@ -1,6 +1,10 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
+import {
+  VERIFICATION_SMTP_FROM,
+  VERIFICATION_SMTP_USER,
+} from './emailConfig';
 
 const VERIFY_CONTINUE_URL = 'https://omof.net/onboarding';
 
