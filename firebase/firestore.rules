@@ -142,6 +142,7 @@ service cloud.firestore {
       allow create: if isVerified()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.type in ['relate', 'been_there', 'sending_support']
+        && get(/databases/$(database)/documents/posts/$(request.resource.data.postId)).data.authorId != request.auth.uid
         && request.resource.data.postAuthorId
           == get(/databases/$(database)/documents/posts/$(request.resource.data.postId)).data.authorId;
       allow update: if isAuthenticated()
