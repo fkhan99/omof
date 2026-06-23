@@ -51,16 +51,16 @@ export default function OnboardingScreen() {
   const [removePassword, setRemovePassword] = useState('');
   const [removingSignIn, setRemovingSignIn] = useState(false);
 
-  const { control, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm<OnboardingFormData>({
+  const { control, handleSubmit, watch, reset: resetForm, formState: { errors, isSubmitting } } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: { username: '', fullName: '', displayName: '', location: '', bio: '' },
   });
 
   useEffect(() => {
     if (pendingSignupFullName) {
-      reset((values) => ({ ...values, fullName: pendingSignupFullName }));
+      resetForm((values) => ({ ...values, fullName: pendingSignupFullName }));
     }
-  }, [pendingSignupFullName, reset]);
+  }, [pendingSignupFullName, resetForm]);
 
   const displayName = watch('displayName');
   const username = watch('username');
@@ -131,7 +131,7 @@ export default function OnboardingScreen() {
 
   const handleSignInInstead = async () => {
     await logOut();
-    reset();
+    resetAuth();
     router.replace('/(auth)/login');
   };
 
@@ -150,7 +150,7 @@ export default function OnboardingScreen() {
 
     try {
       await deleteAuthOnly(firebaseUser.email, removePassword);
-      reset();
+      resetAuth();
       router.replace('/(auth)/login');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove sign-in');

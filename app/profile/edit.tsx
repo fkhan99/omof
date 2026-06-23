@@ -32,7 +32,9 @@ export default function EditProfileScreen() {
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<EditProfileFormData>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
+      fullName: profile?.fullName ?? profile?.displayName ?? '',
       displayName: profile?.displayName ?? '',
+      location: profile?.location ?? '',
       bio: profile?.bio ?? '',
     },
   });
@@ -55,7 +57,9 @@ export default function EditProfileScreen() {
       }
 
       await updateUserProfile(profile.id, {
+        fullName: data.fullName,
         displayName: data.displayName,
+        location: data.location,
         bio: data.bio,
         photoURL,
       });
@@ -90,6 +94,21 @@ export default function EditProfileScreen() {
 
       <Controller
         control={control}
+        name="fullName"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <Input
+            label="Full Name"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            error={errors.fullName?.message}
+            autoCapitalize="words"
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
         name="displayName"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
@@ -98,6 +117,21 @@ export default function EditProfileScreen() {
             onChangeText={onChange}
             onBlur={onBlur}
             error={errors.displayName?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="location"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <Input
+            label="City or area"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            error={errors.location?.message}
+            autoCapitalize="words"
           />
         )}
       />

@@ -77,10 +77,23 @@ export const onboardingSchema = z.object({
 });
 
 export const editProfileSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(3, 'Enter your full name')
+    .max(80, 'Full name is too long')
+    .refine((value) => /\S+\s+\S+/.test(value), {
+      message: 'Enter your first and last name',
+    }),
   displayName: z
     .string()
     .min(1, 'Display name is required')
     .max(DISPLAY_NAME_MAX_LENGTH),
+  location: z
+    .string()
+    .trim()
+    .min(2, 'Enter your city or area')
+    .max(80, 'Location is too long'),
   bio: z.string().max(BIO_MAX_LENGTH).optional(),
 });
 

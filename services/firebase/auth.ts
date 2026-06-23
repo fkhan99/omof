@@ -389,7 +389,7 @@ export async function createUserProfile(
   const fullNameLower = data.fullName.trim().toLowerCase();
   const locationLower = data.location.trim().toLowerCase();
   const now = serverTimestamp();
-  const hasCompliance = data.compliance?.acceptedTerms && data.compliance?.confirmedAge;
+  const hasCompliance = Boolean(data.compliance?.acceptedTerms && data.compliance?.confirmedAge);
   const resolvedEmail =
     email ||
     sessionUser.email ||

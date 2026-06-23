@@ -40,10 +40,14 @@ export async function getUserByUsername(username: string): Promise<User | null> 
 export async function updateUserProfile(
   userId: string,
   data: {
+    fullName?: string;
     displayName?: string;
     bio?: string;
     photoURL?: string | null;
+    location?: string;
     displayNameLower?: string;
+    fullNameLower?: string;
+    locationLower?: string;
     isPrivate?: boolean;
   },
 ): Promise<void> {
@@ -51,6 +55,12 @@ export async function updateUserProfile(
   const updates: Record<string, unknown> = { ...data, updatedAt: serverTimestamp() };
   if (data.displayName) {
     updates.displayNameLower = data.displayName.toLowerCase();
+  }
+  if (data.fullName) {
+    updates.fullNameLower = data.fullName.trim().toLowerCase();
+  }
+  if (data.location) {
+    updates.locationLower = data.location.trim().toLowerCase();
   }
   await updateDoc(doc(db, 'users', userId), updates);
 }
