@@ -38,6 +38,9 @@ export const REPORT_REASONS = [
 
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
+export type { ModerationStatus, ModerationFields, ModerationClassification } from '@/types/moderation';
+export { MODERATION_STATUSES } from '@/types/moderation';
+
 export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   obscenity: 'Obscene or explicit content',
   harassment: 'Harassment or bullying',
@@ -115,6 +118,7 @@ export interface User {
   promotionCredits: number;
   stats: UserStats;
   badges: BadgeId[];
+  isAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -138,6 +142,12 @@ export interface Post {
   /** Follow-up reflection stored on the same post as the original moment. */
   growthCaption: string | null;
   growthUpdatedAt: Date | null;
+  moderationStatus: ModerationStatus;
+  moderationReason: string;
+  moderationConfidence: number;
+  reviewRequired: boolean;
+  isHidden: boolean;
+  reportCount: number;
   reactionCounts: Record<ReactionType, number>;
   commentCount: number;
   createdAt: Date;
@@ -154,6 +164,12 @@ export interface Comment {
   parentCommentId: string | null;
   replyToUserId: string | null;
   replyToUsername: string | null;
+  moderationStatus: ModerationStatus;
+  moderationReason: string;
+  moderationConfidence: number;
+  reviewRequired: boolean;
+  isHidden: boolean;
+  reportCount: number;
   createdAt: Date;
 }
 

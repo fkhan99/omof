@@ -17,6 +17,8 @@ import { mapCommentDoc } from './mappers';
 import { Comment, PaginatedResult } from '@/types';
 import { COMMENTS_PAGE_SIZE } from '@/constants/theme';
 import { filterProfanity } from '@/utils';
+import { ModerationWritePayload, moderationPayload } from '@/services/moderation/payload';
+import { isContentPubliclyVisible } from '@/utils/moderation';
 import { getPost } from './posts';
 import { createNotification } from './notifications';
 
@@ -30,6 +32,7 @@ export async function addComment(
   postId: string,
   author: { id: string; username: string; displayName: string; photoURL: string | null },
   text: string,
+  moderation: ModerationWritePayload,
   replyTo?: CommentReplyTarget,
 ): Promise<Comment> {
   const db = getFirebaseDb();
@@ -45,6 +48,7 @@ export async function addComment(
     parentCommentId: replyTo?.parentCommentId ?? null,
     replyToUserId: replyTo?.replyToUserId ?? null,
     replyToUsername: replyTo?.replyToUsername ?? null,
+    ...moderationPayload(moderation),
     createdAt: serverTimestamp(),
   });
 
@@ -52,7 +56,7 @@ export async function addComment(
   const comment = mapCommentDoc(docRef.id, snap.data()!);
 
   const post = await getPost(postId);
-  if (post && post.authorId !== author.id) {
+  if (post && post.authorId !== author.id && !moderation.isHidden) {
     await createNotification({
       recipientId: post.authorId,
       actorId: author.id,
@@ -93,8 +97,10 @@ export async function getComments(
   postId: string,
   pageSize: number = COMMENTS_PAGE_SIZE,
   lastDoc?: QueryDocumentSnapshot<DocumentData>,
+  viewerId?: string,
 ): Promise<PaginatedResult<Comment>> {
   const db = getFirebaseDb();
+  const authUid = viewerId ?? getFirebaseAuth().currentUser?.uid ?? undefined;
 
   const snap = await getDocs(
     query(collection(db, 'comments'), where('postId', '==', postId), limit(200)),
@@ -102,6 +108,7 @@ export async function getComments(
 
   const items = snap.docs
     .map((docSnap) => mapCommentDoc(docSnap.id, docSnap.data()))
+    .filter((comment) => isContentPubliclyVisible(comment, authUid))
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     .slice(0, pageSize);
 

@@ -23,6 +23,7 @@ import { Post, PaginatedResult, MoodTag, PostMediaType } from '@/types';
 import { POSTS_PAGE_SIZE, VIDEO_THUMBNAIL_MAX_DIMENSION } from '@/constants/theme';
 import { filterPostsForViewer } from '@/utils/postVisibility';
 import { filterPrimaryPosts } from '@/utils/posts';
+import { ModerationWritePayload, moderationPayload } from '@/services/moderation/payload';
 import {
   getVideoContentType,
   getVideoExtension,
@@ -47,6 +48,7 @@ export async function createPost(
   media: CreatePostMediaInput,
   caption: string,
   moodTag: MoodTag,
+  moderation: ModerationWritePayload,
 ): Promise<Post> {
   const db = getFirebaseDb();
   const storage = getFirebaseStorage();
@@ -76,6 +78,7 @@ export async function createPost(
       parentCaption: null,
       growthCaption: null,
       growthUpdatedAt: null,
+      ...moderationPayload(moderation),
       reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
       commentCount: 0,
       createdAt: serverTimestamp(),
@@ -130,6 +133,9 @@ export async function createPost(
     postKind: 'moment',
     parentPostId: null,
     parentCaption: null,
+    growthCaption: null,
+    growthUpdatedAt: null,
+    ...moderationPayload(moderation),
     reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
     commentCount: 0,
     createdAt: serverTimestamp(),

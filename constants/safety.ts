@@ -1,26 +1,9 @@
-export const CRISIS_PHRASES = [
-  'kill myself',
-  'want to die',
-  'end my life',
-  'suicide',
-  'self harm',
-  'self-harm',
-  'hurt myself',
-  'no reason to live',
-  'better off dead',
-  'going to end it',
-];
-
 /**
- * Number of distinct users who must flag a post before it is automatically
- * removed. Large platforms don't publish exact figures, but automated
- * community-moderation systems (e.g. Reddit's AutoModerator, Discord AutoMod)
- * typically act after a small handful of independent reports. For a community
- * this size, 5 distinct reporters is a reasonable bar: high enough to prevent a
- * lone user (or a couple of friends) from silencing someone, low enough to pull
- * genuinely objectionable content quickly.
+ * Number of distinct users who must flag content before it is hidden for review.
+ * Replaces the previous auto-delete behavior.
  */
-export const AUTO_REMOVAL_REPORT_THRESHOLD = 5;
+export { REVIEW_REPORT_THRESHOLD } from '@/constants/moderation';
+export { SUPPORT_NEEDED_PHRASES as CRISIS_PHRASES } from '@/constants/moderation';
 
 export const CRISIS_RESOURCES = [
   { name: '988 Suicide & Crisis Lifeline (US)', contact: 'Call or text 988', action: 'tel:988' },

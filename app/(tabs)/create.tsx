@@ -24,8 +24,16 @@ import { queryClient } from '@/lib/queryClient';
 import { MOOD_TAGS, MoodTag, PostMediaType } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { CrisisSupportModal } from '@/components/safety/CrisisSupportModal';
-import { containsCrisisLanguage } from '@/utils';
+import {
+  ModerationBlockedModal,
+  ModerationGrowthModal,
+  ModerationSupportModal,
+} from '@/components/moderation/ModerationModals';
+import {
+  applyReflectionToCaption,
+  evaluatePrePublish,
+} from '@/services/moderation/prePublish';
+import { MODERATION_COPY } from '@/constants/moderation';
 import { generateVideoThumbnail, persistDataUrlThumbnail, prepareVideoForUpload } from '@/utils/media';
 import {
   FONT_SIZES,
@@ -59,7 +67,10 @@ export default function CreatePostScreen() {
   const [previewAspectRatio, setPreviewAspectRatio] = useState(1);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const previewRequestRef = useRef(0);
-  const [showCrisisModal, setShowCrisisModal] = useState(false);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | undefined>();
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showGrowthModal, setShowGrowthModal] = useState(false);
   const [pendingData, setPendingData] = useState<CreatePostFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -191,9 +202,32 @@ export default function CreatePostScreen() {
     }
   };
 
-  const submitPost = async (data: CreatePostFormData) => {
+  const submitPost = async (
+    data: CreatePostFormData,
+    options: { submitForReview?: boolean; reflectionApplied?: boolean } = {},
+  ) => {
     if (!profile || !firebaseUser || !selectedMedia) {
       Alert.alert('Missing info', 'Please add a photo or video and fill in all fields.');
+      return;
+    }
+
+    const evaluation = evaluatePrePublish(data.caption, options);
+    if (!evaluation.canPublish) {
+      if (evaluation.blockedMessage) {
+        setBlockedMessage(evaluation.blockedMessage);
+        setShowBlockedModal(true);
+        return;
+      }
+      if (evaluation.requiresSupportFlow) {
+        setPendingData(data);
+        setShowSupportModal(true);
+        return;
+      }
+      if (evaluation.requiresGrowthFlow) {
+        setPendingData(data);
+        setShowGrowthModal(true);
+        return;
+      }
       return;
     }
 
@@ -207,8 +241,9 @@ export default function CreatePostScreen() {
           photoURL: profile.photoURL,
         },
         selectedMedia,
-        data.caption,
+        evaluation.caption,
         data.moodTag as MoodTag,
+        evaluation.moderationFields,
       );
       queryClient.invalidateQueries({ queryKey: ['myPosts', firebaseUser.uid] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -216,6 +251,12 @@ export default function CreatePostScreen() {
       setIsLoadingPreview(false);
       setValue('caption', '');
       setValue('moodTag', undefined as unknown as MoodTag);
+      if (evaluation.requiresReviewAck) {
+        Alert.alert('Submitted for review', MODERATION_COPY.reviewPending, [
+          { text: 'OK', onPress: () => router.push('/(tabs)') },
+        ]);
+        return;
+      }
       router.push('/(tabs)');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create post';
@@ -230,23 +271,7 @@ export default function CreatePostScreen() {
       return;
     }
 
-    if (containsCrisisLanguage(data.caption)) {
-      setPendingData(data);
-      setShowCrisisModal(true);
-      return;
-    }
-
     await submitPost(data);
-  };
-
-  const handleCrisisEdit = () => {
-    setShowCrisisModal(false);
-    setPendingData(null);
-  };
-
-  const handleCrisisDismiss = () => {
-    setShowCrisisModal(false);
-    setPendingData(null);
   };
 
   const previewUri =
@@ -390,10 +415,41 @@ export default function CreatePostScreen() {
         disabled={!selectedMedia || !selectedMood || isSubmitting}
       />
 
-      <CrisisSupportModal
-        visible={showCrisisModal}
-        onEdit={handleCrisisEdit}
-        onDismiss={handleCrisisDismiss}
+      <ModerationBlockedModal
+        visible={showBlockedModal}
+        message={blockedMessage}
+        onClose={() => setShowBlockedModal(false)}
+      />
+      <ModerationSupportModal
+        visible={showSupportModal}
+        onEdit={() => {
+          setShowSupportModal(false);
+          setPendingData(null);
+        }}
+        onSubmitForReview={() => {
+          setShowSupportModal(false);
+          if (pendingData) {
+            void submitPost(pendingData, { submitForReview: true });
+          }
+          setPendingData(null);
+        }}
+      />
+      <ModerationGrowthModal
+        visible={showGrowthModal}
+        onCancel={() => {
+          setShowGrowthModal(false);
+          setPendingData(null);
+        }}
+        onContinue={(reflection) => {
+          setShowGrowthModal(false);
+          if (!pendingData) return;
+          const enrichedCaption = applyReflectionToCaption(pendingData.caption, reflection);
+          void submitPost(
+            { ...pendingData, caption: enrichedCaption },
+            { reflectionApplied: true },
+          );
+          setPendingData(null);
+        }}
       />
     </ScrollView>
     </KeyboardAvoidingView>

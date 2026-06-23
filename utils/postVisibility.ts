@@ -1,4 +1,5 @@
 import { Post } from '@/types';
+import { isContentPubliclyVisible } from '@/utils/moderation';
 import { getUserById } from '@/services/firebase/users';
 
 /**
@@ -17,6 +18,7 @@ export async function filterPostsForViewer(
   const visible: Post[] = [];
 
   for (const post of posts) {
+    if (!isContentPubliclyVisible(post, viewerId)) continue;
     if (blockedSet.has(post.authorId)) continue;
     if (post.authorId === viewerId) {
       visible.push(post);

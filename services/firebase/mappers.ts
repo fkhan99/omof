@@ -20,6 +20,7 @@ import {
   UserPlan,
   UserStats,
   BadgeId,
+  ModerationStatus,
   Promotion,
 } from '@/types';
 import { DEFAULT_USER_STATS } from '@/constants/gamification';
@@ -47,8 +48,9 @@ export function mapUserDoc(id: string, data: DocumentData): User {
     followingCount: data.followingCount ?? 0,
     fcmToken: data.fcmToken ?? null,
     isPrivate: data.isPrivate ?? false,
-    onboardingComplete: data.onboardingComplete ?? hasProfileFields,
-    termsAcceptedAt: data.termsAcceptedAt ? timestampToDate(data.termsAcceptedAt) : null,
+  onboardingComplete: data.onboardingComplete ?? hasProfileFields,
+  isAdmin: data.isAdmin ?? false,
+  termsAcceptedAt: data.termsAcceptedAt ? timestampToDate(data.termsAcceptedAt) : null,
     privacyPolicyVersion: data.privacyPolicyVersion ?? null,
     termsVersion: data.termsVersion ?? null,
     ageConfirmedAt: data.ageConfirmedAt ? timestampToDate(data.ageConfirmedAt) : null,
@@ -85,9 +87,15 @@ export function mapPostDoc(id: string, data: DocumentData): Post {
     postKind: (data.postKind as Post['postKind']) ?? 'moment',
     parentPostId: data.parentPostId ?? null,
     parentCaption: data.parentCaption ?? null,
-    growthCaption: data.growthCaption ?? null,
-    growthUpdatedAt: data.growthUpdatedAt ? timestampToDate(data.growthUpdatedAt) : null,
-    reactionCounts: data.reactionCounts ?? {
+  growthCaption: data.growthCaption ?? null,
+  growthUpdatedAt: data.growthUpdatedAt ? timestampToDate(data.growthUpdatedAt) : null,
+  moderationStatus: (data.moderationStatus as Post['moderationStatus']) ?? 'SAFE',
+  moderationReason: data.moderationReason ?? 'Pending moderation.',
+  moderationConfidence: typeof data.moderationConfidence === 'number' ? data.moderationConfidence : 0,
+  reviewRequired: data.reviewRequired ?? false,
+  isHidden: data.isHidden ?? false,
+  reportCount: data.reportCount ?? 0,
+  reactionCounts: data.reactionCounts ?? {
       relate: 0,
       been_there: 0,
       sending_support: 0,
@@ -109,6 +117,12 @@ export function mapCommentDoc(id: string, data: DocumentData): Comment {
     parentCommentId: data.parentCommentId ?? null,
     replyToUserId: data.replyToUserId ?? null,
     replyToUsername: data.replyToUsername ?? null,
+    moderationStatus: (data.moderationStatus as Comment['moderationStatus']) ?? 'SAFE',
+    moderationReason: data.moderationReason ?? 'Pending moderation.',
+    moderationConfidence: typeof data.moderationConfidence === 'number' ? data.moderationConfidence : 0,
+    reviewRequired: data.reviewRequired ?? false,
+    isHidden: data.isHidden ?? false,
+    reportCount: data.reportCount ?? 0,
     createdAt: timestampToDate(data.createdAt),
   };
 }
