@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserByUsername } from '@/services/firebase/users';
 import { getPostsByAuthor } from '@/services/firebase/posts';
-import { isFollowing, followUser, unfollowUser, getActualFollowCounts } from '@/services/firebase/follows';
+import { isFollowing, unfollowUser, getActualFollowCounts } from '@/services/firebase/follows';
 import { getOutgoingFollowRequestIds } from '@/services/firebase/followRequests';
 import {
   invalidateFollowQueries,
@@ -26,8 +26,9 @@ import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 import { canViewUserPosts } from '@/utils/users';
-import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
+import { CONNECTIONS, POSTS, PROFILE, ACTIVITY } from '@/constants/copy';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
+import { useConnectBack } from '@/hooks/useConnectBack';
 
 export default function UserProfileScreen() {
   const styles = useThemedStyles(createStyles);
@@ -54,6 +55,13 @@ export default function UserProfileScreen() {
     staleTime: 0,
   });
 
+  const { data: followsMe = false } = useQuery({
+    queryKey: ['followsMe', user?.id, authUid],
+    queryFn: () => isFollowing(user!.id, authUid!),
+    enabled: !!authUid && !!user && !isOwnProfile,
+    staleTime: 0,
+  });
+
   const { data: outgoingRequestIds = [] } = useQuery({
     queryKey: ['followRequestedIds', authUid],
     queryFn: () => getOutgoingFollowRequestIds(authUid!),
@@ -62,6 +70,7 @@ export default function UserProfileScreen() {
   });
 
   const isRequestPending = !!user?.id && outgoingRequestIds.includes(user.id);
+  const showConnectBack = followsMe && !following && !isRequestPending;
 
   const { data: viewedUserCounts } = useQuery({
     queryKey: ['followCounts', user?.id],
@@ -105,35 +114,7 @@ export default function UserProfileScreen() {
     return postsData.items.filter((post) => post.authorId === user.id);
   }, [user?.id, postsData?.items]);
 
-  const followMutation = useMutation({
-    mutationFn: () => followUser(authUid!, user!.id),
-    onMutate: () => {
-      const nextState = user!.isPrivate
-        ? { following: false, requested: true }
-        : { following: true, requested: false };
-      setFollowRelationshipCache(queryClient, authUid!, user!.id, nextState);
-      if (!user!.isPrivate) {
-        adjustFollowCountsOptimistically(queryClient, authUid!, user!.id, {
-          followingDelta: 1,
-          followerDelta: 1,
-        });
-      }
-    },
-    onSuccess: (result) => {
-      setFollowRelationshipCache(queryClient, authUid!, user!.id, {
-        following: result === 'followed',
-        requested: result === 'requested',
-      });
-      invalidateFollowSideEffects(queryClient, authUid, user?.id);
-    },
-    onError: (err) => {
-      invalidateFollowQueries(queryClient, authUid, user?.id);
-      Alert.alert(
-        'Could not update follow',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
-    },
-  });
+  const { connectBack: followUserAction, isConnectBackPending } = useConnectBack(authUid);
 
   const unfollowMutation = useMutation({
     mutationFn: () => unfollowUser(authUid!, user!.id),
@@ -193,6 +174,7 @@ export default function UserProfileScreen() {
   const getFollowButtonTitle = () => {
     if (following) return CONNECTIONS.followingAction;
     if (isRequestPending) return CONNECTIONS.requestedAction;
+    if (showConnectBack) return ACTIVITY.connectBack;
     return CONNECTIONS.followAction;
   };
 
@@ -205,7 +187,8 @@ export default function UserProfileScreen() {
       unfollowMutation.mutate();
       return;
     }
-    followMutation.mutate();
+    if (!user) return;
+    void followUserAction(user.id, { targetIsPrivate: user.isPrivate });
   };
 
   if (isLoading) return <LoadingState />;
@@ -255,7 +238,9 @@ export default function UserProfileScreen() {
               variant={following || isRequestPending ? 'secondary' : 'primary'}
               size="sm"
               onPress={handleFollowPress}
+              loading={isConnectBackPending}
               style={styles.actionButton}
+              accessibilityHint={showConnectBack ? 'Follow this user back' : undefined}
             />
             <Button title="Block" variant="ghost" size="sm" onPress={handleBlock} />
           </View>
@@ -301,7 +286,7 @@ export default function UserProfileScreen() {
         posts={canViewPosts && !postsLoading && !postsError ? authorPosts : []}
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={renderListEmpty}
-        extraData={`${user.id}-${following}-${isRequestPending}-${viewedUserCounts?.followerCount}`}
+        extraData={`${user.id}-${following}-${followsMe}-${isRequestPending}-${viewedUserCounts?.followerCount}`}
       />
 
       <OptionsMenu

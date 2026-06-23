@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { followUser } from '@/services/firebase/follows';
 import {
   adjustFollowCountsOptimistically,
@@ -17,57 +17,56 @@ export function useConnectBack(authUid: string | undefined) {
   const queryClient = useQueryClient();
   const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: (targetUserId: string) => followUser(authUid!, targetUserId),
-    onMutate: (targetUserId, context) => {
+  const connectBack = useCallback(
+    async (targetUserId: string, options?: ConnectBackOptions) => {
+      if (!authUid) return;
+
       setActiveTargetId(targetUserId);
-      const isPrivate = (context as { meta?: ConnectBackOptions } | undefined)?.meta?.targetIsPrivate;
-      const nextState = isPrivate
+      const isPrivate = options?.targetIsPrivate;
+      const optimisticState = isPrivate
         ? { following: false, requested: true }
         : { following: true, requested: false };
-      setFollowRelationshipCache(queryClient, authUid!, targetUserId, nextState);
+
+      setFollowRelationshipCache(queryClient, authUid, targetUserId, optimisticState);
       if (!isPrivate) {
-        adjustFollowCountsOptimistically(queryClient, authUid!, targetUserId, {
+        adjustFollowCountsOptimistically(queryClient, authUid, targetUserId, {
           followingDelta: 1,
           followerDelta: 1,
         });
       }
-    },
-    onSuccess: (result, targetUserId) => {
-      setFollowRelationshipCache(queryClient, authUid!, targetUserId, {
-        following: result === 'followed',
-        requested: result === 'requested',
-      });
-      if (result === 'requested') {
-        adjustFollowCountsOptimistically(queryClient, authUid!, targetUserId, {
-          followingDelta: 0,
-          followerDelta: 0,
-        });
-      }
-      invalidateFollowSideEffects(queryClient, authUid, targetUserId);
-      queryClient.invalidateQueries({ queryKey: ['followingIds', authUid] });
-      queryClient.invalidateQueries({ queryKey: ['isFollowing', authUid, targetUserId] });
-    },
-    onError: (err, targetUserId) => {
-      invalidateFollowQueries(queryClient, authUid, targetUserId);
-      Alert.alert(
-        'Could not connect',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
-    },
-    onSettled: () => {
-      setActiveTargetId(null);
-    },
-  });
 
-  const connectBack = (targetUserId: string, options?: ConnectBackOptions) => {
-    if (!authUid) return;
-    mutation.mutate(targetUserId, { meta: options });
-  };
+      try {
+        const result = await followUser(authUid, targetUserId);
+        setFollowRelationshipCache(queryClient, authUid, targetUserId, {
+          following: result === 'followed',
+          requested: result === 'requested',
+        });
+        if (result === 'requested' && !isPrivate) {
+          adjustFollowCountsOptimistically(queryClient, authUid, targetUserId, {
+            followingDelta: -1,
+            followerDelta: -1,
+          });
+        }
+        invalidateFollowSideEffects(queryClient, authUid, targetUserId);
+        await queryClient.invalidateQueries({ queryKey: ['followingIds', authUid] });
+        await queryClient.invalidateQueries({ queryKey: ['isFollowing', authUid, targetUserId] });
+        await queryClient.invalidateQueries({ queryKey: ['followsMe', targetUserId, authUid] });
+      } catch (err) {
+        invalidateFollowQueries(queryClient, authUid, targetUserId);
+        Alert.alert(
+          'Could not connect',
+          err instanceof Error ? err.message : 'Please try again.',
+        );
+      } finally {
+        setActiveTargetId(null);
+      }
+    },
+    [authUid, queryClient],
+  );
 
   return {
     connectBack,
     connectBackTargetId: activeTargetId,
-    isConnectBackPending: mutation.isPending,
+    isConnectBackPending: activeTargetId !== null,
   };
 }

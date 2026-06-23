@@ -7,7 +7,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import {
   loadActivityFeed,
@@ -20,7 +20,7 @@ import {
   getIncomingFollowRequestsWithRequesters,
   FollowRequestWithRequester,
 } from '@/services/firebase/followRequests';
-import { followUser } from '@/services/firebase/follows';
+import { useConnectBack } from '@/hooks/useConnectBack';
 import { useNotificationStore } from '@/store/notificationStore';
 import { ActivityItem } from '@/components/notifications/ActivityItem';
 import { FollowRequestItem } from '@/components/users/FollowRequestItem';
@@ -30,7 +30,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { PullRefreshFlatList } from '@/components/ui/PullRefreshFlatList';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { Notification } from '@/types';
-import { adjustFollowCountsOptimistically, invalidateFollowSideEffects } from '@/utils/followCache';
+import { adjustFollowCountsOptimistically } from '@/utils/followCache';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { getActivityReadKey } from '@/utils/activityRead';
@@ -62,7 +62,7 @@ export default function ActivityScreen() {
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
-  const [connectBackTargetId, setConnectBackTargetId] = useState<string | null>(null);
+  const { connectBack, connectBackTargetId, isConnectBackPending } = useConnectBack(authUid);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
@@ -202,29 +202,6 @@ export default function ActivityScreen() {
     },
   });
 
-  const connectBackMutation = useMutation({
-    mutationFn: (targetUserId: string) => followUser(authUid!, targetUserId),
-    onMutate: (targetUserId) => {
-      setConnectBackTargetId(targetUserId);
-    },
-    onSuccess: (_data, targetUserId) => {
-      adjustFollowCountsOptimistically(queryClient, authUid!, targetUserId, {
-        followingDelta: 1,
-        followerDelta: 1,
-      });
-      invalidateFollowSideEffects(queryClient, authUid, targetUserId);
-    },
-    onError: (err) => {
-      Alert.alert(
-        'Could not connect',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
-    },
-    onSettled: () => {
-      setConnectBackTargetId(null);
-    },
-  });
-
   const markAllRead = useCallback(async () => {
     if (!authUid || markingAllRead) return;
     setMarkingAllRead(true);
@@ -340,8 +317,8 @@ export default function ActivityScreen() {
               notification={item}
               onPress={() => void handlePress(item)}
               showConnectBack={showConnectBack}
-              connectBackLoading={connectBackMutation.isPending && connectBackTargetId === item.actorId}
-              onConnectBack={() => connectBackMutation.mutate(item.actorId)}
+              connectBackLoading={isConnectBackPending && connectBackTargetId === item.actorId}
+              onConnectBack={() => void connectBack(item.actorId)}
             />
           );
         }}
