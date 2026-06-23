@@ -9,7 +9,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { getFirebaseAuth } from './config';
+import { getFirebaseAuth, isFirebaseConfigured } from './config';
 import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
 
 export type SocialAuthProvider = 'google' | 'apple';
@@ -45,7 +45,6 @@ function configureNativeGoogleSignIn(): void {
 }
 
 async function signInWithGoogleWeb(): Promise<FirebaseUser> {
-  assertGoogleConfigured();
   const auth = getFirebaseAuth();
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
@@ -125,12 +124,17 @@ async function signInWithAppleNative(): Promise<FirebaseUser> {
 }
 
 export function isGoogleSignInConfigured(): boolean {
+  // Web uses Firebase popup auth — no separate client ID in app code.
+  if (Platform.OS === 'web') {
+    return isFirebaseConfigured();
+  }
   return Boolean(getGoogleWebClientId());
 }
 
 export function isAppleSignInAvailable(): boolean {
-  if (Platform.OS === 'ios' || Platform.OS === 'web') return true;
-  return false;
+  // Apple on web needs Apple Developer + Firebase Apple provider setup.
+  // Native iOS uses expo-apple-authentication.
+  return Platform.OS === 'ios';
 }
 
 /** Password-based accounts still need inbox verification; OAuth providers do not. */
