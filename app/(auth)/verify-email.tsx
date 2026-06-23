@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, AppState, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import {
-  logOut,
   reloadCurrentUser,
   loadAuthUserProfile,
 } from '@/services/firebase/auth';
