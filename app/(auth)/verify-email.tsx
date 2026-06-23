@@ -20,6 +20,7 @@ import {
   FIREBASE_AUTH_FALLBACK_SENDER,
   VERIFICATION_SENDER_EMAIL,
 } from '@/constants/email';
+import { Button } from '@/components/ui/Button';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
