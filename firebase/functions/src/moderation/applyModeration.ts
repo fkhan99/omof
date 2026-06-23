@@ -56,3 +56,12 @@ export async function applyServerModeration(
 
   return { status: moderationStatus as ModerationClassification['status'], reason: moderationReason, confidence: moderationConfidence };
 }
+
+export function getPostModerationText(post: {
+  caption?: unknown;
+  growthCaption?: unknown;
+}): string {
+  const caption = typeof post.caption === 'string' ? post.caption : '';
+  const growth = typeof post.growthCaption === 'string' ? post.growthCaption : '';
+  return [caption, growth].filter(Boolean).join('\n\n');
+}

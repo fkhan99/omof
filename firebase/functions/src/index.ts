@@ -12,7 +12,7 @@ import {
 import { createAdminPurgeUserDataCallable, createOnAuthUserDeleted } from './userDeletion';
 import { createAdminEmailVerificationCallable } from './adminAuth';
 import { createRequestVerificationEmailCallable } from './verificationEmail';
-import { applyServerModeration } from './moderation/applyModeration';
+import { applyServerModeration, getPostModerationText } from './moderation/applyModeration';
 import { escalateReportedContent } from './moderation/reportEscalation';
 import {
   createAdminListModerationQueueCallable,
@@ -143,6 +143,25 @@ export const onPostCreated = functions.firestore
     });
 
     await handlePostCreatedGamification(post.authorId as string);
+  });
+
+/** Re-classify when caption or growth text is edited after publish. */
+export const onPostUpdated = functions.firestore
+  .document('posts/{postId}')
+  .onUpdate(async (change) => {
+    const before = change.before.data();
+    const after = change.after.data();
+
+    const captionChanged = before.caption !== after.caption;
+    const growthChanged = before.growthCaption !== after.growthCaption;
+
+    if (!captionChanged && !growthChanged) return;
+
+    const text = getPostModerationText(after);
+    await applyServerModeration(change.after.ref, text, {
+      reviewRequired: after.reviewRequired === true,
+      moderationStatus: after.moderationStatus,
+    });
   });
 
 export const onCommentCreated = functions.firestore
