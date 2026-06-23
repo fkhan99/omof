@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 
-const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/onboarding';
+const VERIFY_CONTINUE_URL = 'https://omof.net/onboarding';
 
 interface SmtpConfig {
   host: string;

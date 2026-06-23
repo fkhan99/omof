@@ -30,7 +30,7 @@ if (!emailArg || !emailArg.includes('@')) {
 
 const admin = require('firebase-admin');
 const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? 'omof-eed24';
-const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/onboarding';
+const VERIFY_CONTINUE_URL = 'https://omof.net/onboarding';
 
 admin.initializeApp({
   projectId,

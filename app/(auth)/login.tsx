@@ -76,7 +76,7 @@ export default function LoginScreen() {
       const profile = await loadAuthUserProfile(user.uid);
 
       if (!profile) {
-        router.replace('/(onboarding)');
+        router.replace('/onboarding');
         return;
       }
 

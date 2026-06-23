@@ -78,7 +78,7 @@ export default function Index() {
     }
 
     log('[Route] users/{uid} missing → onboarding', { uid });
-    router.replace('/(onboarding)');
+    router.replace('/onboarding');
   }, [firebaseUser, profile, isLoading, isInitialized, profileError, router]);
 
   if (isInitialized && !isLoading && firebaseUser && profileError) {

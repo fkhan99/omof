@@ -33,7 +33,7 @@ function RootLayoutNav() {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
         <Stack.Screen name="post/edit/[id]" options={{ title: 'Edit Post' }} />

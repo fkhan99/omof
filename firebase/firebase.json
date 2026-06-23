@@ -16,6 +16,8 @@
       }
     ],
     "rewrites": [
+      { "source": "/onboarding", "destination": "/onboarding/index.html" },
+      { "source": "/onboarding/**", "destination": "/onboarding/index.html" },
       { "source": "**", "destination": "/index.html" }
     ]
   },

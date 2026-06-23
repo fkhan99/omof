@@ -8,7 +8,7 @@ import type { useRouter } from 'expo-router';
 
 type VerificationRouter = ReturnType<typeof useRouter>;
 
-const HOSTED_ONBOARDING_URL = 'https://omof-eed24.web.app/onboarding';
+const HOSTED_ONBOARDING_URL = 'https://omof.net/onboarding';
 
 export function getEmailVerificationContinueUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.origin) {
@@ -86,7 +86,7 @@ export async function navigateAfterEmailVerification(
   if (result.user?.emailVerified) {
     setFirebaseUser(result.user);
     const profile = await loadAuthUserProfile(result.user.uid);
-    router.replace(profile ? '/(tabs)' : '/(onboarding)');
+    router.replace(profile ? '/(tabs)' : '/onboarding');
     return;
   }
 

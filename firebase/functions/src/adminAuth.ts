@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 
-const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/onboarding';
+const VERIFY_CONTINUE_URL = 'https://omof.net/onboarding';
 
 function getAdminUids(): Set<string> {
   const configured =

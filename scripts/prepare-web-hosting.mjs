@@ -156,6 +156,26 @@ const ioniconsAssetPath = findIoniconsAssetPath(source);
 const publishedWebFont = ioniconsAssetPath ? publishWebFont(ioniconsAssetPath) : false;
 const htmlFilesUpdated = publishedWebFont ? injectFontMarkupIntoHtmlFiles() : 0;
 
+// Mirror key routes at the hosting root so direct paths like /onboarding resolve
+// without relying solely on the SPA catch-all rewrite.
+const routeAliases = [
+  ['onboarding/index.html', 'onboarding.html'],
+  ['(auth)/login.html', 'login.html'],
+  ['(auth)/signup.html', 'signup.html'],
+  ['(auth)/verify-email.html', 'verify-email.html'],
+  ['(auth)/forgot-password.html', 'forgot-password.html'],
+];
+
+for (const [sourcePath, destPath] of routeAliases) {
+  const sourceFile = join(target, sourcePath);
+  const destFile = join(target, destPath);
+  if (existsSync(sourceFile)) {
+    copyFileSync(sourceFile, destFile);
+  } else {
+    console.warn(`Route alias skipped — missing ${sourcePath}`);
+  }
+}
+
 console.log('Copied dist-web → firebase/hosting');
 console.log(`Synced ${copied} hashed assets${missing ? ` (${missing} missing sources)` : ''}`);
 if (publishedWebFont) {

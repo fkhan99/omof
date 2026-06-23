@@ -101,7 +101,7 @@ export default function VerifyEmailScreen() {
     if (refreshed?.emailVerified) {
       setFirebaseUser(refreshed);
       const profile = await loadAuthUserProfile(refreshed.uid);
-      router.replace(profile ? '/(tabs)' : '/(onboarding)');
+      router.replace(profile ? '/(tabs)' : '/onboarding');
       return true;
     }
     return false;
