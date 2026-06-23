@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,12 +26,13 @@ import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 import { formatRelativeTime, formatReactionCount } from '@/utils';
-import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
+import { PostGrowthSection } from '@/components/posts/PostGrowthSection';
 import { POSTS } from '@/constants/copy';
 import { Button } from '@/components/ui/Button';
 import { OptionsMenu } from '@/components/ui/OptionsMenu';
 import { confirmAction } from '@/utils/confirm';
 import { Ionicons } from '@expo/vector-icons';
+import { hasGrowthUpdate, isStandaloneGrowthPost } from '@/utils/posts';
 
 export default function PostDetailScreen() {
   const styles = useThemedStyles(createStyles);
@@ -51,6 +52,12 @@ export default function PostDetailScreen() {
 
   usePostLiveCounts(id);
   const { userReaction, react } = usePostReaction(id!, post?.authorId);
+
+  useEffect(() => {
+    if (post && isStandaloneGrowthPost(post) && post.parentPostId) {
+      router.replace(`/post/${post.parentPostId}`);
+    }
+  }, [post, router]);
 
   const handleDeletePost = () => {
     if (!authUid) return;
@@ -83,7 +90,6 @@ export default function PostDetailScreen() {
   if (error || !post) return <ErrorState message="Post not found." onRetry={() => refetch()} />;
 
   const isOwnPost = authUid === post.authorId;
-  const isOriginalMoment = post.postKind !== 'growth_update';
   const totalReactions =
     post.reactionCounts.relate +
     post.reactionCounts.been_there +
@@ -131,7 +137,6 @@ export default function PostDetailScreen() {
         <PostMedia post={post} mode="player" />
 
         <View style={styles.body}>
-          {post.postKind === 'growth_update' ? <GrowthUpdateCard post={post} /> : null}
           <MoodTagBadge mood={post.moodTag} />
 
           {totalReactions > 0 ? (
@@ -143,11 +148,18 @@ export default function PostDetailScreen() {
             {post.caption}
           </Text>
 
+          {hasGrowthUpdate(post) ? (
+            <PostGrowthSection
+              growthCaption={post.growthCaption!}
+              updatedAt={post.growthUpdatedAt}
+            />
+          ) : null}
+
           <ReactionBar userReaction={userReaction} onReact={react} disabled={isOwnPost} />
 
-          {isOwnPost && isOriginalMoment ? (
+          {isOwnPost ? (
             <Button
-              title={POSTS.shareGrowthUpdate}
+              title={hasGrowthUpdate(post) ? POSTS.editGrowthUpdate : POSTS.shareGrowthUpdate}
               variant="secondary"
               size="sm"
               onPress={() => router.push(`/post/growth/${post.id}`)}

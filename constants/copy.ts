@@ -98,6 +98,7 @@ export const POSTS = {
   growthSection: 'Growth updates',
   growthBadge: 'Growth update',
   shareGrowthUpdate: 'Share a growth update',
+  editGrowthUpdate: 'Edit growth update',
   growthUpdateTitle: 'Growth update',
   growthUpdateHint: 'Share how things changed since your original moment.',
   parentMoment: 'Original moment',

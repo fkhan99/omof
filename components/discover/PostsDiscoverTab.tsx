@@ -26,7 +26,7 @@ export function PostsDiscoverTab({ authUid, profile, followingIds }: PostsDiscov
   const [selectedMood, setSelectedMood] = useState<MoodTag | 'all' | 'growth'>('all');
 
   const moodTag = selectedMood !== 'all' && selectedMood !== 'growth' ? selectedMood : null;
-  const postKind = selectedMood === 'growth' ? ('growth_update' as const) : null;
+  const growthOnly = selectedMood === 'growth';
 
   const { data: sharedPosts = [], isLoading, refetch } = useQuery({
     queryKey: ['sharedExperiences', authUid, selectedMood],
@@ -34,7 +34,7 @@ export function PostsDiscoverTab({ authUid, profile, followingIds }: PostsDiscov
       if (!profile) return [];
       const blockedIds = await getBlockedUserIds(profile.id);
       const result = await getPostsByMoodTag(moodTag, profile.id, followingIds, blockedIds, {
-        postKind,
+        growthOnly,
       });
       return result.items;
     },

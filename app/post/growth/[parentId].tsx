@@ -17,7 +17,7 @@ import { getPost, createGrowthUpdate } from '@/services/firebase/posts';
 import { getEmailVerificationStatus } from '@/services/firebase/auth';
 import { requiresEmailVerification } from '@/services/firebase/socialAuth';
 import { useAuthStore } from '@/store/authStore';
-import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
+import { OriginalMomentPreview } from '@/components/posts/OriginalMomentPreview';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -79,11 +79,18 @@ export default function GrowthUpdateScreen() {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<GrowthFormData>({
     resolver: zodResolver(growthSchema),
     defaultValues: { caption: '' },
   });
+
+  useEffect(() => {
+    if (parentPost?.growthCaption) {
+      reset({ caption: parentPost.growthCaption });
+    }
+  }, [parentPost?.growthCaption, reset]);
 
   const handleCheckVerification = async () => {
     setCheckingVerification(true);
@@ -140,7 +147,7 @@ export default function GrowthUpdateScreen() {
 
     setIsSharing(true);
     try {
-      const post = await createGrowthUpdate(
+      await createGrowthUpdate(
         {
           id: profile.id,
           username: profile.username,
@@ -157,7 +164,7 @@ export default function GrowthUpdateScreen() {
         queryClient.invalidateQueries({ queryKey: ['sharedExperiences'] }),
         queryClient.invalidateQueries({ queryKey: ['post', parentId] }),
       ]);
-      router.replace(`/post/${post.id}`);
+      router.replace(`/post/${parentId}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Please try again.';
       setSubmitError(message);
@@ -193,7 +200,7 @@ export default function GrowthUpdateScreen() {
         <Text style={styles.title}>{POSTS.growthUpdateTitle}</Text>
         <Text style={styles.hint}>{POSTS.growthUpdateHint}</Text>
 
-        <GrowthUpdateCard post={parentPost} />
+        <OriginalMomentPreview post={parentPost} />
 
         {needsEmailVerification ? (
           <View style={styles.verifyBanner}>
@@ -236,7 +243,7 @@ export default function GrowthUpdateScreen() {
         />
 
         <Button
-          title="Share growth update"
+          title={parentPost.growthCaption ? POSTS.editGrowthUpdate : 'Share growth update'}
           onPress={handleSharePress}
           loading={isSubmitting || isSharing}
           disabled={!profile || !firebaseUser}

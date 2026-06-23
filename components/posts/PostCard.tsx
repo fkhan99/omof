@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { MoodTagBadge } from '@/components/ui/MoodTagBadge';
 import { PostMedia } from '@/components/posts/PostMedia';
 import { PromotedLabel } from '@/components/posts/PromotedLabel';
-import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
+import { PostGrowthSection } from '@/components/posts/PostGrowthSection';
 import { ReactionBar } from '@/components/reactions/ReactionBar';
 import { PostComments } from '@/components/comments/PostComments';
 import { OptionsMenu } from '@/components/ui/OptionsMenu';
@@ -18,6 +18,7 @@ import { usePostReaction } from '@/hooks/usePostReaction';
 import { usePostLiveCounts } from '@/hooks/usePostLiveCounts';
 import { useAuthStore } from '@/store/authStore';
 import { formatRelativeTime, formatReactionCount } from '@/utils';
+import { hasGrowthUpdate } from '@/utils/posts';
 import { trackPromotionClick, trackPromotionImpression } from '@/services/firebase/promotions';
 
 interface PostCardProps {
@@ -103,7 +104,6 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
 
       <View style={styles.body}>
         {post.isPromoted ? <PromotedLabel /> : null}
-        {post.postKind === 'growth_update' ? <GrowthUpdateCard post={post} compact /> : null}
         <View style={styles.moodRow}>
           <MoodTagBadge mood={post.moodTag} />
         </View>
@@ -116,6 +116,14 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
           <Text style={styles.captionUser}>{post.authorUsername} </Text>
           {post.caption}
         </Text>
+
+        {hasGrowthUpdate(post) ? (
+          <PostGrowthSection
+            growthCaption={post.growthCaption!}
+            updatedAt={post.growthUpdatedAt}
+            compact
+          />
+        ) : null}
 
         <ReactionBar userReaction={userReaction} onReact={react} disabled={isOwnPost} />
 

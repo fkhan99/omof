@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '@/types';
 import { PostMedia } from '@/components/posts/PostMedia';
-import { isVideoPost } from '@/utils/posts';
+import { isVideoPost, hasGrowthUpdate } from '@/utils/posts';
 import { SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
@@ -49,7 +49,7 @@ export function PostGrid({
           <Ionicons name="play" size={14} color={colors.white} />
         </View>
       ) : null}
-      {item.postKind === 'growth_update' ? (
+      {hasGrowthUpdate(item) ? (
         <View style={styles.growthBadge} pointerEvents="none">
           <Ionicons name="trending-up" size={12} color={colors.white} />
         </View>

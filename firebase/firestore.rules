@@ -114,6 +114,13 @@ service cloud.firestore {
         && (isGrowthUpdateCreate() ? isAuthenticated() : isVerified());
     }
 
+    function isGrowthFieldUpdate() {
+      return resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['growthCaption', 'growthUpdatedAt'])
+        && request.resource.data.growthCaption.size() >= 1
+        && request.resource.data.growthCaption.size() <= 280;
+    }
+
     match /posts/{postId} {
       allow read: if isAuthenticated();
       allow create: if canCreatePost();
@@ -125,6 +132,7 @@ service cloud.firestore {
             && request.resource.data.caption.size() <= 280
             && isValidMoodTag(request.resource.data.moodTag)
           )
+          || isGrowthFieldUpdate()
           || (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageURL'])
             && resource.data.mediaType == 'video'

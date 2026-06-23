@@ -19,9 +19,10 @@ import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth } from './config';
 import { getEmailVerificationStatus, refreshAuthTokenForFirestore } from './auth';
 import { uploadLocalFile, uploadPlaceholderThumbnail } from './upload';
 import { mapPostDoc } from './mappers';
-import { Post, PaginatedResult, MoodTag, PostMediaType, PostKind, MOOD_TAGS } from '@/types';
+import { Post, PaginatedResult, MoodTag, PostMediaType } from '@/types';
 import { POSTS_PAGE_SIZE, VIDEO_THUMBNAIL_MAX_DIMENSION } from '@/constants/theme';
 import { filterPostsForViewer } from '@/utils/postVisibility';
+import { filterPrimaryPosts } from '@/utils/posts';
 import {
   getVideoContentType,
   getVideoExtension,
@@ -73,6 +74,8 @@ export async function createPost(
       postKind: 'moment',
       parentPostId: null,
       parentCaption: null,
+      growthCaption: null,
+      growthUpdatedAt: null,
       reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
       commentCount: 0,
       createdAt: serverTimestamp(),
@@ -242,7 +245,7 @@ export async function getFeedPosts(
   const items = filtered.slice(0, pageSize);
 
   return {
-    items,
+    items: filterPrimaryPosts(items),
     lastDoc: items.length > 0 ? null : lastDoc ?? null,
     hasMore: filtered.length >= pageSize,
     nextCursor: items.length > 0 ? items[items.length - 1].createdAt : null,
@@ -274,7 +277,7 @@ export async function getPostsByAuthor(
   );
 
   return {
-    items,
+    items: filterPrimaryPosts(items),
     lastDoc: snap.docs[snap.docs.length - 1] ?? null,
     hasMore: snap.docs.length === pageSize,
   };
@@ -338,7 +341,7 @@ export async function getMyPosts(
     console.log('[getMyPosts] owned posts after filter:', items.length);
 
     return {
-      items,
+      items: filterPrimaryPosts(items),
       lastDoc: snap.docs[snap.docs.length - 1] ?? null,
       hasMore: snap.docs.length === pageSize,
     };
@@ -350,54 +353,35 @@ export async function getMyPosts(
 
 export async function createGrowthUpdate(
   author: { id: string; username: string; displayName: string; photoURL: string | null },
-  parentPostId: string,
-  caption: string,
+  postId: string,
+  growthCaption: string,
 ): Promise<Post> {
   const authUid = getFirebaseAuth().currentUser?.uid ?? null;
   if (!authUid || authUid !== author.id) {
     throw new Error('You can only add growth updates to your own moments.');
   }
 
-  const parent = await getPost(parentPostId);
-  if (!parent || parent.authorId !== author.id) {
+  const post = await getPost(postId);
+  if (!post || post.authorId !== author.id) {
     throw new Error('Original moment not found.');
   }
-  if (parent.postKind === 'growth_update') {
-    throw new Error('Add a growth update to the original moment, not another update.');
-  }
-
-  const parentKind = parent.postKind ?? 'moment';
-  if (parentKind !== 'moment') {
+  if (post.postKind === 'growth_update') {
     throw new Error('Original moment not found.');
   }
 
-  const moodTag = MOOD_TAGS.includes(parent.moodTag) ? parent.moodTag : 'Other';
-  const parentCaptionText = parent.caption ?? '';
+  const trimmed = growthCaption.trim();
+  if (!trimmed) {
+    throw new Error('Share what changed in your growth update.');
+  }
 
   await refreshAuthTokenForFirestore();
 
   const db = getFirebaseDb();
-  let docRef;
+  const postRef = doc(db, 'posts', postId);
   try {
-    docRef = await addDoc(collection(db, 'posts'), {
-      authorId: author.id,
-      authorUsername: author.username,
-      authorDisplayName: author.displayName,
-      authorPhotoURL: author.photoURL ?? null,
-      mediaType: parent.mediaType,
-      imageURL: parent.imageURL ?? null,
-      videoURL: parent.videoURL ?? null,
-      caption,
-      moodTag,
-      postKind: 'growth_update' satisfies PostKind,
-      parentPostId,
-      parentCaption:
-        parentCaptionText.length > 120
-          ? `${parentCaptionText.slice(0, 117)}...`
-          : parentCaptionText,
-      reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
-      commentCount: 0,
-      createdAt: serverTimestamp(),
+    await updateDoc(postRef, {
+      growthCaption: trimmed,
+      growthUpdatedAt: serverTimestamp(),
     });
   } catch (error: unknown) {
     const code = (error as { code?: string })?.code;
@@ -415,7 +399,7 @@ export async function createGrowthUpdate(
     throw error;
   }
 
-  const snap = await getDoc(docRef);
+  const snap = await getDoc(postRef);
   return mapPostDoc(snap.id, snap.data()!);
 }
 
@@ -425,7 +409,7 @@ export async function getPostsByMoodTag(
   followingIds: string[],
   blockedIds: string[],
   options: {
-    postKind?: PostKind | null;
+    growthOnly?: boolean;
     pageSize?: number;
     lastDoc?: QueryDocumentSnapshot<DocumentData>;
   } = {},
@@ -436,14 +420,7 @@ export async function getPostsByMoodTag(
 
   let q;
 
-  if (options.postKind === 'growth_update') {
-    q = query(
-      collection(db, 'posts'),
-      where('postKind', '==', 'growth_update'),
-      orderBy('createdAt', 'desc'),
-      limit(fetchSize),
-    );
-  } else if (moodTag) {
+  if (moodTag) {
     q = query(
       collection(db, 'posts'),
       where('moodTag', '==', moodTag),
@@ -461,9 +438,11 @@ export async function getPostsByMoodTag(
   const snap = await getDocs(q);
   let items = snap.docs.map((docSnap) => mapPostDoc(docSnap.id, docSnap.data()));
 
-  if (options.postKind === 'growth_update' && moodTag) {
-    items = items.filter((post) => post.moodTag === moodTag);
+  if (options.growthOnly) {
+    items = items.filter((post) => Boolean(post.growthCaption?.trim()));
   }
+
+  items = filterPrimaryPosts(items);
 
   items = await filterPostsForViewer(items, viewerId, followingIds, blockedIds);
   items = items.filter((post) => post.authorId !== viewerId);
@@ -478,14 +457,8 @@ export async function getPostsByMoodTag(
   };
 }
 
-export async function getGrowthUpdatesForPost(parentPostId: string): Promise<Post[]> {
-  const db = getFirebaseDb();
-  const snap = await getDocs(
-    query(
-      collection(db, 'posts'),
-      where('parentPostId', '==', parentPostId),
-      orderBy('createdAt', 'asc'),
-    ),
-  );
-  return snap.docs.map((docSnap) => mapPostDoc(docSnap.id, docSnap.data()));
+export async function getGrowthUpdatesForPost(postId: string): Promise<Post[]> {
+  const post = await getPost(postId);
+  if (!post?.growthCaption?.trim()) return [];
+  return [post];
 }

@@ -18,7 +18,7 @@ import { GamificationStats } from '@/components/profile/GamificationStats';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
-import { Post } from '@/types';
+import { filterPrimaryPosts, hasGrowthUpdate } from '@/utils/posts';
 
 export default function ProfileScreen() {
   const styles = useThemedStyles(createStyles);
@@ -52,15 +52,13 @@ export default function ProfileScreen() {
 
   const myPosts: Post[] = useMemo(() => {
     if (!authUid || !postsData?.items) return [];
-    return postsData.items.filter((post) => post.authorId === authUid);
+    return filterPrimaryPosts(
+      postsData.items.filter((post) => post.authorId === authUid),
+    );
   }, [authUid, postsData?.items]);
 
-  const momentPosts = useMemo(
-    () => myPosts.filter((post) => post.postKind !== 'growth_update'),
-    [myPosts],
-  );
-  const growthPosts = useMemo(
-    () => myPosts.filter((post) => post.postKind === 'growth_update'),
+  const growthCount = useMemo(
+    () => myPosts.filter((post) => hasGrowthUpdate(post)).length,
     [myPosts],
   );
 
@@ -124,9 +122,9 @@ export default function ProfileScreen() {
       <View style={styles.postsHeader}>
         <Ionicons name="grid-outline" size={22} color={colors.text} />
         <Text style={styles.postsTitle}>{POSTS.postsSection}</Text>
-        {growthPosts.length > 0 ? (
+        {growthCount > 0 ? (
           <Text style={styles.postsMeta}>
-            {momentPosts.length} moments · {growthPosts.length} growth
+            {myPosts.length} moments · {growthCount} with growth
           </Text>
         ) : null}
       </View>
