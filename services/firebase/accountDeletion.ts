@@ -338,3 +338,51 @@ export async function deleteAuthOnly(email: string, password: string): Promise<v
   await ensureAuthAccountRemoved(email, password);
   await logOut();
 }
+
+/**
+ * Deletes an abandoned email/password signup that never verified and has no
+ * Firestore profile (verify-email → "Use a different email").
+ */
+export async function abandonUnverifiedSignup(): Promise<void> {
+  const auth = getFirebaseAuth();
+  const user = auth.currentUser;
+  if (!user) {
+    return;
+  }
+
+  const profile = await getUserProfile(user.uid);
+  if (profile) {
+    throw new Error(
+      'This account already has a profile. Sign in to manage it from Settings instead.',
+    );
+  }
+
+  try {
+    await deleteUser(user);
+  } catch (error: unknown) {
+    const code = (error as { code?: string }).code;
+    if (code === 'auth/requires-recent-login') {
+      const deletedViaFunction = await deleteAuthUserViaFunction();
+      if (!deletedViaFunction) {
+        throw new Error(
+          'Could not remove this account. Sign in again and retry, or contact support.',
+        );
+      }
+    } else {
+      throw formatDeletionError(error, 'removing your unverified account');
+    }
+  }
+
+  if (auth.currentUser) {
+    const deletedViaFunction = await deleteAuthUserViaFunction();
+    if (!deletedViaFunction) {
+      throw new Error('Could not remove this account.');
+    }
+  }
+
+  try {
+    await logOut();
+  } catch {
+    // Session may already be cleared after deleteUser.
+  }
+}
