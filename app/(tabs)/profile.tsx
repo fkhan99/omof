@@ -20,7 +20,6 @@ import { PlusBadge } from '@/components/users/PlusBadge';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
 import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
 import { Post } from '@/types';
-import { Post } from '@/types';
 
 export default function ProfileScreen() {
   const styles = useThemedStyles(createStyles);
