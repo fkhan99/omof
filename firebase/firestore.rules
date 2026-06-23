@@ -98,14 +98,22 @@ service cloud.firestore {
         );
     }
 
-    match /posts/{postId} {
-      allow read: if isAuthenticated();
-      allow create: if isVerified()
-        && request.resource.data.authorId == request.auth.uid
+    function isGrowthUpdateCreate() {
+      return request.resource.data.postKind == 'growth_update';
+    }
+
+    function canCreatePost() {
+      return request.resource.data.authorId == request.auth.uid
         && request.resource.data.caption.size() <= 280
         && isValidMoodTag(request.resource.data.moodTag)
         && (request.resource.data.postKind == null || isValidPostKind(request.resource.data.postKind))
-        && isValidGrowthUpdateCreate();
+        && isValidGrowthUpdateCreate()
+        && (isGrowthUpdateCreate() ? isAuthenticated() : isVerified());
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if canCreatePost();
       allow update: if isAuthenticated()
         && (
           (

@@ -16,9 +16,10 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import { getFirebaseDb, getFirebaseStorage, getFirebaseAuth } from './config';
+import { getEmailVerificationStatus, refreshAuthTokenForFirestore } from './auth';
 import { uploadLocalFile, uploadPlaceholderThumbnail } from './upload';
 import { mapPostDoc } from './mappers';
-import { Post, PaginatedResult, MoodTag, PostMediaType, PostKind } from '@/types';
+import { Post, PaginatedResult, MoodTag, PostMediaType, PostKind, MOOD_TAGS } from '@/types';
 import { POSTS_PAGE_SIZE, VIDEO_THUMBNAIL_MAX_DIMENSION } from '@/constants/theme';
 import { filterPostsForViewer } from '@/utils/postVisibility';
 import {
@@ -370,6 +371,14 @@ export async function createGrowthUpdate(
     throw new Error('Original moment not found.');
   }
 
+  if (!MOOD_TAGS.includes(parent.moodTag)) {
+    throw new Error(
+      'This moment uses an outdated mood tag. Edit the original moment, pick a mood, then try again.',
+    );
+  }
+
+  await refreshAuthTokenForFirestore();
+
   const db = getFirebaseDb();
   let docRef;
   try {
@@ -393,7 +402,15 @@ export async function createGrowthUpdate(
   } catch (error: unknown) {
     const code = (error as { code?: string })?.code;
     if (code === 'permission-denied') {
-      throw new Error('Unable to share your growth update. Verify your email address and try again.');
+      const verification = await getEmailVerificationStatus();
+      if (!verification.authVerified || !verification.tokenVerified) {
+        throw new Error(
+          'Your email is not verified yet. Open the link in your verification email, then tap "I\'ve verified — continue" on the verify screen.',
+        );
+      }
+      throw new Error(
+        'Could not save your growth update. Try signing out and back in. If this keeps happening, the app rules may need updating.',
+      );
     }
     throw error;
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getPost, createGrowthUpdate } from '@/services/firebase/posts';
-import { reloadCurrentUser } from '@/services/firebase/auth';
+import { getEmailVerificationStatus } from '@/services/firebase/auth';
+import { requiresEmailVerification } from '@/services/firebase/socialAuth';
 import { useAuthStore } from '@/store/authStore';
 import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
 import { Input } from '@/components/ui/Input';
@@ -45,9 +46,29 @@ export default function GrowthUpdateScreen() {
   const queryClient = useQueryClient();
   const profile = useAuthStore((s) => s.profile);
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
+  const setFirebaseUser = useAuthStore((s) => s.setFirebaseUser);
   const [crisisVisible, setCrisisVisible] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
+  const [checkingVerification, setCheckingVerification] = useState(false);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      setNeedsEmailVerification(false);
+      return;
+    }
+
+    void getEmailVerificationStatus().then((status) => {
+      if (status.user) {
+        setFirebaseUser(status.user);
+      }
+      setNeedsEmailVerification(
+        requiresEmailVerification(status.user ?? firebaseUser)
+          && (!status.authVerified || !status.tokenVerified),
+      );
+    });
+  }, [firebaseUser, setFirebaseUser]);
 
   const { data: parentPost, isLoading, error, refetch } = useQuery({
     queryKey: ['post', parentId],
@@ -64,6 +85,34 @@ export default function GrowthUpdateScreen() {
     defaultValues: { caption: '' },
   });
 
+  const handleCheckVerification = async () => {
+    setCheckingVerification(true);
+    setSubmitError(null);
+    try {
+      const status = await getEmailVerificationStatus();
+      if (status.user) {
+        setFirebaseUser(status.user);
+      }
+      const pending = requiresEmailVerification(status.user ?? firebaseUser!)
+        && (!status.authVerified || !status.tokenVerified);
+      setNeedsEmailVerification(pending);
+      if (pending) {
+        Alert.alert(
+          'Email not verified yet',
+          'Open the verification link in your email, then tap this button again.',
+          [
+            { text: 'Go to verify screen', onPress: () => router.push('/(auth)/verify-email') },
+            { text: 'OK', style: 'cancel' },
+          ],
+        );
+      } else {
+        Alert.alert('Email verified', 'You can share your growth update now.');
+      }
+    } finally {
+      setCheckingVerification(false);
+    }
+  };
+
   const onSubmit = async (data: GrowthFormData) => {
     setSubmitError(null);
     if (!profile || !firebaseUser) {
@@ -75,17 +124,9 @@ export default function GrowthUpdateScreen() {
       return;
     }
 
-    const refreshedUser = await reloadCurrentUser();
-    if (!refreshedUser?.emailVerified) {
-      Alert.alert(
-        'Verify your email',
-        'You need a verified email before sharing a growth update.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Verify email', onPress: () => router.push('/(auth)/verify-email') },
-        ],
-      );
-      return;
+    const status = await getEmailVerificationStatus();
+    if (status.user) {
+      setFirebaseUser(status.user);
     }
 
     if (containsProfanity(data.caption)) {
@@ -154,6 +195,27 @@ export default function GrowthUpdateScreen() {
 
         <GrowthUpdateCard post={parentPost} />
 
+        {needsEmailVerification ? (
+          <View style={styles.verifyBanner}>
+            <Text style={styles.verifyText}>
+              Verify your email to share growth updates. Open the link we sent you, then check status below.
+            </Text>
+            <Button
+              title="Check verification status"
+              variant="secondary"
+              size="sm"
+              onPress={() => void handleCheckVerification()}
+              loading={checkingVerification}
+            />
+            <Button
+              title="Open verify screen"
+              variant="ghost"
+              size="sm"
+              onPress={() => router.push('/(auth)/verify-email')}
+            />
+          </View>
+        ) : null}
+
         <Controller
           control={control}
           name="caption"
@@ -218,6 +280,19 @@ function createStyles(colors: ThemeColors) {
     captionInput: {
       minHeight: 120,
       textAlignVertical: 'top',
+    },
+    verifyBanner: {
+      gap: SPACING.sm,
+      padding: SPACING.md,
+      borderRadius: 12,
+      backgroundColor: colors.accentSoft + '66',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+    },
+    verifyText: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textSecondary,
+      lineHeight: 20,
     },
     submitError: {
       fontSize: FONT_SIZES.sm,
