@@ -9,12 +9,12 @@ export const VERIFICATION_TOO_MANY_REQUESTS_MESSAGE =
 
 /**
  * When `EXPO_PUBLIC_REQUIRE_EMAIL_VERIFICATION=false`, password signups skip
- * inbox verification (intended for local/dev testing).
+ * inbox verification in local dev only. Production builds always require it.
  */
 export function isEmailVerificationRequired(): boolean {
   const flag = process.env.EXPO_PUBLIC_REQUIRE_EMAIL_VERIFICATION?.trim().toLowerCase();
   if (flag === 'false' || flag === '0' || flag === 'no') {
-    return false;
+    return __DEV__;
   }
   return true;
 }
