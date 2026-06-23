@@ -69,11 +69,13 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.selectedBackground,
       borderColor: colors.selectedBorder,
       borderWidth: 2,
+      paddingVertical: SPACING.sm - 1,
+      paddingHorizontal: SPACING.xs - 1,
     },
     label: {
       fontSize: FONT_SIZES.xs,
       fontWeight: '500',
-      color: colors.textMuted,
+      color: colors.textSecondary,
       textAlign: 'center',
     },
     labelActive: {
