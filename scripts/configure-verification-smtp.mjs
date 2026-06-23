@@ -35,13 +35,38 @@ const smtpPort = process.env.OMOF_SMTP_PORT ?? '587';
 if (!smtpPass) {
   console.error('Missing OMOF_SMTP_PASS (Gmail app password for the sender account).\n');
   console.error('Example (PowerShell):');
-  console.error('  $env:OMOF_SMTP_PASS="abcd efgh ijkl mnop"');
+  console.error('  $env:OMOF_SMTP_PASS="your16charapppassword"');
   console.error('  node scripts/configure-verification-smtp.mjs');
   process.exit(1);
 }
 
-const args = [
-  'firebase-tools',
+
+console.log(`Setting verification SMTP for project ${projectId}…`);
+console.log(`  user: ${smtpUser}`);
+console.log(`  from: ${smtpFrom}`);
+
+function runFirebaseTools(...firebaseArgs) {
+  const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  return spawnSync(npx, ['firebase-tools', ...firebaseArgs], {
+    cwd: firebaseDir,
+    stdio: 'inherit',
+    shell: true,
+  });
+}
+
+// functions.config() is legacy but still used by verificationEmail.ts until migrated.
+console.log('Enabling legacy Runtime Config CLI (required until config migration)…');
+const enableLegacy = runFirebaseTools(
+  'experiments:enable',
+  'legacyRuntimeConfigCommands',
+  '--project',
+  projectId,
+);
+if (enableLegacy.status !== 0 && enableLegacy.status !== null) {
+  process.exit(enableLegacy.status);
+}
+
+const result = runFirebaseTools(
   'functions:config:set',
   `omof.smtp_host=${smtpHost}`,
   `omof.smtp_port=${smtpPort}`,
@@ -50,17 +75,7 @@ const args = [
   `omof.smtp_from=${smtpFrom}`,
   '--project',
   projectId,
-];
-
-console.log(`Setting verification SMTP for project ${projectId}…`);
-console.log(`  user: ${smtpUser}`);
-console.log(`  from: ${smtpFrom}`);
-
-const result = spawnSync('npx', args, {
-  cwd: firebaseDir,
-  stdio: 'inherit',
-  shell: true,
-});
+);
 
 if (result.status !== 0) {
   process.exit(result.status ?? 1);
