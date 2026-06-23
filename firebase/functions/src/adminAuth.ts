@@ -77,7 +77,7 @@ export function createAdminEmailVerificationCallable() {
 
     const link = await admin.auth().generateEmailVerificationLink(email, {
       url: VERIFY_CONTINUE_URL,
-      handleCodeInApp: false,
+      handleCodeInApp: true,
     });
 
     functions.logger.info('[adminAuth] generated verification link', { email, uid: user.uid });

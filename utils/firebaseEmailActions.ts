@@ -1,10 +1,12 @@
 import { Platform } from 'react-native';
 import type { ActionCodeSettings } from 'firebase/auth';
 import { applyActionCode, checkActionCode } from 'firebase/auth';
-import type { Router } from 'expo-router';
 import { getFirebaseAuth, isFirebaseConfigured } from '@/services/firebase/config';
 import { loadAuthUserProfile, reloadCurrentUser } from '@/services/firebase/auth';
 import { normalizeEmail } from '@/utils';
+import type { useRouter } from 'expo-router';
+
+type VerificationRouter = ReturnType<typeof useRouter>;
 
 const HOSTED_ONBOARDING_URL = 'https://omof-eed24.web.app/onboarding';
 
@@ -77,7 +79,7 @@ export function stripEmailActionQueryFromUrl(path = '/onboarding'): void {
 
 /** Route to profile setup after the inbox link verifies an email address. */
 export async function navigateAfterEmailVerification(
-  router: Router,
+  router: VerificationRouter,
   result: EmailVerificationResult,
   setFirebaseUser: (user: NonNullable<EmailVerificationResult['user']>) => void,
 ): Promise<void> {

@@ -18,6 +18,7 @@ import { createUserProfile, isUsernameAvailable, loadAuthUserProfile, logOut } f
 import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { uploadProfilePhoto } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/authStore';
+import { isEmailVerificationLink } from '@/utils/firebaseEmailActions';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -27,7 +28,8 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 export default function OnboardingScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { firebaseUser, setProfile, reset, pendingSignupCompliance } = useAuthStore();
+  const { firebaseUser, setProfile, reset, pendingSignupCompliance, isInitialized, isLoading } =
+    useAuthStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRemoveSignIn, setShowRemoveSignIn] = useState(false);
@@ -72,6 +74,20 @@ export default function OnboardingScreen() {
       clearTimeout(handle);
     };
   }, [username]);
+
+  useEffect(() => {
+    if (!isInitialized || isLoading) return;
+    if (
+      Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      isEmailVerificationLink(window.location.search)
+    ) {
+      return;
+    }
+    if (!firebaseUser) {
+      router.replace('/(auth)/login');
+    }
+  }, [firebaseUser, isInitialized, isLoading, router]);
 
   useEffect(() => {
     if (!firebaseUser?.uid) return;
