@@ -12,8 +12,15 @@ const log = (...args: unknown[]) => {
 
 export default function Index() {
   const router = useRouter();
-  const { firebaseUser, profile, isLoading, isInitialized, profileError, setProfile, setProfileError } =
-    useAuthStore();
+  const {
+    firebaseUser,
+    profile,
+    isInitialized,
+    profileError,
+    profileLoadComplete,
+    setProfile,
+    setProfileError,
+  } = useAuthStore();
   const [retrying, setRetrying] = useState(false);
 
   const handleRetryProfile = async () => {
@@ -34,41 +41,30 @@ export default function Index() {
 
   useEffect(() => {
     if (!isInitialized) {
-      log('[Route] waiting for auth init', { isInitialized, isLoading });
-      return;
-    }
-
-    if (isLoading) {
-      log('[Route] auth resolving…', { isInitialized, isLoading });
+      log('[Route] waiting for auth init');
       return;
     }
 
     const uid = firebaseUser?.uid ?? null;
 
     if (!uid) {
-      log('[Route] no auth user → login', { uid });
+      log('[Route] no auth user → login');
       router.replace('/(auth)/login');
       return;
     }
 
-    // A failed profile load (not a missing profile) must not route to
-    // onboarding — keep the user here and let them retry.
-    if (profileError) {
+    if (profileError && !profile) {
       log('[Route] profile load errored → holding for retry', { uid });
       return;
     }
 
-    const usersDocExists = profile !== null;
-
-    // Every account must have a verified email — including existing ones —
-    // before reaching onboarding or the main app.
     if (firebaseUser && requiresEmailVerification(firebaseUser)) {
       log('[Route] email not verified → verify-email', { uid });
       router.replace('/(auth)/verify-email');
       return;
     }
 
-    if (usersDocExists) {
+    if (profile) {
       log('[Route] users/{uid} exists → main app', {
         uid,
         username: profile.username,
@@ -77,11 +73,17 @@ export default function Index() {
       return;
     }
 
-    log('[Route] users/{uid} missing → onboarding', { uid });
-    router.replace('/onboarding');
-  }, [firebaseUser, profile, isLoading, isInitialized, profileError, router]);
+    if (profileLoadComplete) {
+      log('[Route] users/{uid} missing → onboarding', { uid });
+      router.replace('/onboarding');
+    }
+  }, [firebaseUser, profile, isInitialized, profileError, profileLoadComplete, router]);
 
-  if (isInitialized && !isLoading && firebaseUser && profileError) {
+  if (!isInitialized) {
+    return <LoadingState message="Starting OMOF..." />;
+  }
+
+  if (firebaseUser && profileError && !profile) {
     if (retrying) {
       return <LoadingState message="Loading your profile..." />;
     }
@@ -91,6 +93,10 @@ export default function Index() {
         onRetry={handleRetryProfile}
       />
     );
+  }
+
+  if (firebaseUser && !profile && !profileLoadComplete) {
+    return <LoadingState message="Loading your profile..." />;
   }
 
   return <LoadingState message="Starting OMOF..." />;

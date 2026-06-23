@@ -36,6 +36,8 @@ interface AuthState {
   setPendingSignupFullName: (fullName: string | null) => void;
   setLoading: (loading: boolean) => void;
   setInitialized: (initialized: boolean) => void;
+  setProfileLoading: (loading: boolean) => void;
+  setProfileLoadComplete: (complete: boolean) => void;
   reset: () => void;
 }
 
@@ -46,17 +48,28 @@ export const useAuthStore = create<AuthState>((set) => ({
   pendingSignupFullName: null,
   isLoading: true,
   isInitialized: false,
+  isProfileLoading: false,
+  profileLoadComplete: false,
   profileError: false,
   pendingWelcome: false,
   setFirebaseUser: (firebaseUser) => set({ firebaseUser }),
-  setProfile: (profile) => set({ profile, profileError: false }),
+  setProfile: (profile) => {
+    if (Platform.OS === 'web') {
+      if (profile) writeProfileCache(profile.id, profile);
+      else clearProfileCache();
+    }
+    set({ profile, profileError: false });
+  },
   setProfileError: (profileError) => set({ profileError }),
   setPendingWelcome: (pendingWelcome) => set({ pendingWelcome }),
   setPendingSignupCompliance: (pendingSignupCompliance) => set({ pendingSignupCompliance }),
   setPendingSignupFullName: (pendingSignupFullName) => set({ pendingSignupFullName }),
   setLoading: (isLoading) => set({ isLoading }),
   setInitialized: (isInitialized) => set({ isInitialized }),
-  reset: () =>
+  setProfileLoading: (isProfileLoading) => set({ isProfileLoading }),
+  setProfileLoadComplete: (profileLoadComplete) => set({ profileLoadComplete }),
+  reset: () => {
+    clearProfileCache();
     set({
       firebaseUser: null,
       profile: null,
@@ -64,7 +77,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       pendingSignupFullName: null,
       isLoading: false,
       isInitialized: true,
+      isProfileLoading: false,
+      profileLoadComplete: false,
       profileError: false,
       pendingWelcome: false,
-    }),
+    });
+  },
 }));

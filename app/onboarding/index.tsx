@@ -43,7 +43,6 @@ export default function OnboardingScreen() {
     pendingSignupCompliance,
     pendingSignupFullName,
     isInitialized,
-    isLoading,
   } = useAuthStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +96,7 @@ export default function OnboardingScreen() {
   }, [username]);
 
   useEffect(() => {
-    if (!isInitialized || isLoading) return;
+    if (!isInitialized) return;
     if (
       Platform.OS === 'web' &&
       typeof window !== 'undefined' &&
@@ -108,7 +107,7 @@ export default function OnboardingScreen() {
     if (!firebaseUser) {
       router.replace('/(auth)/login');
     }
-  }, [firebaseUser, isInitialized, isLoading, router]);
+  }, [firebaseUser, isInitialized, router]);
 
   useEffect(() => {
     if (!firebaseUser?.uid) return;

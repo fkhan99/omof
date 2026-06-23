@@ -27,15 +27,12 @@ export default function TabLayout() {
   const router = useRouter();
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const isInitialized = useAuthStore((s) => s.isInitialized);
-  const isLoading = useAuthStore((s) => s.isLoading);
 
-  // Guard against a lost or revoked session (e.g. account deleted on another
-  // device) leaving the user stranded on an authenticated tab.
   useEffect(() => {
-    if (isInitialized && !isLoading && !firebaseUser) {
+    if (isInitialized && !firebaseUser) {
       router.replace('/(auth)/login');
     }
-  }, [isInitialized, isLoading, firebaseUser, router]);
+  }, [isInitialized, firebaseUser, router]);
 
   return (
     <Tabs

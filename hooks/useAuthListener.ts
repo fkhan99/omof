@@ -1,39 +1,61 @@
 import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import {
   subscribeToAuthState,
   loadAuthUserProfile,
   subscribeToUserProfile,
 } from '@/services/firebase/auth';
-import { syncUserProgress } from '@/services/firebase/gamification';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { todayKey } from '@/utils/streak';
+import { clearProfileCache, readProfileCache } from '@/utils/profileCache';
 
-const PROFILE_LOAD_TIMEOUT_MS = 15_000;
-// syncUserProgress does several full-collection reads; don't repeat it on every
-// foreground. Re-run only after a cooldown or when the local day rolls over.
+const PROFILE_LOAD_TIMEOUT_MS = Platform.OS === 'web' ? 6_000 : 12_000;
+const PROGRESS_SYNC_DEFER_MS = Platform.OS === 'web' ? 12_000 : 4_000;
 const FOREGROUND_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 
 async function loadProfileWithTimeout(uid: string) {
   return Promise.race([
     loadAuthUserProfile(uid),
-    new Promise<null>((_, reject) => {
+    new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Profile load timed out')), PROFILE_LOAD_TIMEOUT_MS);
     }),
   ]);
 }
 
+function deferSyncUserProgress(uid: string) {
+  setTimeout(() => {
+    void import('@/services/firebase/gamification')
+      .then(({ syncUserProgress }) => syncUserProgress(uid))
+      .then((stats) => {
+        if (!stats) return;
+        const store = useAuthStore.getState();
+        if (store.profile && store.profile.id === uid) {
+          store.setProfile({ ...store.profile, stats });
+        }
+      })
+      .catch((error) => {
+        console.warn('[gamification] deferred progress sync failed', error);
+      });
+  }, PROGRESS_SYNC_DEFER_MS);
+}
+
 export function useAuthListener() {
-  const { setFirebaseUser, setProfile, setProfileError, setLoading, setInitialized, reset } =
-    useAuthStore();
+  const {
+    setFirebaseUser,
+    setProfile,
+    setProfileError,
+    setLoading,
+    setInitialized,
+    setProfileLoading,
+    setProfileLoadComplete,
+    reset,
+  } = useAuthStore();
   const previousUidRef = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthState((user) => {
       void (async () => {
-        setLoading(true);
-
         const nextUid = user?.uid ?? null;
         if (__DEV__) console.log('[Auth] onAuthStateChanged — uid:', nextUid);
 
@@ -51,56 +73,73 @@ export function useAuthListener() {
           previousUidRef.current = nextUid;
           setFirebaseUser(user);
 
-          if (user) {
-            try {
-              let profile;
-              try {
-                profile = await loadProfileWithTimeout(user.uid);
-              } catch (firstError) {
-                // Retry once before treating it as a failure, so a transient
-                // network blip doesn't drop an existing user into onboarding.
-                console.warn('[Auth] profile load failed, retrying once', firstError);
-                profile = await loadProfileWithTimeout(user.uid);
-              }
-              if (__DEV__) {
-                console.log('[Auth] profile load result:', {
-                  uid: user.uid,
-                  usersDocExists: profile !== null,
-                });
-              }
-              if (profile && profile.id !== user.uid) {
-                console.warn('[Auth] profile.id does not match auth uid', {
-                  profileId: profile.id,
-                  authUid: user.uid,
-                });
-              }
-              setProfileError(false);
-              setProfile(profile);
-
-              if (profile) {
-                void syncUserProgress(user.uid)
-                  .then((stats) => {
-                    if (!stats) return;
-                    const store = useAuthStore.getState();
-                    if (store.profile && store.profile.id === user.uid) {
-                      store.setProfile({ ...store.profile, stats });
-                    }
-                  })
-                  .catch((error) => {
-                    console.warn('[gamification] progress sync failed', error);
-                  });
-              }
-            } catch (error) {
-              console.error('[Auth] profile load failed:', error);
-              // Distinguish a load failure from a genuinely missing profile so
-              // the router doesn't push an existing user into onboarding.
-              setProfileError(true);
-              setProfile(null);
-            }
-          } else {
+          if (!user) {
+            clearProfileCache();
             setProfileError(false);
             setProfile(null);
+            setProfileLoading(false);
+            setProfileLoadComplete(true);
             clearUserPostQueries();
+            return;
+          }
+
+          const cachedProfile = readProfileCache(user.uid);
+          if (cachedProfile) {
+            setProfileError(false);
+            setProfile(cachedProfile);
+          }
+
+          // Unlock routing as soon as Firebase Auth is known.
+          setLoading(false);
+          setInitialized(true);
+          setProfileLoading(true);
+          setProfileLoadComplete(false);
+
+          try {
+            let profile;
+            try {
+              profile = await loadProfileWithTimeout(user.uid);
+            } catch (firstError) {
+              if (Platform.OS === 'web') {
+                throw firstError;
+              }
+              console.warn('[Auth] profile load failed, retrying once', firstError);
+              profile = await loadProfileWithTimeout(user.uid);
+            }
+
+            if (__DEV__) {
+              console.log('[Auth] profile load result:', {
+                uid: user.uid,
+                usersDocExists: profile !== null,
+              });
+            }
+
+            if (profile && profile.id !== user.uid) {
+              console.warn('[Auth] profile.id does not match auth uid', {
+                profileId: profile.id,
+                authUid: user.uid,
+              });
+            }
+
+            setProfileError(false);
+            setProfile(profile);
+
+            if (profile) {
+              deferSyncUserProgress(user.uid);
+            }
+          } catch (error) {
+            console.error('[Auth] profile load failed:', error);
+            const store = useAuthStore.getState();
+            if (!store.profile) {
+              setProfileError(true);
+              setProfile(null);
+            } else {
+              console.warn('[Auth] keeping cached profile after load failure');
+              deferSyncUserProgress(user.uid);
+            }
+          } finally {
+            setProfileLoading(false);
+            setProfileLoadComplete(true);
           }
         } finally {
           setLoading(false);
@@ -113,10 +152,17 @@ export function useAuthListener() {
       unsubscribe();
       reset();
     };
-  }, [setFirebaseUser, setProfile, setProfileError, setLoading, setInitialized, reset]);
+  }, [
+    setFirebaseUser,
+    setProfile,
+    setProfileError,
+    setLoading,
+    setInitialized,
+    setProfileLoading,
+    setProfileLoadComplete,
+    reset,
+  ]);
 
-  // Re-check the streak when the app returns to the foreground (e.g. left open
-  // across midnight) so the day streak stays accurate without a restart.
   const lastForegroundSyncRef = useRef<{ at: number; day: string } | null>(null);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
@@ -129,14 +175,13 @@ export function useAuthListener() {
       const now = Date.now();
       const day = todayKey();
       const last = lastForegroundSyncRef.current;
-      // Skip the (expensive) reconciliation if we synced recently on the same
-      // calendar day.
       if (last && last.day === day && now - last.at < FOREGROUND_SYNC_COOLDOWN_MS) {
         return;
       }
       lastForegroundSyncRef.current = { at: now, day };
 
-      void syncUserProgress(uid)
+      void import('@/services/firebase/gamification')
+        .then(({ syncUserProgress }) => syncUserProgress(uid))
         .then((stats) => {
           if (!stats) return;
           const latest = useAuthStore.getState();
@@ -154,7 +199,6 @@ export function useAuthListener() {
 
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
 
-  // Keep profile stats/points in sync as Cloud Functions update the user doc.
   useEffect(() => {
     const uid = firebaseUser?.uid;
     if (!uid) return;
