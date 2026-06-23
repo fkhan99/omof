@@ -188,21 +188,22 @@ export default function VerifyEmailScreen() {
     isSwitchingEmailRef.current = true;
     setError(null);
     try {
+      const { abandonUnverifiedSignup } = await import('@/services/firebase/accountDeletion');
+      await abandonUnverifiedSignup();
       clearUserPostQueries();
-      await logOut();
       reset();
       setPendingSignupCompliance(null);
       router.replace('/(auth)/signup');
     } catch (err) {
       isSwitchingEmailRef.current = false;
-      setError(err instanceof Error ? err.message : 'Could not sign out. Please try again.');
+      setError(err instanceof Error ? err.message : 'Could not remove this account. Please try again.');
     }
   };
 
   const handleUseDifferentEmail = () => {
     confirmAction(
       'Use a different email',
-      "You'll be signed out of this unverified account and returned to sign up. Continue?",
+      "This unverified account will be deleted and you'll return to sign up. Continue?",
       () => {
         void performSwitchEmail();
       },
