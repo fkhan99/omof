@@ -212,7 +212,7 @@ export default function UserProfileScreen() {
   if (isLoading) return <LoadingState />;
   if (error || !user) return <ErrorState message="User not found." onRetry={() => refetch()} />;
 
-  const showConnectionCounts = isOwnProfile || following || !user.isPrivate;
+  const showConnectionCounts = false;
 
   const renderListHeader = () => (
     <>

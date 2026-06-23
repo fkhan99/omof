@@ -165,10 +165,6 @@ export default function PostDetailScreen() {
         onClose={() => setShowPostMenu(false)}
         options={[
           {
-            label: 'Promote post',
-            onPress: () => router.push(`/post/promote/${id}`),
-          },
-          {
             label: 'Edit post',
             onPress: () => router.push(`/post/edit/${id}`),
           },

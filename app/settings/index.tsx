@@ -130,11 +130,6 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.sectionTitle}>Account</Text>
       <View style={styles.section}>
-        <SettingsItem
-          icon="star-outline"
-          title="OMOF Plus"
-          onPress={() => router.push('/settings/subscription')}
-        />
         <View style={styles.toggleRow}>
           <View style={styles.toggleText}>
             <Text style={styles.toggleTitle}>Private account</Text>

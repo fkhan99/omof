@@ -95,7 +95,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={CONNECTIONS.viewFollowersA11y}
             >
-              <Text style={styles.statNumber}>{displayedFollowerCount}</Text>
+              <Text style={styles.statNumber}>{PROFILE.connectionsHidden}</Text>
               <Text style={styles.statLabel}>{CONNECTIONS.followers}</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -104,7 +104,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={CONNECTIONS.viewFollowingA11y}
             >
-              <Text style={styles.statNumber}>{displayedFollowingCount}</Text>
+              <Text style={styles.statNumber}>{PROFILE.connectionsHidden}</Text>
               <Text style={styles.statLabel}>{CONNECTIONS.following}</Text>
             </TouchableOpacity>
           </View>
