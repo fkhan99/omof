@@ -54,7 +54,11 @@ export type NotificationType =
   | 'comment'
   | 'reaction'
   | 'like'
+  | 'growth_update'
   | 'post_removed';
+
+export const POST_KINDS = ['moment', 'growth_update'] as const;
+export type PostKind = (typeof POST_KINDS)[number];
 
 export interface Notification {
   id: string;
