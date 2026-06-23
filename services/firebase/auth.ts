@@ -20,6 +20,7 @@ import {
   runTransaction,
   onSnapshot,
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   getFirebaseAuth,
   getFirebaseDb,
@@ -132,7 +133,6 @@ export async function resendVerificationEmail(): Promise<void> {
   await assertVerificationResendAllowed(user.uid);
 
   try {
-    const { getFunctions, httpsCallable } = await import('firebase/functions');
     const functions = getFunctions(getFirebaseApp());
     const requestVerificationEmail = httpsCallable(functions, 'requestVerificationEmail');
     await requestVerificationEmail();

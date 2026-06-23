@@ -2,7 +2,7 @@
  * Point Cloud Functions verification email at the OMOF Gmail sender.
  *
  * Prerequisites:
- *   1. Create omofverification@gmail.com (or your chosen address)
+ *   1. Create omofverified@gmail.com (or your chosen address)
  *   2. Google Account → Security → 2-Step Verification → App passwords
  *   3. Generate an app password for "Mail"
  *
@@ -25,7 +25,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const firebaseDir = resolve(root, 'firebase');
 const projectId = process.env.FIREBASE_PROJECT_ID ?? 'omof-eed24';
 
-const smtpUser = process.env.OMOF_SMTP_USER ?? 'omofverification@gmail.com';
+const smtpUser = process.env.OMOF_SMTP_USER ?? 'omofverified@gmail.com';
 // Google displays app passwords in 4-character groups; SMTP needs 16 chars, no spaces.
 const smtpPass = (process.env.OMOF_SMTP_PASS ?? '').replace(/\s/g, '');
 const smtpFrom = process.env.OMOF_SMTP_FROM ?? `OMOF <${smtpUser}>`;
