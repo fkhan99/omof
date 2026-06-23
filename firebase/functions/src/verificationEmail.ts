@@ -20,9 +20,9 @@ function getSmtpConfig(): SmtpConfig | null {
   const cfg = functions.config().omof ?? {};
   const host = (cfg.smtp_host ?? process.env.OMOF_SMTP_HOST ?? 'smtp.gmail.com') as string;
   const port = Number(cfg.smtp_port ?? process.env.OMOF_SMTP_PORT ?? 587);
-  const user = (cfg.smtp_user ?? process.env.OMOF_SMTP_USER ?? '') as string;
+  const user = (cfg.smtp_user ?? process.env.OMOF_SMTP_USER ?? VERIFICATION_SMTP_USER) as string;
   const pass = (cfg.smtp_pass ?? process.env.OMOF_SMTP_PASS ?? '') as string;
-  const from = (cfg.smtp_from ?? process.env.OMOF_SMTP_FROM ?? `OMOF <${user}>`) as string;
+  const from = (cfg.smtp_from ?? process.env.OMOF_SMTP_FROM ?? VERIFICATION_SMTP_FROM) as string;
 
   if (!user.trim() || !pass.trim()) {
     return null;

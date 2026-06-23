@@ -222,8 +222,8 @@ export default function VerifyEmailScreen() {
         <Text style={styles.body}>
           Open the email and tap the link — you'll go straight to profile setup once
           verified. Check your spam, promotions, and All Mail — the sender is usually{' '}
-          <Text style={styles.email}>khafa776@gmail.com</Text> if SMTP is configured,
-          or <Text style={styles.email}>noreply@omof-eed24.firebaseapp.com</Text> otherwise.
+          <Text style={styles.email}>{VERIFICATION_SENDER_EMAIL}</Text> if SMTP is configured,
+          or <Text style={styles.email}>{FIREBASE_AUTH_FALLBACK_SENDER}</Text> otherwise.
           This screen updates automatically once you're verified.
         </Text>
 
