@@ -225,26 +225,19 @@ export default function SearchScreen() {
         sharedLoading ? (
           <LoadingState message={SHARED_EXPERIENCES.loading} />
         ) : (
-          <FlatList
+          <PullRefreshFlatList
             data={sharedPosts}
             keyExtractor={(item) => item.id}
             ListHeaderComponent={() => (
               <View>
                 {renderDiscoverHeader()}
-                <RefreshGear visible={refreshing} />
               </View>
             )}
             renderItem={({ item }) => <PostCard post={{ ...item, isPromoted: false }} variant="card" />}
             contentContainerStyle={styles.exploreList}
             keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => void onRefreshDiscover()}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
+            refreshing={refreshing}
+            onRefresh={handleRefreshDiscover}
             extraData={`${followingIds.join(',')}-${requestedIds.join(',')}-${nearbyUsers.length}`}
             ListEmptyComponent={
               <EmptyState

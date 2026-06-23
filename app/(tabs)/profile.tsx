@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { GamificationStats } from '@/components/profile/GamificationStats';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
 import { Post } from '@/types';
 
@@ -66,6 +67,11 @@ export default function ProfileScreen() {
   if (!profile || !authUid) {
     return <LoadingState />;
   }
+
+  const onRefreshProfile = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+  const { refreshing, onRefresh: handleRefreshProfile } = usePullToRefresh(onRefreshProfile);
 
   const renderListHeader = () => (
     <>
@@ -157,6 +163,8 @@ export default function ProfileScreen() {
       ListEmptyComponent={renderListEmpty}
       ListFooterComponent={renderListFooter}
       extraData={`${authUid}-${myPosts.length}-${profile.stats.points}`}
+      refreshing={refreshing}
+      onRefresh={handleRefreshProfile}
     />
   );
 }

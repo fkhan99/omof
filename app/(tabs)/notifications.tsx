@@ -27,13 +27,13 @@ import { FollowRequestItem } from '@/components/users/FollowRequestItem';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { RefreshGear } from '@/components/ui/RefreshGear';
+import { PullRefreshFlatList } from '@/components/ui/PullRefreshFlatList';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { Notification } from '@/types';
 import { computeActivityBadgeCount } from '@/utils/activityBadge';
 import { adjustFollowCountsOptimistically, invalidateFollowSideEffects } from '@/utils/followCache';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useTheme } from '@/hooks/useTheme';
 import { getActivityReadKey } from '@/utils/activityRead';
 
 function isConnectBackEligible(notification: Notification) {
@@ -42,7 +42,6 @@ function isConnectBackEligible(notification: Notification) {
 
 export default function ActivityScreen() {
   const styles = useThemedStyles(createStyles);
-  const { colors } = useTheme();
   const router = useRouter();
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const notifications = useNotificationStore((state) => state.activityItems);
@@ -54,7 +53,6 @@ export default function ActivityScreen() {
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [connectBackTargetId, setConnectBackTargetId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const followRequestCountRef = useRef(0);
@@ -90,9 +88,10 @@ export default function ActivityScreen() {
       setLoadError(error instanceof Error ? error.message : "Couldn't load activity.");
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
     }
   }, [authUid, queryClient, setActivityItems, setUnreadCount]);
+
+  const { refreshing, onRefresh: handleRefresh } = usePullToRefresh(loadActivity);
 
   useFocusEffect(
     useCallback(() => {
@@ -250,10 +249,6 @@ export default function ActivityScreen() {
     }
   };
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadActivity();
-  }, [loadActivity]);
 
   if (!authUid || (isLoading && notifications.length === 0 && followRequests.length === 0)) {
     return <LoadingState message="Loading activity..." />;
@@ -287,36 +282,29 @@ export default function ActivityScreen() {
         </TouchableOpacity>
       </View>
 
-      <RefreshGear visible={refreshing} />
-
-      {followRequests.length > 0 ? (
-        <View style={styles.requestsSection}>
-          <Text style={styles.requestsTitle}>Follow requests</Text>
-          {followRequests.map((item) => (
-            <FollowRequestItem
-              key={item.request.id}
-              request={item.request}
-              requesterName={item.requesterName}
-              requesterUsername={item.requesterUsername}
-              requesterPhotoURL={item.requesterPhotoURL}
-              loading={activeRequestId === item.request.requesterId}
-              onAccept={() => acceptMutation.mutate(item.request.requesterId)}
-              onReject={() => rejectMutation.mutate(item.request.requesterId)}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      <FlatList
+      <PullRefreshFlatList
         data={notifications}
         keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        ListHeaderComponent={
+          followRequests.length > 0 ? (
+            <View style={styles.requestsSection}>
+              <Text style={styles.requestsTitle}>Follow requests</Text>
+              {followRequests.map((item) => (
+                <FollowRequestItem
+                  key={item.request.id}
+                  request={item.request}
+                  requesterName={item.requesterName}
+                  requesterUsername={item.requesterUsername}
+                  requesterPhotoURL={item.requesterPhotoURL}
+                  loading={activeRequestId === item.request.requesterId}
+                  onAccept={() => acceptMutation.mutate(item.request.requesterId)}
+                  onReject={() => rejectMutation.mutate(item.request.requesterId)}
+                />
+              ))}
+            </View>
+          ) : null
         }
         renderItem={({ item }) => {
           const showConnectBack =

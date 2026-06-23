@@ -8,6 +8,7 @@ import { isVideoPost } from '@/utils/posts';
 import { SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
+import { PullRefreshFlatList } from '@/components/ui/PullRefreshFlatList';
 
 const NUM_COLUMNS = 3;
 
@@ -17,6 +18,8 @@ interface PostGridProps {
   ListEmptyComponent?: ComponentType<unknown> | ReactElement | null;
   ListFooterComponent?: ComponentType<unknown> | ReactElement | null;
   extraData?: unknown;
+  refreshing?: boolean;
+  onRefresh?: () => void | Promise<void>;
 }
 
 export function PostGrid({
@@ -25,6 +28,8 @@ export function PostGrid({
   ListEmptyComponent,
   ListFooterComponent,
   extraData,
+  refreshing = false,
+  onRefresh,
 }: PostGridProps) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useTheme();
@@ -52,22 +57,32 @@ export function PostGrid({
     </TouchableOpacity>
   );
 
-  return (
-    <FlatList
-      style={styles.list}
-      contentContainerStyle={styles.content}
-      data={posts}
-      key={`post-grid-${NUM_COLUMNS}`}
-      numColumns={NUM_COLUMNS}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
-      ListHeaderComponent={ListHeaderComponent}
-      ListEmptyComponent={ListEmptyComponent}
-      ListFooterComponent={ListFooterComponent}
-      extraData={extraData}
-      showsVerticalScrollIndicator={false}
-    />
-  );
+  const listProps = {
+    style: styles.list,
+    contentContainerStyle: styles.content,
+    data: posts,
+    key: `post-grid-${NUM_COLUMNS}`,
+    numColumns: NUM_COLUMNS,
+    keyExtractor: (item: Post) => item.id,
+    renderItem,
+    ListHeaderComponent,
+    ListEmptyComponent,
+    ListFooterComponent,
+    extraData,
+    showsVerticalScrollIndicator: false,
+  };
+
+  if (onRefresh) {
+    return (
+      <PullRefreshFlatList
+        {...listProps}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
+    );
+  }
+
+  return <FlatList {...listProps} />;
 }
 
 function createStyles(colors: ThemeColors) {
