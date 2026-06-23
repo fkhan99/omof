@@ -188,7 +188,7 @@ export default function UserProfileScreen() {
       return;
     }
     if (isRequestPending) {
-      unfollowMutation.mutate();
+      void handleUnfollow();
       return;
     }
     if (!user) return;
@@ -301,7 +301,7 @@ export default function UserProfileScreen() {
           {
             label: `Disconnect from ${user.username}`,
             destructive: true,
-            onPress: () => unfollowMutation.mutate(),
+            onPress: () => void handleUnfollow(),
           },
         ]}
       />
