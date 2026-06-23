@@ -9,38 +9,37 @@ export function WelcomeModalHost() {
   const profile = useAuthStore((s) => s.profile);
   const pendingWelcome = useAuthStore((s) => s.pendingWelcome);
   const setPendingWelcome = useAuthStore((s) => s.setPendingWelcome);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [storedPending, setStoredPending] = useState(false);
 
+  // Restore pending flag from storage (e.g. app reload before dismiss).
   useEffect(() => {
     const uid = firebaseUser?.uid;
-    if (!uid || !profile) {
-      setShowWelcome(false);
-      return;
-    }
-
-    if (pendingWelcome) {
-      setShowWelcome(true);
+    if (!uid || pendingWelcome) {
       return;
     }
 
     let cancelled = false;
     void isWelcomePending(uid).then((pending) => {
-      if (!cancelled) setShowWelcome(pending);
+      if (!cancelled) setStoredPending(pending);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [firebaseUser?.uid, profile?.id, pendingWelcome]);
+  }, [firebaseUser?.uid, pendingWelcome]);
+
+  const visible = Boolean(
+    firebaseUser?.uid && profile && (pendingWelcome || storedPending),
+  );
 
   const dismissWelcome = useCallback(async () => {
     const uid = firebaseUser?.uid;
-    setShowWelcome(false);
+    setStoredPending(false);
     setPendingWelcome(false);
     if (uid) {
       await markWelcomeSeen(uid);
     }
   }, [firebaseUser?.uid, setPendingWelcome]);
 
-  return <WelcomeModal visible={showWelcome} onDismiss={() => void dismissWelcome()} />;
+  return <WelcomeModal visible={visible} onDismiss={() => void dismissWelcome()} />;
 }
