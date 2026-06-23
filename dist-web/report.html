@@ -1,11 +1,37 @@
-<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style>
+<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><link rel="preconnect" href="https://omof-eed24.firebaseapp.com" crossorigin="anonymous"/><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin="anonymous"/><link rel="preconnect" href="https://www.googleapis.com" crossorigin="anonymous"/><link rel="dns-prefetch" href="https://omof-eed24.firebaseapp.com"/><link rel="dns-prefetch" href="https://firestore.googleapis.com"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style>
 body {
-  background-color: #fff;
+  background-color: #F7F3EE;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #1A1D1F;
   }
+}</style><style>
+#root:empty::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #F7F3EE;
+}
+@media (prefers-color-scheme: dark) {
+  #root:empty::before {
+    background: #1A1D1F;
+  }
+}
+#root:empty::after {
+  content: '';
+  position: fixed;
+  top: calc(50% - 28px);
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(192, 86, 33, 0.2);
+  border-top-color: #C05621;
+  border-radius: 50%;
+  animation: omof-boot-spin 0.9s linear infinite;
+}
+@keyframes omof-boot-spin {
+  to { transform: rotate(360deg); }
 }</style><style id="react-native-stylesheet">[stylesheet-group="0"]{}
 body{margin:0;}
 button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0;}
@@ -20,7 +46,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 [stylesheet-group="2"]{}
 .r-11mg6pl{border-bottom-color:rgba(255,255,255,1.00);border-left-color:rgba(255,255,255,1.00);border-right-color:rgba(255,255,255,1.00);border-top-color:rgba(255,255,255,1.00);}
 .r-13awgt0{flex:1;}
-.r-1867qdf{border-bottom-left-radius:16px;border-bottom-right-radius:16px;border-top-left-radius:16px;border-top-right-radius:16px;}
 .r-1awa8pu{border-bottom-color:rgba(101,119,134,1.00);border-left-color:rgba(101,119,134,1.00);border-right-color:rgba(101,119,134,1.00);border-top-color:rgba(101,119,134,1.00);}
 .r-1bq2mok{margin:3px;}
 .r-1d4xg89{border-bottom-color:rgba(170,184,194,1.00);border-left-color:rgba(170,184,194,1.00);border-right-color:rgba(170,184,194,1.00);border-top-color:rgba(170,184,194,1.00);}
@@ -200,7 +225,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-1kb76zh{margin-right:8px;}
 .r-1kfrs79{font-weight:600;}
 .r-1kihuf0{align-self:center;}
-.r-1l78y4q{color:rgba(120,113,108,1.00);}
 .r-1ld3bg{top:-4px;}
 .r-1ldzwu0{animation-timing-function:linear;}
 .r-1loqt21{cursor:pointer;}
@@ -233,7 +257,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-1s343s0{background-color:rgba(232,224,212,1.00);}
 .r-1ssbvtb{gap:12px;}
 .r-1sxrcry{background-size:auto;}
-.r-1tisrxv{z-index:999999;}
 .r-1tlneu6{background-color:rgba(247,243,238,1.00);}
 .r-1udbk01{text-overflow:ellipsis;}
 .r-1ui5ee8{font-size:32px;}
@@ -315,7 +338,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-gtdqiz{position:-webkit-sticky;position:sticky;}
 .r-h0d30l{height:28px;}
 .r-h7ip80{color:rgba(180,83,9,1.00);}
-.r-hbpseb{line-height:22px;}
 .r-hxflta{padding-right:env(safe-area-inset-right);}
 .r-icoktb{opacity:0.5;}
 .r-icxjq6{opacity:0.85;}
@@ -368,13 +390,10 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-wz1v28{background-color:rgba(253,251,247,1.00);}
 .r-x11e5r{font-family:SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
 .r-x3cy2q{background-size:100% 100%;}
-.r-xd6kpl{padding-bottom:8px;}
-.r-xl3lkw{background-color:rgba(0,0,0,0.45);}
 .r-xx3c9p{animation-name:r-imtty0;}
 .r-y7v2we{background-color:rgba(32,36,37,1.00);}
 .r-z80fyv{height:20px;}
 .r-zchlnj{right:0px;}
-.r-zckr8k{max-height:85%;}
 .r-zz5t5d{font-size:28px;}
 @-webkit-keyframes r-11cv4x{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
 @-webkit-keyframes r-1iq689l{0%{transform:translateY(0%);}100%{transform:translateY(100%);}}
@@ -387,5 +406,5 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 @keyframes r-1pzkwqh{0%{transform:translateY(100%);}100%{transform:translateY(0%);}}
 @keyframes r-imtty0{0%{opacity:0;}100%{opacity:1;}}
 @keyframes r-q67da2{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}
-@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><style id="expo-generated-fonts">@font-face{font-family:"ionicons";src:url("/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf");font-display:auto}</style><link rel="preload" href="/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf" as="font" crossorigin="" /><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"><!--$--><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-12vffkv r-184en5c"><div class="css-g5y9jx r-12vffkv" style="height:64px"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-12vffkv"><div class="css-g5y9jx r-13awgt0" style="border-bottom-color:rgba(216,216,216,1.00);pointer-events:auto;border-bottom-width:0px;box-shadow:none;background-color:rgba(253,251,247,1.00)"></div></div><div class="css-g5y9jx r-633pao" style="height:0px"></div><div class="css-g5y9jx r-1oszu61 r-13awgt0 r-18u37iz r-12vffkv"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1h0z5md r-12vffkv" style="margin-left:0px"><button aria-label="Go back" role="button" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73" style="margin-left:8px;padding-left:4px;padding-right:4px;padding-top:4px;padding-bottom:4px;transition-duration:0s" type="button"><div dir="auto" class="css-146c3p1 r-lrvibr" style="font-size:24px;color:rgba(28,25,23,1.00);font-family:ionicons;font-weight:normal;font-style:normal"></div></button></div><div class="css-g5y9jx r-1777fci r-12vffkv" style="max-width:-68px;margin-left:4px"><h1 dir="auto" aria-level="1" role="heading" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family:system-ui, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;font-weight:700;color:rgba(28,25,23,1.00);font-size:18px">Report</h1></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-17s6mgv r-12vffkv r-1iusvr4 r-16y2uox" style="margin-right:0px"></div></div></div></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color:rgba(247,243,238,1.00)"><!--$--><div class="css-g5y9jx r-1tlneu6 r-13awgt0"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx r-1tlneu6 r-13awgt0"><div class="css-g5y9jx r-d23pfw"><div dir="auto" class="css-146c3p1 r-16m6kwm r-evnaw r-1kfrs79 r-5oul0u">Report </div><div dir="auto" class="css-146c3p1 r-1pkuuzq r-ubezar r-1peese0">Why are you reporting this content?</div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Obscene or explicit content</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Harassment or bullying</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Hate speech</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Spam</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Inappropriate content</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Self-harm or dangerous content</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Not in OMOF style</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Other</div></div><div class="css-g5y9jx r-1ifxtd0"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-1kfrs79 r-15zivkp">Additional details (optional)</div><div class="css-g5y9jx r-1777fci r-bnwqim"><textarea placeholder="Tell us more..." autoCapitalize="sentences" autoComplete="on" autoCorrect="on" dir="auto" rows="3" spellCheck="true" virtualkeyboardpolicy="auto" aria-label="Additional details (optional)" class="css-11aywtz r-6taxm2 r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-16m6kwm r-ubezar r-1pl7oy7 r-w7s2jr r-3pj75a" style="--placeholderTextColor:#78716C"></textarea></div></div><button aria-label="Submit Report" role="button" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-1awozwy r-1777fci r-u2r1pr r-1q9bdsx r-1pl7oy7 r-w7s2jr r-cxgwc0" style="transition-duration:0s" type="button"><div dir="auto" class="css-146c3p1 r-b88u0q r-jwli3a r-ubezar">Submit Report</div></button></div></div></div><!--/$--></div></div></div></div><!--/$--></div></div><script src="/_expo/static/js/web/entry-287265d4a26298c90692929df8633bbf.js" defer></script>
+@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"><!--$--><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-12vffkv r-184en5c"><div class="css-g5y9jx r-12vffkv" style="height:64px"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-12vffkv"><div class="css-g5y9jx r-13awgt0" style="border-bottom-color:rgba(216,216,216,1.00);pointer-events:auto;border-bottom-width:0px;box-shadow:none;background-color:rgba(253,251,247,1.00)"></div></div><div class="css-g5y9jx r-633pao" style="height:0px"></div><div class="css-g5y9jx r-1oszu61 r-13awgt0 r-18u37iz r-12vffkv"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1h0z5md r-12vffkv" style="margin-left:0px"><button aria-label="Go back" role="button" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73" style="margin-left:8px;padding-left:4px;padding-right:4px;padding-top:4px;padding-bottom:4px;transition-duration:0s" type="button"><div dir="auto" class="css-146c3p1"></div></button></div><div class="css-g5y9jx r-1777fci r-12vffkv" style="max-width:-68px;margin-left:4px"><h1 dir="auto" aria-level="1" role="heading" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family:system-ui, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;font-weight:700;color:rgba(28,25,23,1.00);font-size:18px">Report</h1></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-17s6mgv r-12vffkv r-1iusvr4 r-16y2uox" style="margin-right:0px"></div></div></div></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color:rgba(247,243,238,1.00)"><!--$--><div class="css-g5y9jx r-1tlneu6 r-13awgt0"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx r-1tlneu6 r-13awgt0"><div class="css-g5y9jx r-d23pfw"><div dir="auto" class="css-146c3p1 r-16m6kwm r-evnaw r-1kfrs79 r-5oul0u">Report </div><div dir="auto" class="css-146c3p1 r-1pkuuzq r-ubezar r-1peese0">Why are you reporting this content?</div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Obscene or explicit content</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Harassment or bullying</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Hate speech</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Spam</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Inappropriate content</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Self-harm or dangerous content</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Not in OMOF style</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-wz1v28 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-5oul0u r-1pl7oy7 r-nsbfu8" style="transition-duration:0s"><div dir="auto" class="css-146c3p1 r-16m6kwm r-ubezar">Other</div></div><div class="css-g5y9jx r-1ifxtd0"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-1kfrs79 r-15zivkp">Additional details (optional)</div><div class="css-g5y9jx r-1777fci r-bnwqim"><textarea placeholder="Tell us more..." autoCapitalize="sentences" autoComplete="on" autoCorrect="on" dir="auto" rows="3" spellCheck="true" virtualkeyboardpolicy="auto" aria-label="Additional details (optional)" class="css-11aywtz r-6taxm2 r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-16m6kwm r-ubezar r-1pl7oy7 r-w7s2jr r-3pj75a" style="--placeholderTextColor:#78716C"></textarea></div></div><button aria-label="Submit Report" role="button" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-1awozwy r-1777fci r-u2r1pr r-1q9bdsx r-1pl7oy7 r-w7s2jr r-cxgwc0" style="transition-duration:0s" type="button"><div dir="auto" class="css-146c3p1 r-b88u0q r-jwli3a r-ubezar">Submit Report</div></button></div></div></div><!--/$--></div></div></div></div><!--/$--></div></div><script src="/_expo/static/js/web/entry-4542a2e2bd0ae597fd012eeeb5517a08.js" defer></script>
 </body></html>

@@ -10,8 +10,8 @@ import { clearUserPostQueries } from '@/lib/queryClient';
 import { todayKey } from '@/utils/streak';
 import { clearProfileCache, readProfileCache } from '@/utils/profileCache';
 
-const PROFILE_LOAD_TIMEOUT_MS = Platform.OS === 'web' ? 6_000 : 12_000;
-const PROGRESS_SYNC_DEFER_MS = Platform.OS === 'web' ? 12_000 : 4_000;
+const PROFILE_LOAD_TIMEOUT_MS = Platform.OS === 'web' ? 4_000 : 12_000;
+const PROGRESS_SYNC_DEFER_MS = Platform.OS === 'web' ? 15_000 : 4_000;
 const FOREGROUND_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 
 async function loadProfileWithTimeout(uid: string) {

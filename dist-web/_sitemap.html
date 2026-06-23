@@ -1,11 +1,37 @@
-<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style>
+<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><link rel="preconnect" href="https://omof-eed24.firebaseapp.com" crossorigin="anonymous"/><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin="anonymous"/><link rel="preconnect" href="https://www.googleapis.com" crossorigin="anonymous"/><link rel="dns-prefetch" href="https://omof-eed24.firebaseapp.com"/><link rel="dns-prefetch" href="https://firestore.googleapis.com"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style>
 body {
-  background-color: #fff;
+  background-color: #F7F3EE;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #1A1D1F;
   }
+}</style><style>
+#root:empty::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #F7F3EE;
+}
+@media (prefers-color-scheme: dark) {
+  #root:empty::before {
+    background: #1A1D1F;
+  }
+}
+#root:empty::after {
+  content: '';
+  position: fixed;
+  top: calc(50% - 28px);
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(192, 86, 33, 0.2);
+  border-top-color: #C05621;
+  border-radius: 50%;
+  animation: omof-boot-spin 0.9s linear infinite;
+}
+@keyframes omof-boot-spin {
+  to { transform: rotate(360deg); }
 }</style><style id="react-native-stylesheet">[stylesheet-group="0"]{}
 body{margin:0;}
 button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0;}
@@ -20,7 +46,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 [stylesheet-group="2"]{}
 .r-11mg6pl{border-bottom-color:rgba(255,255,255,1.00);border-left-color:rgba(255,255,255,1.00);border-right-color:rgba(255,255,255,1.00);border-top-color:rgba(255,255,255,1.00);}
 .r-13awgt0{flex:1;}
-.r-1867qdf{border-bottom-left-radius:16px;border-bottom-right-radius:16px;border-top-left-radius:16px;border-top-right-radius:16px;}
 .r-1awa8pu{border-bottom-color:rgba(101,119,134,1.00);border-left-color:rgba(101,119,134,1.00);border-right-color:rgba(101,119,134,1.00);border-top-color:rgba(101,119,134,1.00);}
 .r-1bq2mok{margin:3px;}
 .r-1d4xg89{border-bottom-color:rgba(170,184,194,1.00);border-left-color:rgba(170,184,194,1.00);border-right-color:rgba(170,184,194,1.00);border-top-color:rgba(170,184,194,1.00);}
@@ -200,7 +225,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-1kb76zh{margin-right:8px;}
 .r-1kfrs79{font-weight:600;}
 .r-1kihuf0{align-self:center;}
-.r-1l78y4q{color:rgba(120,113,108,1.00);}
 .r-1ld3bg{top:-4px;}
 .r-1ldzwu0{animation-timing-function:linear;}
 .r-1loqt21{cursor:pointer;}
@@ -233,7 +257,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-1s343s0{background-color:rgba(232,224,212,1.00);}
 .r-1ssbvtb{gap:12px;}
 .r-1sxrcry{background-size:auto;}
-.r-1tisrxv{z-index:999999;}
 .r-1tlneu6{background-color:rgba(247,243,238,1.00);}
 .r-1udbk01{text-overflow:ellipsis;}
 .r-1ui5ee8{font-size:32px;}
@@ -315,7 +338,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-gtdqiz{position:-webkit-sticky;position:sticky;}
 .r-h0d30l{height:28px;}
 .r-h7ip80{color:rgba(180,83,9,1.00);}
-.r-hbpseb{line-height:22px;}
 .r-hxflta{padding-right:env(safe-area-inset-right);}
 .r-icoktb{opacity:0.5;}
 .r-icxjq6{opacity:0.85;}
@@ -368,13 +390,10 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-wz1v28{background-color:rgba(253,251,247,1.00);}
 .r-x11e5r{font-family:SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
 .r-x3cy2q{background-size:100% 100%;}
-.r-xd6kpl{padding-bottom:8px;}
-.r-xl3lkw{background-color:rgba(0,0,0,0.45);}
 .r-xx3c9p{animation-name:r-imtty0;}
 .r-y7v2we{background-color:rgba(32,36,37,1.00);}
 .r-z80fyv{height:20px;}
 .r-zchlnj{right:0px;}
-.r-zckr8k{max-height:85%;}
 .r-zz5t5d{font-size:28px;}
 @-webkit-keyframes r-11cv4x{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
 @-webkit-keyframes r-1iq689l{0%{transform:translateY(0%);}100%{transform:translateY(100%);}}
@@ -387,5 +406,5 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 @keyframes r-1pzkwqh{0%{transform:translateY(100%);}100%{transform:translateY(0%);}}
 @keyframes r-imtty0{0%{opacity:0;}100%{opacity:1;}}
 @keyframes r-q67da2{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}
-@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"></div></div><script src="/_expo/static/js/web/entry-287265d4a26298c90692929df8633bbf.js" defer></script>
+@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"></div></div><script src="/_expo/static/js/web/entry-4542a2e2bd0ae597fd012eeeb5517a08.js" defer></script>
 </body></html>

@@ -1,11 +1,37 @@
-<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style>
+<!DOCTYPE html><html  lang="en"><head><title data-rh="true"></title><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><link rel="preconnect" href="https://omof-eed24.firebaseapp.com" crossorigin="anonymous"/><link rel="preconnect" href="https://firestore.googleapis.com" crossorigin="anonymous"/><link rel="preconnect" href="https://www.googleapis.com" crossorigin="anonymous"/><link rel="dns-prefetch" href="https://omof-eed24.firebaseapp.com"/><link rel="dns-prefetch" href="https://firestore.googleapis.com"/><style id="expo-reset">#root,body,html{height:100%}body{overflow:hidden}#root{display:flex}</style><style>
 body {
-  background-color: #fff;
+  background-color: #F7F3EE;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #1A1D1F;
   }
+}</style><style>
+#root:empty::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #F7F3EE;
+}
+@media (prefers-color-scheme: dark) {
+  #root:empty::before {
+    background: #1A1D1F;
+  }
+}
+#root:empty::after {
+  content: '';
+  position: fixed;
+  top: calc(50% - 28px);
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(192, 86, 33, 0.2);
+  border-top-color: #C05621;
+  border-radius: 50%;
+  animation: omof-boot-spin 0.9s linear infinite;
+}
+@keyframes omof-boot-spin {
+  to { transform: rotate(360deg); }
 }</style><style id="react-native-stylesheet">[stylesheet-group="0"]{}
 body{margin:0;}
 button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0;}
@@ -238,7 +264,6 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-1s343s0{background-color:rgba(232,224,212,1.00);}
 .r-1ssbvtb{gap:12px;}
 .r-1sxrcry{background-size:auto;}
-.r-1tisrxv{z-index:999999;}
 .r-1tlneu6{background-color:rgba(247,243,238,1.00);}
 .r-1udbk01{text-overflow:ellipsis;}
 .r-1ui5ee8{font-size:32px;}
@@ -378,13 +403,10 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 .r-wz1v28{background-color:rgba(253,251,247,1.00);}
 .r-x11e5r{font-family:SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
 .r-x3cy2q{background-size:100% 100%;}
-.r-xd6kpl{padding-bottom:8px;}
-.r-xl3lkw{background-color:rgba(0,0,0,0.45);}
 .r-xx3c9p{animation-name:r-imtty0;}
 .r-y7v2we{background-color:rgba(32,36,37,1.00);}
 .r-z80fyv{height:20px;}
 .r-zchlnj{right:0px;}
-.r-zckr8k{max-height:85%;}
 .r-zd98yo{margin-bottom:32px;}
 .r-znpkjh{text-transform:lowercase;}
 .r-zz5t5d{font-size:28px;}
@@ -399,5 +421,5 @@ input::-webkit-search-cancel-button,input::-webkit-search-decoration,input::-web
 @keyframes r-1pzkwqh{0%{transform:translateY(100%);}100%{transform:translateY(0%);}}
 @keyframes r-imtty0{0%{opacity:0;}100%{opacity:1;}}
 @keyframes r-q67da2{0%{transform:translateX(-100%);}100%{transform:translateX(400%);}}
-@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><style id="expo-generated-fonts">@font-face{font-family:"ionicons";src:url("/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf");font-display:auto}</style><link rel="preload" href="/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf" as="font" crossorigin="" /><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"><!--$--><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color:rgba(247,243,238,1.00)"><!--$--><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color:rgba(247,243,238,1.00)"><!--$--><div class="css-g5y9jx r-1tlneu6 r-13awgt0"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-16y2uox r-1777fci r-d23pfw"><div class="css-g5y9jx r-1awozwy r-zd98yo"><h1 dir="auto" role="heading" class="css-146c3p1 r-16m6kwm r-nyc15k r-1vr29t4 r-89umd1">OMOF</h1><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-rjixqe r-knv0ih r-cediw7 r-q4m81j">Because nobody&#x27;s life is just the highlights.</div></div><div class="css-g5y9jx r-wz1v28 r-mafp98 r-1867qdf r-rs99b7 r-d23pfw"><div class="css-g5y9jx r-1cmwbt1"><div class="css-g5y9jx r-1awozwy r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-peo1c r-1udh08x r-cnw61z r-13qz1uu r-105ug2t"><div style="height:40px"></div></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-1cmwbt1 r-15zivkp r-knv0ih"><div class="css-g5y9jx r-1famyeq r-13awgt0 r-109y4c4"></div><div dir="auto" class="css-146c3p1 r-1l78y4q r-1b43r93 r-znpkjh">or</div><div class="css-g5y9jx r-1famyeq r-13awgt0 r-109y4c4"></div></div></div><div class="css-g5y9jx r-1ifxtd0"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-1kfrs79 r-15zivkp">Email</div><div class="css-g5y9jx r-1777fci r-bnwqim"><input placeholder="you@example.com" autoCapitalize="none" autoComplete="email" autoCorrect="on" dir="auto" rows="1" spellCheck="true" type="email" virtualkeyboardpolicy="auto" aria-label="Email" class="css-11aywtz r-6taxm2 r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-16m6kwm r-ubezar r-1pl7oy7 r-w7s2jr r-3pj75a" style="--placeholderTextColor:#78716C" value=""/></div></div><div class="css-g5y9jx r-1ifxtd0"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-1kfrs79 r-15zivkp">Password</div><div class="css-g5y9jx r-1777fci r-bnwqim"><input placeholder="Your password" autoComplete="password" autoCapitalize="sentences" autoCorrect="on" dir="auto" rows="1" spellCheck="true" type="password" virtualkeyboardpolicy="auto" aria-label="Password" class="css-11aywtz r-6taxm2 r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-16m6kwm r-ubezar r-1pl7oy7 r-w7s2jr r-3pj75a" style="--placeholderTextColor:#78716C" value=""/></div></div><button aria-label="Sign In" role="button" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-1awozwy r-1777fci r-u2r1pr r-1q9bdsx r-1pl7oy7 r-w7s2jr r-cxgwc0" style="transition-duration:0s" type="button"><div dir="auto" class="css-146c3p1 r-b88u0q r-jwli3a r-ubezar">Sign In</div></button><a href="/forgot-password" dir="auto" role="link" class="css-146c3p1 r-1kihuf0 r-1wzrnnt r-1loqt21"><span class="css-1jxf684 r-h7ip80 r-ubezar r-b88u0q r-1ddef8g">Forgot password?</span></a></div><div class="css-g5y9jx r-18u37iz r-1777fci r-1v1z2uz"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-ubezar">Don&#x27;t have an account? </div><a href="/signup" dir="auto" role="link" class="css-146c3p1 r-1loqt21"><span class="css-1jxf684 r-h7ip80 r-ubezar r-b88u0q r-1ddef8g">Sign up</span></a></div></div></div></div><!--/$--></div></div></div></div><!--/$--></div></div></div></div><!--/$--></div></div><script src="/_expo/static/js/web/entry-287265d4a26298c90692929df8633bbf.js" defer></script>
+@keyframes r-t2lo5v{0%{opacity:1;}100%{opacity:0;}}</style><script type="module">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script><link rel="icon" href="/favicon.ico" /></head><body><div id="root"><div class="css-g5y9jx r-13awgt0"><!--$--><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color:rgba(247,243,238,1.00)"><!--$--><div style="position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;visibility:hidden"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color:rgba(242,242,242,1.00);display:flex"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color:rgba(247,243,238,1.00)"><!--$--><div class="css-g5y9jx r-1tlneu6 r-13awgt0"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-16y2uox r-1777fci r-d23pfw"><div class="css-g5y9jx r-1awozwy r-zd98yo"><h1 dir="auto" role="heading" class="css-146c3p1 r-16m6kwm r-nyc15k r-1vr29t4 r-89umd1">OMOF</h1><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-rjixqe r-knv0ih r-cediw7 r-q4m81j">Because nobody&#x27;s life is just the highlights.</div></div><div class="css-g5y9jx r-wz1v28 r-mafp98 r-1867qdf r-rs99b7 r-d23pfw"><div class="css-g5y9jx r-1cmwbt1"><div class="css-g5y9jx r-1awozwy r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-1777fci r-peo1c r-1udh08x r-cnw61z r-13qz1uu r-105ug2t"><div style="height:40px"></div></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-1cmwbt1 r-15zivkp r-knv0ih"><div class="css-g5y9jx r-1famyeq r-13awgt0 r-109y4c4"></div><div dir="auto" class="css-146c3p1 r-1l78y4q r-1b43r93 r-znpkjh">or</div><div class="css-g5y9jx r-1famyeq r-13awgt0 r-109y4c4"></div></div></div><div class="css-g5y9jx r-1ifxtd0"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-1kfrs79 r-15zivkp">Email</div><div class="css-g5y9jx r-1777fci r-bnwqim"><input placeholder="you@example.com" autoCapitalize="none" autoComplete="email" autoCorrect="on" dir="auto" rows="1" spellCheck="true" type="email" virtualkeyboardpolicy="auto" aria-label="Email" class="css-11aywtz r-6taxm2 r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-16m6kwm r-ubezar r-1pl7oy7 r-w7s2jr r-3pj75a" style="--placeholderTextColor:#78716C" value=""/></div></div><div class="css-g5y9jx r-1ifxtd0"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-1b43r93 r-1kfrs79 r-15zivkp">Password</div><div class="css-g5y9jx r-1777fci r-bnwqim"><input placeholder="Your password" autoComplete="password" autoCapitalize="sentences" autoCorrect="on" dir="auto" rows="1" spellCheck="true" type="password" virtualkeyboardpolicy="auto" aria-label="Password" class="css-11aywtz r-6taxm2 r-1s343s0 r-mafp98 r-1q9bdsx r-rs99b7 r-16m6kwm r-ubezar r-1pl7oy7 r-w7s2jr r-3pj75a" style="--placeholderTextColor:#78716C" value=""/></div></div><button aria-label="Sign In" role="button" class="css-g5y9jx r-1i6wzkk r-lrvibr r-1loqt21 r-1otgn73 r-1awozwy r-1777fci r-u2r1pr r-1q9bdsx r-1pl7oy7 r-w7s2jr r-cxgwc0" style="transition-duration:0s" type="button"><div dir="auto" class="css-146c3p1 r-b88u0q r-jwli3a r-ubezar">Sign In</div></button><a href="/forgot-password" dir="auto" role="link" class="css-146c3p1 r-1kihuf0 r-1wzrnnt r-1loqt21"><span class="css-1jxf684 r-h7ip80 r-ubezar r-b88u0q r-1ddef8g">Forgot password?</span></a></div><div class="css-g5y9jx r-18u37iz r-1777fci r-1v1z2uz"><div dir="auto" class="css-146c3p1 r-1pkuuzq r-ubezar">Don&#x27;t have an account? </div><a href="/signup" dir="auto" role="link" class="css-146c3p1 r-1loqt21"><span class="css-1jxf684 r-h7ip80 r-ubezar r-b88u0q r-1ddef8g">Sign up</span></a></div></div></div></div><!--/$--></div></div></div></div><!--/$--></div></div></div></div><!--/$--></div></div><script src="/_expo/static/js/web/entry-4542a2e2bd0ae597fd012eeeb5517a08.js" defer></script>
 </body></html>

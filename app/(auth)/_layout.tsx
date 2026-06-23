@@ -1,12 +1,14 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { StackBackButton } from '@/components/navigation/StackBackButton';
+import { AuthProviders } from '@/components/auth/AuthProviders';
 
 export default function AuthLayout() {
   const { colors } = useTheme();
 
   return (
-    <Stack
+    <AuthProviders>
+      <Stack
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
@@ -21,5 +23,6 @@ export default function AuthLayout() {
       <Stack.Screen name="forgot-password" options={{ title: 'Reset Password' }} />
       <Stack.Screen name="verify-email" options={{ title: 'Verify Email', headerShown: false }} />
     </Stack>
+    </AuthProviders>
   );
 }

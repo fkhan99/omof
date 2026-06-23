@@ -103,6 +103,39 @@ function buildFontHeadMarkup() {
   return { style, preload, combined: `${preload}${style}` };
 }
 
+function injectPerformanceHints() {
+  let updated = 0;
+
+  function walk(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const filePath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(filePath);
+        continue;
+      }
+      if (!entry.name.endsWith('.html')) continue;
+
+      let html = readFileSync(filePath, 'utf8');
+      const entryMatch = html.match(/<script src="(\/_expo\/static\/js\/web\/entry-[^"]+\.js)" defer><\/script>/);
+      if (!entryMatch) continue;
+
+      const entrySrc = entryMatch[1];
+      const preload = `<link rel="modulepreload" href="${entrySrc}" crossorigin="anonymous" />`;
+      if (html.includes(`href="${entrySrc}"`)) continue;
+
+      html = html.replace(
+        entryMatch[0],
+        `${preload}<script src="${entrySrc}" defer crossorigin="anonymous"></script>`,
+      );
+      writeFileSync(filePath, html);
+      updated += 1;
+    }
+  }
+
+  walk(target);
+  return updated;
+}
+
 function injectFontMarkupIntoHtmlFiles() {
   const { style, preload, combined } = buildFontHeadMarkup();
   let updated = 0;
@@ -155,6 +188,7 @@ const { copied, missing } = syncHashedAssets(assetPaths);
 const ioniconsAssetPath = findIoniconsAssetPath(source);
 const publishedWebFont = ioniconsAssetPath ? publishWebFont(ioniconsAssetPath) : false;
 const htmlFilesUpdated = publishedWebFont ? injectFontMarkupIntoHtmlFiles() : 0;
+const performanceHintsUpdated = injectPerformanceHints();
 
 // Mirror key routes at the hosting root so direct paths like /onboarding resolve
 // without relying solely on the SPA catch-all rewrite.
@@ -184,3 +218,4 @@ if (publishedWebFont) {
 } else {
   console.warn('Could not publish Ionicons web font');
 }
+console.log(`Added modulepreload hints to ${performanceHintsUpdated} HTML files`);

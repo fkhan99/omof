@@ -1,21 +1,15 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '@/components/providers/AppProviders';
+import { DeferredAppServices } from '@/components/providers/DeferredAppServices';
 import { StackBackButton } from '@/components/navigation/StackBackButton';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useEmailActionHandler } from '@/hooks/useEmailActionHandler';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useFollowRelationshipSync } from '@/hooks/useFollowRelationshipSync';
-import { useActivitySync } from '@/hooks/useActivitySync';
 import { useTheme } from '@/hooks/useTheme';
-import { WelcomeModalHost } from '@/components/onboarding/WelcomeModalHost';
 
 function RootLayoutNav() {
   useAuthListener();
   useEmailActionHandler();
-  usePushNotifications();
-  useFollowRelationshipSync();
-  useActivitySync();
   const { colors, isDark } = useTheme();
 
   return (
@@ -56,7 +50,6 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
       </Stack>
-      <WelcomeModalHost />
     </>
   );
 }
@@ -64,7 +57,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AppProviders>
-      <RootLayoutNav />
+      <DeferredAppServices>
+        <RootLayoutNav />
+      </DeferredAppServices>
     </AppProviders>
   );
 }

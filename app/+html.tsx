@@ -12,6 +12,11 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <link rel="preconnect" href="https://omof-eed24.firebaseapp.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://firestore.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://omof-eed24.firebaseapp.com" />
+        <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
@@ -21,6 +26,7 @@ export default function Root({ children }: { children: ReactNode }) {
 
         {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
+        <style dangerouslySetInnerHTML={{ __html: bootSplash }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
       <body>{children}</body>
@@ -30,10 +36,38 @@ export default function Root({ children }: { children: ReactNode }) {
 
 const responsiveBackground = `
 body {
-  background-color: #fff;
+  background-color: #F7F3EE;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #1A1D1F;
   }
+}`;
+
+const bootSplash = `
+#root:empty::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #F7F3EE;
+}
+@media (prefers-color-scheme: dark) {
+  #root:empty::before {
+    background: #1A1D1F;
+  }
+}
+#root:empty::after {
+  content: '';
+  position: fixed;
+  top: calc(50% - 28px);
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(192, 86, 33, 0.2);
+  border-top-color: #C05621;
+  border-radius: 50%;
+  animation: omof-boot-spin 0.9s linear infinite;
+}
+@keyframes omof-boot-spin {
+  to { transform: rotate(360deg); }
 }`;
