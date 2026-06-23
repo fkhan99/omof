@@ -3,8 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { ReactNode } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/hooks/useTheme';
+import { readGoogleWebClientId } from '@/services/firebase/socialAuth';
 
 function FontLoadingGate({ children }: { children: ReactNode }) {
   const { colors } = useTheme();
@@ -33,9 +35,17 @@ function FontLoadingGate({ children }: { children: ReactNode }) {
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  return (
+  const googleClientId = Platform.OS === 'web' ? readGoogleWebClientId() : '';
+
+  const content = (
     <QueryClientProvider client={queryClient}>
       <FontLoadingGate>{children}</FontLoadingGate>
     </QueryClientProvider>
   );
+
+  if (googleClientId) {
+    return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
+  }
+
+  return content;
 }

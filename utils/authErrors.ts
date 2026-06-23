@@ -26,7 +26,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/cancelled-popup-request': 'Sign-in was cancelled.',
   'auth/popup-blocked': 'Sign-in popup was blocked. Allow popups for this site and try again.',
   'auth/argument-error':
-    'This sign-in method is not set up yet. Try Google or email/password instead.',
+    'Google sign-in could not start. Make sure https://omof.net is listed under Authorized JavaScript origins in Google Cloud Console.',
   'auth/operation-not-allowed': 'This sign-in method is not enabled. Contact support.',
   'auth/requires-recent-login':
     'For security, verify your password and try again.',

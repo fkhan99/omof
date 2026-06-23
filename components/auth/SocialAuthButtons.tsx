@@ -1,16 +1,18 @@
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { User as FirebaseUser } from 'firebase/auth';
 import { Button } from '@/components/ui/Button';
-import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useAuthStore } from '@/store/authStore';
 import {
   isAppleSignInAvailable,
   isGoogleSignInConfigured,
   requiresEmailVerification,
-  signInWithSocialProvider,
-  SocialAuthProvider,
+  signInWithApple,
+  signInWithGoogleIdToken,
 } from '@/services/firebase/socialAuth';
 import { loadAuthUserProfile } from '@/services/firebase/auth';
 import { SignupCompliance } from '@/store/authStore';
@@ -25,7 +27,8 @@ export function SocialAuthButtons({ mode, disabled = false, compliance = null }:
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { setPendingSignupCompliance } = useAuthStore();
-  const [loadingProvider, setLoadingProvider] = useState<SocialAuthProvider | null>(null);
+  const [loadingApple, setLoadingApple] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const showGoogle = isGoogleSignInConfigured();
@@ -42,36 +45,69 @@ export function SocialAuthButtons({ mode, disabled = false, compliance = null }:
     return false;
   };
 
-  const handlePress = async (provider: SocialAuthProvider) => {
-    if (disabled || loadingProvider) return;
+  const finishSignIn = async (user: FirebaseUser) => {
+    if (requiresEmailVerification(user)) {
+      router.replace('/(auth)/verify-email');
+      return;
+    }
+
+    const profile = await loadAuthUserProfile(user.uid);
+    router.replace(profile ? '/' : '/');
+  };
+
+  const handleGoogleSuccess = async (userOrToken: FirebaseUser | string) => {
+    if (disabled || loadingGoogle || loadingApple) return;
     if (!ensureSignupCompliance()) return;
 
     setError(null);
-    setLoadingProvider(provider);
+    setLoadingGoogle(true);
 
     try {
       if (mode === 'signup' && compliance) {
         setPendingSignupCompliance(compliance);
       }
 
-      const user = await signInWithSocialProvider(provider);
+      const user =
+        typeof userOrToken === 'string'
+          ? await signInWithGoogleIdToken(userOrToken)
+          : userOrToken;
 
-      if (requiresEmailVerification(user)) {
-        router.replace('/(auth)/verify-email');
-        return;
-      }
-
-      const profile = await loadAuthUserProfile(user.uid);
-      router.replace(profile ? '/' : '/');
+      await finishSignIn(user);
     } catch (err) {
       if (mode === 'signup') {
         setPendingSignupCompliance(null);
       }
-      setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.');
+      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
     } finally {
-      setLoadingProvider(null);
+      setLoadingGoogle(false);
     }
   };
+
+  const handleApplePress = async () => {
+    if (disabled || loadingGoogle || loadingApple) return;
+    if (!ensureSignupCompliance()) return;
+
+    setError(null);
+    setLoadingApple(true);
+
+    try {
+      if (mode === 'signup' && compliance) {
+        setPendingSignupCompliance(compliance);
+      }
+
+      const user = await signInWithApple();
+      await finishSignIn(user);
+    } catch (err) {
+      if (mode === 'signup') {
+        setPendingSignupCompliance(null);
+      }
+      setError(err instanceof Error ? err.message : 'Apple sign-in failed. Please try again.');
+    } finally {
+      setLoadingApple(false);
+    }
+  };
+
+  const isBusy = disabled || loadingGoogle || loadingApple;
 
   return (
     <View style={styles.container}>
@@ -82,32 +118,38 @@ export function SocialAuthButtons({ mode, disabled = false, compliance = null }:
       </View>
 
       {showGoogle ? (
-        <Button
-          title="Continue with Google"
-          variant="secondary"
-          onPress={() => handlePress('google')}
-          loading={loadingProvider === 'google'}
-          disabled={disabled || loadingProvider !== null}
-          style={styles.button}
-        />
+        Platform.OS === 'web' ? (
+          <GoogleSignInButton
+            disabled={isBusy}
+            onSuccess={(idToken) => {
+              void handleGoogleSuccess(idToken);
+            }}
+            onError={setError}
+          />
+        ) : (
+          <GoogleSignInButton
+            disabled={isBusy}
+            loading={loadingGoogle}
+            onSuccess={(user) => {
+              void handleGoogleSuccess(user);
+            }}
+            onError={setError}
+          />
+        )
       ) : null}
 
       {showApple ? (
         <Button
           title="Continue with Apple"
           variant="secondary"
-          onPress={() => handlePress('apple')}
-          loading={loadingProvider === 'apple'}
-          disabled={disabled || loadingProvider !== null}
+          onPress={handleApplePress}
+          loading={loadingApple}
+          disabled={isBusy}
           style={styles.button}
         />
       ) : null}
 
       {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
-
-      {Platform.OS === 'android' && !showGoogle ? (
-        <Text style={styles.hint}>Google sign-in requires EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in .env.</Text>
-      ) : null}
     </View>
   );
 }
@@ -139,11 +181,6 @@ function createStyles(colors: ThemeColors) {
     error: {
       color: colors.danger,
       fontSize: FONT_SIZES.sm,
-      textAlign: 'center',
-    },
-    hint: {
-      color: colors.textMuted,
-      fontSize: FONT_SIZES.xs,
       textAlign: 'center',
     },
   });

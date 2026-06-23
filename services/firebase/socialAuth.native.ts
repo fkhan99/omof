@@ -1,0 +1,165 @@
+import { Platform } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import {
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithCredential,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { getFirebaseAuth } from './config';
+import { getFirebaseAuthErrorMessage } from '@/utils/authErrors';
+import {
+  readGoogleWebClientId,
+  requiresEmailVerification,
+  SocialAuthProvider,
+} from './socialAuth.shared';
+
+export { requiresEmailVerification, readGoogleWebClientId };
+export type { SocialAuthProvider };
+
+let googleSignInConfigured = false;
+
+function configureNativeGoogleSignIn(): void {
+  if (googleSignInConfigured) return;
+
+  const webClientId = readGoogleWebClientId();
+  if (!webClientId) {
+    throw new Error(
+      'Google sign-in is not configured. Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to .env.',
+    );
+  }
+
+  GoogleSignin.configure({
+    webClientId,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || undefined,
+    offlineAccess: false,
+  });
+  googleSignInConfigured = true;
+}
+
+async function signInWithGoogleNative(): Promise<FirebaseUser> {
+  configureNativeGoogleSignIn();
+  const auth = getFirebaseAuth();
+
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  const response = await GoogleSignin.signIn();
+
+  if (response.type === 'cancelled') {
+    throw new Error('Google sign-in was cancelled.');
+  }
+
+  const idToken = response.data.idToken;
+  if (!idToken) {
+    throw new Error('Google sign-in did not return an ID token.');
+  }
+
+  const credential = GoogleAuthProvider.credential(idToken);
+  const result = await signInWithCredential(auth, credential);
+  return result.user;
+}
+
+async function createAppleNonce(): Promise<{ rawNonce: string; hashedNonce: string }> {
+  const rawNonce = Crypto.randomUUID();
+  const hashedNonce = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    rawNonce,
+  );
+  return { rawNonce, hashedNonce };
+}
+
+async function signInWithAppleNative(): Promise<FirebaseUser> {
+  const available = await AppleAuthentication.isAvailableAsync();
+  if (!available) {
+    throw new Error('Sign in with Apple is not available on this device.');
+  }
+
+  const { rawNonce, hashedNonce } = await createAppleNonce();
+  const appleCredential = await AppleAuthentication.signInAsync({
+    requestedScopes: [
+      AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+      AppleAuthentication.AppleAuthenticationScope.EMAIL,
+    ],
+    nonce: hashedNonce,
+  });
+
+  if (!appleCredential.identityToken) {
+    throw new Error('Apple sign-in did not return an identity token.');
+  }
+
+  const auth = getFirebaseAuth();
+  const provider = new OAuthProvider('apple.com');
+  const credential = provider.credential({
+    idToken: appleCredential.identityToken,
+    rawNonce,
+  });
+
+  const result = await signInWithCredential(auth, credential);
+  return result.user;
+}
+
+export function isGoogleSignInConfigured(): boolean {
+  return Boolean(readGoogleWebClientId());
+}
+
+export function isAppleSignInAvailable(): boolean {
+  return Platform.OS === 'ios';
+}
+
+export async function signInWithGoogle(): Promise<FirebaseUser> {
+  try {
+    return await signInWithGoogleNative();
+  } catch (error) {
+    if (isUserCancelledError(error)) {
+      throw new Error('Google sign-in was cancelled.');
+    }
+    throw new Error(getFirebaseAuthErrorMessage(error, 'Google sign-in failed. Please try again.'));
+  }
+}
+
+export async function signInWithApple(): Promise<FirebaseUser> {
+  try {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Sign in with Apple is only available on iOS.');
+    }
+    return await signInWithAppleNative();
+  } catch (error) {
+    if (isUserCancelledError(error)) {
+      throw new Error('Apple sign-in was cancelled.');
+    }
+    throw new Error(getFirebaseAuthErrorMessage(error, 'Apple sign-in failed. Please try again.'));
+  }
+}
+
+function isUserCancelledError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+
+  const code =
+    'code' in error && typeof (error as { code?: unknown }).code === 'string'
+      ? (error as { code: string }).code
+      : null;
+
+  if (code === 'ERR_REQUEST_CANCELED') {
+    return true;
+  }
+
+  if ('message' in error && typeof (error as { message?: unknown }).message === 'string') {
+    const message = (error as { message: string }).message.toLowerCase();
+    if (message.includes('cancel') || message.includes('closed')) return true;
+  }
+
+  return false;
+}
+
+export async function signInWithSocialProvider(provider: SocialAuthProvider): Promise<FirebaseUser> {
+  if (provider === 'google') return signInWithGoogle();
+  return signInWithApple();
+}
+
+export async function signInWithGoogleIdToken(idToken: string): Promise<FirebaseUser> {
+  const auth = getFirebaseAuth();
+  const credential = GoogleAuthProvider.credential(idToken);
+  const result = await signInWithCredential(auth, credential);
+  return result.user;
+}
