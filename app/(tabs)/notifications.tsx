@@ -128,9 +128,9 @@ export default function ActivityScreen() {
     }, [authUid, followRequests.length, loadActivity, notifications.length, queryClient, syncActivityBadge]),
   );
 
-  const markReadMutation = useMutation({
-    mutationFn: markNotificationRead,
-    onSuccess: (_data, notification) => {
+  const handleMarkRead = useCallback(
+    async (notification: Notification) => {
+      await markNotificationRead(notification);
       const next = useNotificationStore.getState().activityItems.map((item) =>
         getActivityReadKey(item) === getActivityReadKey(notification)
           ? { ...item, read: true }
@@ -140,67 +140,83 @@ export default function ActivityScreen() {
       syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid, followRequests.length));
       notifyReadKeysChanged();
     },
-  });
+    [
+      authUid,
+      followRequests.length,
+      notifyReadKeysChanged,
+      queryClient,
+      setActivityItems,
+      syncActivityBadge,
+    ],
+  );
 
-  const acceptMutation = useMutation({
-    mutationFn: (requesterId: string) => acceptFollowRequest(authUid!, requesterId),
-    onMutate: (requesterId) => {
+  const handleAcceptRequest = useCallback(
+    async (requesterId: string) => {
+      if (!authUid) return;
       setActiveRequestId(requesterId);
+      const previousRequests =
+        queryClient.getQueryData<FollowRequestWithRequester[]>(['followRequests', authUid]) ?? [];
       queryClient.setQueryData<FollowRequestWithRequester[]>(
         ['followRequests', authUid],
         (old) => old?.filter((item) => item.request.requesterId !== requesterId) ?? [],
       );
-    },
-    onSuccess: (_data, requesterId) => {
-      adjustFollowCountsOptimistically(queryClient, requesterId, authUid!, {
-        followingDelta: 1,
-        followerDelta: 1,
-      });
-      syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid));
-    },
-    onSettled: () => {
-      setActiveRequestId(null);
-      queryClient.invalidateQueries({ queryKey: ['isFollowing'] });
-      queryClient.invalidateQueries({ queryKey: ['followRequested'] });
-      queryClient.invalidateQueries({ queryKey: ['followRequestedIds'] });
-      queryClient.invalidateQueries({ queryKey: ['followingIds'] });
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] });
-    },
-    onError: (err) => {
-      queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] });
-      Alert.alert(
-        'Could not confirm request',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
-    },
-  });
 
-  const rejectMutation = useMutation({
-    mutationFn: (requesterId: string) => rejectFollowRequest(authUid!, requesterId),
-    onMutate: (requesterId) => {
+      try {
+        await acceptFollowRequest(authUid, requesterId);
+        adjustFollowCountsOptimistically(queryClient, requesterId, authUid, {
+          followingDelta: 1,
+          followerDelta: 1,
+        });
+        syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid));
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['isFollowing'] }),
+          queryClient.invalidateQueries({ queryKey: ['followRequested'] }),
+          queryClient.invalidateQueries({ queryKey: ['followRequestedIds'] }),
+          queryClient.invalidateQueries({ queryKey: ['followingIds'] }),
+          queryClient.invalidateQueries({ queryKey: ['feed'] }),
+          queryClient.invalidateQueries({ queryKey: ['user'] }),
+          queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] }),
+        ]);
+      } catch (err) {
+        queryClient.setQueryData(['followRequests', authUid], previousRequests);
+        Alert.alert(
+          'Could not confirm request',
+          err instanceof Error ? err.message : 'Please try again.',
+        );
+      } finally {
+        setActiveRequestId(null);
+      }
+    },
+    [authUid, queryClient, syncActivityBadge],
+  );
+
+  const handleRejectRequest = useCallback(
+    async (requesterId: string) => {
+      if (!authUid) return;
       setActiveRequestId(requesterId);
+      const previousRequests =
+        queryClient.getQueryData<FollowRequestWithRequester[]>(['followRequests', authUid]) ?? [];
       queryClient.setQueryData<FollowRequestWithRequester[]>(
         ['followRequests', authUid],
         (old) => old?.filter((item) => item.request.requesterId !== requesterId) ?? [],
       );
+
+      try {
+        await rejectFollowRequest(authUid, requesterId);
+        syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid));
+        await queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] });
+      } catch (err) {
+        queryClient.setQueryData(['followRequests', authUid], previousRequests);
+        Alert.alert(
+          'Could not decline request',
+          err instanceof Error ? err.message : 'Please try again.',
+        );
+      } finally {
+        setActiveRequestId(null);
+      }
     },
-    onSuccess: () => {
-      syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid));
-    },
-    onError: (err) => {
-      queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] });
-      Alert.alert(
-        'Could not decline request',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
-    },
-    onSettled: () => {
-      setActiveRequestId(null);
-      queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] });
-    },
-  });
+    [authUid, queryClient, syncActivityBadge],
+  );
 
   const markAllRead = useCallback(async () => {
     if (!authUid || markingAllRead) return;
@@ -236,7 +252,7 @@ export default function ActivityScreen() {
 
   const handlePress = async (notification: Notification) => {
     if (!notification.read) {
-      await markReadMutation.mutateAsync(notification);
+      await handleMarkRead(notification);
     }
 
     if (
@@ -299,8 +315,8 @@ export default function ActivityScreen() {
                   requesterUsername={item.requesterUsername}
                   requesterPhotoURL={item.requesterPhotoURL}
                   loading={activeRequestId === item.request.requesterId}
-                  onAccept={() => acceptMutation.mutate(item.request.requesterId)}
-                  onReject={() => rejectMutation.mutate(item.request.requesterId)}
+                  onAccept={() => void handleAcceptRequest(item.request.requesterId)}
+                  onReject={() => void handleRejectRequest(item.request.requesterId)}
                 />
               ))}
             </View>

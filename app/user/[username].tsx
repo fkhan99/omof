@@ -116,33 +116,37 @@ export default function UserProfileScreen() {
 
   const { connectBack: followUserAction, isConnectBackPending } = useConnectBack(authUid);
 
-  const unfollowMutation = useMutation({
-    mutationFn: () => unfollowUser(authUid!, user!.id),
-    onMutate: () => {
-      setShowFollowMenu(false);
-      const wasFollowing = following;
-      setFollowRelationshipCache(queryClient, authUid!, user!.id, {
-        following: false,
-        requested: false,
+  const handleUnfollow = async () => {
+    if (!authUid || !user) return;
+    setShowFollowMenu(false);
+    const wasFollowing = following;
+    setFollowRelationshipCache(queryClient, authUid, user.id, {
+      following: false,
+      requested: false,
+    });
+    if (wasFollowing) {
+      adjustFollowCountsOptimistically(queryClient, authUid, user.id, {
+        followingDelta: -1,
+        followerDelta: -1,
       });
-      if (wasFollowing) {
-        adjustFollowCountsOptimistically(queryClient, authUid!, user!.id, {
-          followingDelta: -1,
-          followerDelta: -1,
-        });
-      }
-    },
-    onSuccess: () => {
-      invalidateFollowSideEffects(queryClient, authUid, user?.id);
-    },
-    onError: (err) => {
-      invalidateFollowQueries(queryClient, authUid, user?.id);
+    }
+
+    try {
+      await unfollowUser(authUid, user.id);
+      invalidateFollowSideEffects(queryClient, authUid, user.id);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['isFollowing', authUid, user.id] }),
+        queryClient.invalidateQueries({ queryKey: ['followRequestedIds', authUid] }),
+        queryClient.invalidateQueries({ queryKey: ['followsMe', user.id, authUid] }),
+      ]);
+    } catch (err) {
+      invalidateFollowQueries(queryClient, authUid, user.id);
       Alert.alert(
         'Could not unfollow',
         err instanceof Error ? err.message : 'Please try again.',
       );
-    },
-  });
+    }
+  };
 
   const blockMutation = useMutation({
     mutationFn: () =>
