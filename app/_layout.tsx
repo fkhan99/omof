@@ -6,11 +6,13 @@ import { WebBootOverlay } from '@/components/ui/WebBootOverlay';
 import { StackBackButton } from '@/components/navigation/StackBackButton';
 import { useAuthListener } from '@/hooks/useAuthListener';
 import { useEmailActionHandler } from '@/hooks/useEmailActionHandler';
+import { useActivitySync } from '@/hooks/useActivitySync';
 import { useTheme } from '@/hooks/useTheme';
 
 function RootLayoutNav() {
   useAuthListener();
   useEmailActionHandler();
+  useActivitySync();
   const { colors, isDark } = useTheme();
 
   return (

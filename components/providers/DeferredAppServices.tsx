@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useFollowRelationshipSync } from '@/hooks/useFollowRelationshipSync';
-import { useActivitySync } from '@/hooks/useActivitySync';
 import { WelcomeModalHost } from '@/components/onboarding/WelcomeModalHost';
 
 const WEB_DEFER_MS = 900;
@@ -11,7 +10,6 @@ const WEB_IDLE_TIMEOUT_MS = 2500;
 function BackgroundSyncServices() {
   usePushNotifications();
   useFollowRelationshipSync();
-  useActivitySync();
   return null;
 }
 

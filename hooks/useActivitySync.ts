@@ -13,7 +13,6 @@ import {
   upsertActivityNotification,
 } from '@/services/firebase/activityFeed';
 import { applyPersistedReadState, getActivityReadKey } from '@/utils/activityRead';
-import { computeActivityBadgeCount } from '@/utils/activityBadge';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { Notification } from '@/types';
@@ -192,6 +191,23 @@ export function useActivitySync() {
       query(collection(db, 'notifications'), where('recipientId', '==', authUid)),
       (snap) => {
         snap.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            const removed = mapNotificationDoc(change.doc.id, change.doc.data());
+            const removedKey = getActivityReadKey(removed);
+            const next = useNotificationStore
+              .getState()
+              .activityItems.filter(
+                (item) => item.id !== removed.id && getActivityReadKey(item) !== removedKey,
+              );
+            publishActivity(
+              authUid,
+              applyPersistedReadState(next, readKeysRef.current),
+              pendingFollowRequestCountRef.current,
+              queryClient,
+            );
+            return;
+          }
+
           if (change.type !== 'added' && change.type !== 'modified') return;
           const item = mapNotificationDoc(change.doc.id, change.doc.data());
           const bumpUnread = change.type === 'modified' && item.type === 'reaction';

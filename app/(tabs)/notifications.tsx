@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -30,7 +30,6 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { PullRefreshFlatList } from '@/components/ui/PullRefreshFlatList';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { Notification } from '@/types';
-import { computeActivityBadgeCount } from '@/utils/activityBadge';
 import { adjustFollowCountsOptimistically, invalidateFollowSideEffects } from '@/utils/followCache';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -40,13 +39,25 @@ function isConnectBackEligible(notification: Notification) {
   return notification.type === 'follow' || notification.type === 'follow_accepted';
 }
 
+function getPendingFollowRequestCount(
+  queryClient: ReturnType<typeof useQueryClient>,
+  authUid: string | undefined,
+  fallback = 0,
+) {
+  if (!authUid) return 0;
+  return (
+    queryClient.getQueryData<FollowRequestWithRequester[]>(['followRequests', authUid])?.length
+    ?? fallback
+  );
+}
+
 export default function ActivityScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const notifications = useNotificationStore((state) => state.activityItems);
   const setActivityItems = useNotificationStore((state) => state.setActivityItems);
-  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
+  const syncActivityBadge = useNotificationStore((state) => state.syncActivityBadge);
   const notifyReadKeysChanged = useNotificationStore((state) => state.notifyReadKeysChanged);
   const queryClient = useQueryClient();
   const authUid = firebaseUser?.uid;
@@ -55,7 +66,6 @@ export default function ActivityScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
-  const followRequestCountRef = useRef(0);
 
   const { data: followingIds = [] } = useQuery({
     queryKey: ['followingIds', authUid],
@@ -74,37 +84,48 @@ export default function ActivityScreen() {
     staleTime: 0,
   });
 
-  followRequestCountRef.current = followRequests.length;
+  useEffect(() => {
+    if (!authUid) return;
+    syncActivityBadge(followRequests.length);
+  }, [authUid, followRequests.length, notifications, syncActivityBadge]);
 
   const loadActivity = useCallback(async () => {
     if (!authUid) return;
     setLoadError(null);
     try {
-      const items = await loadActivityFeed(authUid);
+      const [items] = await Promise.all([
+        loadActivityFeed(authUid),
+        queryClient.refetchQueries({ queryKey: ['followRequests', authUid] }),
+      ]);
+      const pendingCount = getPendingFollowRequestCount(queryClient, authUid, followRequests.length);
       setActivityItems(items);
-      setUnreadCount(computeActivityBadgeCount(items, followRequestCountRef.current));
+      syncActivityBadge(pendingCount);
       queryClient.setQueryData(['activity', authUid], items);
+      notifyReadKeysChanged();
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Couldn't load activity.");
     } finally {
       setIsLoading(false);
     }
-  }, [authUid, queryClient, setActivityItems, setUnreadCount]);
+  }, [
+    authUid,
+    followRequests.length,
+    notifyReadKeysChanged,
+    queryClient,
+    setActivityItems,
+    syncActivityBadge,
+  ]);
 
   const { refreshing, onRefresh: handleRefresh } = usePullToRefresh(loadActivity);
 
   useFocusEffect(
     useCallback(() => {
       if (!authUid) return;
-      void loadActivity();
-    }, [authUid, loadActivity]),
-  );
-
-  const updateBadgeCount = useCallback(
-    (items: Notification[]) => {
-      setUnreadCount(computeActivityBadgeCount(items, followRequests.length));
-    },
-    [followRequests.length, setUnreadCount],
+      syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid, followRequests.length));
+      if (notifications.length === 0) {
+        void loadActivity();
+      }
+    }, [authUid, followRequests.length, loadActivity, notifications.length, queryClient, syncActivityBadge]),
   );
 
   const markReadMutation = useMutation({
@@ -116,7 +137,7 @@ export default function ActivityScreen() {
           : item,
       );
       setActivityItems(next);
-      updateBadgeCount(next);
+      syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid, followRequests.length));
       notifyReadKeysChanged();
     },
   });
@@ -135,7 +156,7 @@ export default function ActivityScreen() {
         followingDelta: 1,
         followerDelta: 1,
       });
-      updateBadgeCount(useNotificationStore.getState().activityItems);
+      syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid));
     },
     onSettled: () => {
       setActiveRequestId(null);
@@ -164,7 +185,9 @@ export default function ActivityScreen() {
         ['followRequests', authUid],
         (old) => old?.filter((item) => item.request.requesterId !== requesterId) ?? [],
       );
-      updateBadgeCount(useNotificationStore.getState().activityItems);
+    },
+    onSuccess: () => {
+      syncActivityBadge(getPendingFollowRequestCount(queryClient, authUid));
     },
     onError: (err) => {
       queryClient.invalidateQueries({ queryKey: ['followRequests', authUid] });
@@ -209,14 +232,14 @@ export default function ActivityScreen() {
     const previous = notifications;
     const next = previous.map((item) => ({ ...item, read: true }));
     setActivityItems(next);
-    updateBadgeCount(next);
+    syncActivityBadge(followRequests.length);
 
     try {
       await markAllNotificationsRead(authUid, previous);
       notifyReadKeysChanged();
     } catch (error) {
       setActivityItems(previous);
-      updateBadgeCount(previous);
+      syncActivityBadge(followRequests.length);
       Alert.alert(
         'Could not mark all as read',
         error instanceof Error ? error.message : 'Please try again.',
@@ -228,9 +251,10 @@ export default function ActivityScreen() {
     authUid,
     markingAllRead,
     notifications,
+    followRequests.length,
     notifyReadKeysChanged,
     setActivityItems,
-    updateBadgeCount,
+    syncActivityBadge,
   ]);
 
   const handlePress = async (notification: Notification) => {
@@ -248,7 +272,6 @@ export default function ActivityScreen() {
       router.push(`/post/${notification.postId}`);
     }
   };
-
 
   if (!authUid || (isLoading && notifications.length === 0 && followRequests.length === 0)) {
     return <LoadingState message="Loading activity..." />;
