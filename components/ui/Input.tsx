@@ -66,6 +66,7 @@ function createStyles(colors: ThemeColors) {
     },
     required: {
       color: colors.danger,
+      fontWeight: '700',
     },
     inputRow: {
       position: 'relative',

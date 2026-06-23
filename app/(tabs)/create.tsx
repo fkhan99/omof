@@ -268,9 +268,10 @@ export default function CreatePostScreen() {
       <Text style={styles.subheading}>
         Share what's real. Photos and videos up to {VIDEO_MAX_DURATION_SEC}s.
       </Text>
+      <Text style={styles.requiredNote}>* Required fields</Text>
 
       <Text style={styles.label} accessibilityRole="header">
-        Photo or video<Text style={styles.required}> *</Text>
+        Photo or video<Text style={styles.required}>*</Text>
       </Text>
 
       <View
