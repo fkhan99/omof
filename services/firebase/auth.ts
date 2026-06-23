@@ -135,6 +135,46 @@ export async function reloadCurrentUser(): Promise<FirebaseUser | null> {
   return auth.currentUser;
 }
 
+/** Reload auth + force-refresh the ID token before Firestore writes. */
+export async function refreshAuthTokenForFirestore(): Promise<FirebaseUser | null> {
+  return reloadCurrentUser();
+}
+
+export interface EmailVerificationStatus {
+  user: FirebaseUser | null;
+  authVerified: boolean;
+  tokenVerified: boolean;
+}
+
+/** Reads both Auth profile and JWT claim — Firestore rules use the token claim. */
+export async function getEmailVerificationStatus(): Promise<EmailVerificationStatus> {
+  const user = await reloadCurrentUser();
+  if (!user) {
+    return { user: null, authVerified: false, tokenVerified: false };
+  }
+
+  const auth = getFirebaseAuth();
+  const current = auth.currentUser;
+  if (!current) {
+    return { user, authVerified: user.emailVerified, tokenVerified: false };
+  }
+
+  try {
+    const token = await current.getIdTokenResult(true);
+    return {
+      user: current,
+      authVerified: current.emailVerified,
+      tokenVerified: token.claims.email_verified === true,
+    };
+  } catch {
+    return {
+      user: current,
+      authVerified: current.emailVerified,
+      tokenVerified: false,
+    };
+  }
+}
+
 export async function signIn(email: string, password: string): Promise<FirebaseUser> {
   assertFirebaseConfigured();
   const auth = getFirebaseAuth();
