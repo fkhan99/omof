@@ -7,17 +7,31 @@ import { useTheme } from '@/hooks/useTheme';
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
+  required?: boolean;
   leftIcon?: keyof typeof Ionicons.glyphMap;
   containerStyle?: object;
 }
 
-export function Input({ label, error, leftIcon, containerStyle, style, ...props }: InputProps) {
+export function Input({
+  label,
+  error,
+  required = false,
+  leftIcon,
+  containerStyle,
+  style,
+  ...props
+}: InputProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? (
+        <Text style={styles.label}>
+          {label}
+          {required ? <Text style={styles.required}> *</Text> : null}
+        </Text>
+      ) : null}
       <View style={styles.inputRow}>
         {leftIcon ? (
           <Ionicons
@@ -30,7 +44,7 @@ export function Input({ label, error, leftIcon, containerStyle, style, ...props 
         <TextInput
           style={[styles.input, leftIcon && styles.inputWithIcon, error && styles.inputError, style]}
           placeholderTextColor={colors.textMuted}
-          accessibilityLabel={label ?? props.placeholder}
+          accessibilityLabel={label ? `${label}${required ? ', required' : ''}` : props.placeholder}
           {...props}
         />
       </View>
