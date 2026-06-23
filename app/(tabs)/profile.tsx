@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { getMyPosts } from '@/services/firebase/posts';
-import { getActualFollowCounts } from '@/services/firebase/follows';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { PostGrid } from '@/components/posts/PostGrid';
@@ -16,7 +15,6 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { GamificationStats } from '@/components/profile/GamificationStats';
-import { PlusBadge } from '@/components/users/PlusBadge';
 import { useProfileFollowCounts } from '@/hooks/useProfileFollowCounts';
 import { CONNECTIONS, POSTS, PROFILE } from '@/constants/copy';
 import { Post } from '@/types';
@@ -33,13 +31,6 @@ export default function ProfileScreen() {
   useProfileFollowCounts(authUid, {
     followerCount: profile?.followerCount ?? 0,
     followingCount: profile?.followingCount ?? 0,
-  });
-
-  const { data: followCounts } = useQuery({
-    queryKey: ['followCounts', authUid],
-    queryFn: () => getActualFollowCounts(authUid!),
-    enabled: !!authUid,
-    staleTime: Infinity,
   });
 
   const {
@@ -66,9 +57,6 @@ export default function ProfileScreen() {
   if (!profile || !authUid) {
     return <LoadingState />;
   }
-
-  const displayedFollowerCount = followCounts?.followerCount ?? profile.followerCount;
-  const displayedFollowingCount = followCounts?.followingCount ?? profile.followingCount;
 
   const momentPosts = useMemo(
     () => myPosts.filter((post) => post.postKind !== 'growth_update'),
@@ -112,7 +100,6 @@ export default function ProfileScreen() {
 
         <View style={styles.nameRow}>
           <Text style={styles.displayName}>{profile.displayName}</Text>
-          {profile.plan === 'plus' ? <PlusBadge compact /> : null}
         </View>
         <Text style={styles.username}>@{profile.username}</Text>
         {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}

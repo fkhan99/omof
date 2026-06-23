@@ -16,7 +16,6 @@ import {
 import { blockUser, isUserBlocked } from '@/services/firebase/safety';
 import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
-import { PlusBadge } from '@/components/users/PlusBadge';
 import { Button } from '@/components/ui/Button';
 import { PostGrid } from '@/components/posts/PostGrid';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -212,8 +211,6 @@ export default function UserProfileScreen() {
   if (isLoading) return <LoadingState />;
   if (error || !user) return <ErrorState message="User not found." onRetry={() => refetch()} />;
 
-  const showConnectionCounts = false;
-
   const renderListHeader = () => (
     <>
       <View style={styles.header}>
@@ -227,19 +224,11 @@ export default function UserProfileScreen() {
               <Text style={styles.statLabel}>{POSTS.postsLabel}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>
-                {showConnectionCounts
-                  ? (viewedUserCounts?.followerCount ?? user.followerCount)
-                  : PROFILE.connectionsHidden}
-              </Text>
+              <Text style={styles.statNumber}>{PROFILE.connectionsHidden}</Text>
               <Text style={styles.statLabel}>{CONNECTIONS.followers}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>
-                {showConnectionCounts
-                  ? (viewedUserCounts?.followingCount ?? user.followingCount)
-                  : PROFILE.connectionsHidden}
-              </Text>
+              <Text style={styles.statNumber}>{PROFILE.connectionsHidden}</Text>
               <Text style={styles.statLabel}>{CONNECTIONS.following}</Text>
             </View>
           </View>
@@ -247,7 +236,6 @@ export default function UserProfileScreen() {
 
         <View style={styles.nameRow}>
           <Text style={styles.displayName}>{user.displayName}</Text>
-          {user.plan === 'plus' ? <PlusBadge compact /> : null}
           {user.isPrivate ? (
             <Ionicons name="lock-closed" size={16} color={colors.textMuted} />
           ) : null}

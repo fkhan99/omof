@@ -1,10 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Text } from 'react-native';
+import { FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { getFeedPosts } from '@/services/firebase/posts';
-import { getPromotedPosts } from '@/services/firebase/promotions';
-import { buildFeedList, FeedListItem } from '@/utils/feedMerge';
 import { getFollowingIds } from '@/services/firebase/follows';
 import { getBlockedUserIds } from '@/services/firebase/safety';
 import { PostCard } from '@/components/posts/PostCard';
@@ -12,7 +10,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { FEED } from '@/constants/copy';
-import { POSTS_PAGE_SIZE, SPACING, FONT_SIZES, ThemeColors } from '@/constants/theme';
+import { PostWithPromotion } from '@/types';
+import { POSTS_PAGE_SIZE, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -41,24 +40,26 @@ export default function FeedScreen() {
     queryKey: ['feed', profile?.id],
     initialPageParam: null as Date | null,
     queryFn: async ({ pageParam }) => {
-      if (!profile) return { feedItems: [] as FeedListItem[], hasMore: false, nextCursor: null as Date | null };
+      if (!profile) return { feedItems: [] as PostWithPromotion[], hasMore: false, nextCursor: null as Date | null };
 
       const blockedIds = await getBlockedUserIds(profile.id);
       const filteredFollowing = followingIds.filter((id) => !blockedIds.includes(id));
 
-      const [result, promotedPosts] = await Promise.all([
-        getFeedPosts(filteredFollowing, POSTS_PAGE_SIZE, undefined, pageParam ?? undefined),
-        pageParam ? Promise.resolve([]) : getPromotedPosts([profile.id], blockedIds),
-      ]);
+      const result = await getFeedPosts(
+        filteredFollowing,
+        POSTS_PAGE_SIZE,
+        undefined,
+        pageParam ?? undefined,
+      );
 
       const filteredPosts = result.items.filter(
         (p) => p.authorId !== profile.id && !blockedIds.includes(p.authorId),
       );
 
-      const feedItems =
-        pageParam === null
-          ? buildFeedList(filteredPosts, promotedPosts.filter((p) => !blockedIds.includes(p.authorId)))
-          : filteredPosts.map((post) => ({ type: 'post' as const, id: post.id, post: { ...post, isPromoted: false } }));
+      const feedItems = filteredPosts.map((post) => ({
+        ...post,
+        isPromoted: false,
+      }));
 
       return {
         feedItems,
@@ -82,18 +83,8 @@ export default function FeedScreen() {
   }, [refetch]);
 
   const renderItem = useCallback(
-    ({ item }: { item: FeedListItem }) => {
-      if (item.type === 'header') {
-        return (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{item.title}</Text>
-            {item.subtitle ? <Text style={styles.sectionSubtitle}>{item.subtitle}</Text> : null}
-          </View>
-        );
-      }
-      return <PostCard post={item.post} />;
-    },
-    [styles],
+    ({ item }: { item: PostWithPromotion }) => <PostCard post={item} />,
+    [],
   );
 
   if (!profile || isLoading) {
@@ -140,25 +131,6 @@ function createStyles(colors: ThemeColors) {
     },
     emptyList: {
       flexGrow: 1,
-    },
-    sectionHeader: {
-      paddingHorizontal: SPACING.md,
-      paddingTop: SPACING.md,
-      paddingBottom: SPACING.sm,
-      backgroundColor: colors.background,
-    },
-    sectionTitle: {
-      fontSize: FONT_SIZES.sm,
-      fontWeight: '700',
-      color: colors.text,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    sectionSubtitle: {
-      fontSize: FONT_SIZES.xs,
-      color: colors.textMuted,
-      marginTop: 4,
-      lineHeight: 16,
     },
   });
 }

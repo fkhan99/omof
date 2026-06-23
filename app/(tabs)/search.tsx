@@ -3,7 +3,6 @@ import { View, FlatList, StyleSheet, Alert, Text } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchUsers } from '@/services/firebase/users';
 import { getPostsByMoodTag } from '@/services/firebase/posts';
-import { getPromotedPosts } from '@/services/firebase/promotions';
 import { useAuthStore } from '@/store/authStore';
 import { getBlockedUserIds } from '@/services/firebase/safety';
 import {
@@ -82,17 +81,6 @@ export default function SearchScreen() {
     enabled: !!authUid && searchTerm.length < 2,
   });
 
-  const { data: spotlightPosts = [] } = useQuery({
-    queryKey: ['spotlight', authUid],
-    queryFn: async () => {
-      if (!profile) return [];
-      const blockedIds = await getBlockedUserIds(profile.id);
-      return getPromotedPosts([profile.id], blockedIds);
-    },
-    enabled: !!authUid && searchTerm.length < 2,
-    staleTime: 60_000,
-  });
-
   const followMutation = useMutation({
     mutationFn: async (targetUser: User) => followUser(authUid!, targetUser.id),
     onMutate: (targetUser) => {
@@ -168,15 +156,6 @@ export default function SearchScreen() {
         <Text style={styles.discoverSubtitle}>{SHARED_EXPERIENCES.subtitle}</Text>
       </View>
       <MoodFilterBar selectedMood={selectedMood} onSelect={setSelectedMood} />
-      {spotlightPosts.length > 0 ? (
-        <View style={styles.spotlightSection}>
-          <Text style={styles.spotlightTitle}>{SHARED_EXPERIENCES.spotlightTitle}</Text>
-          <Text style={styles.spotlightSubtitle}>{SHARED_EXPERIENCES.spotlightSubtitle}</Text>
-          {spotlightPosts.map((post) => (
-            <PostCard key={`spotlight-${post.id}`} post={post} variant="card" />
-          ))}
-        </View>
-      ) : null}
     </View>
   );
 
@@ -281,23 +260,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.textMuted,
       marginTop: 4,
       lineHeight: 20,
-    },
-    spotlightSection: {
-      paddingHorizontal: SPACING.md,
-      paddingTop: SPACING.md,
-      gap: SPACING.sm,
-    },
-    spotlightTitle: {
-      fontSize: FONT_SIZES.sm,
-      fontWeight: '700',
-      color: colors.text,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    spotlightSubtitle: {
-      fontSize: FONT_SIZES.xs,
-      color: colors.textMuted,
-      marginBottom: SPACING.sm,
     },
     exploreList: {
       paddingBottom: SPACING.xl,
