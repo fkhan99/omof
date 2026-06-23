@@ -269,6 +269,10 @@ export default function CreatePostScreen() {
         Share what's real. Photos and videos up to {VIDEO_MAX_DURATION_SEC}s.
       </Text>
 
+      <Text style={styles.label} accessibilityRole="header">
+        Photo or video<Text style={styles.required}> *</Text>
+      </Text>
+
       <View
         style={[
           styles.mediaPicker,
@@ -331,7 +335,9 @@ export default function CreatePostScreen() {
         )}
       </View>
 
-      <Text style={styles.label}>How are you feeling?</Text>
+      <Text style={styles.label}>
+        How are you feeling?<Text style={styles.required}> *</Text>
+      </Text>
       <View style={styles.moodGrid}>
         {MOOD_TAGS.map((mood) => (
           <TouchableOpacity
@@ -358,6 +364,7 @@ export default function CreatePostScreen() {
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
             label="Caption"
+            required
             placeholder="What's on your mind?"
             value={value}
             onChangeText={onChange}
@@ -488,6 +495,11 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
+    },
+    required: {
+      color: colors.danger,
+      textTransform: 'none',
+      letterSpacing: 0,
     },
     moodGrid: {
       flexDirection: 'row',

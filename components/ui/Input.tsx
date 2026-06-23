@@ -64,6 +64,9 @@ function createStyles(colors: ThemeColors) {
       marginBottom: SPACING.xs,
       fontWeight: '600',
     },
+    required: {
+      color: colors.danger,
+    },
     inputRow: {
       position: 'relative',
       justifyContent: 'center',
