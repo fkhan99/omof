@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, SignupFormData } from '@/utils/validation';
 import { signUp } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/authStore';
+import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -25,7 +26,7 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const showNoAccountPrompt = reason === 'no_account';
 
-  const { control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
+  const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: '',
@@ -41,6 +42,9 @@ export default function SignupScreen() {
       setValue('email', emailParam.trim());
     }
   }, [emailParam, setValue]);
+
+  const acceptedTerms = watch('acceptedTerms');
+  const confirmedAge = watch('confirmedAge');
 
   const onSubmit = async (data: SignupFormData) => {
     setError(null);
@@ -160,6 +164,11 @@ export default function SignupScreen() {
         {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
 
         <Button title="Create Account" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
+
+        <SocialAuthButtons
+          mode="signup"
+          compliance={{ acceptedTerms, confirmedAge }}
+        />
         </View>
 
         <View style={styles.footer}>

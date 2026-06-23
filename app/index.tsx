@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import { loadAuthUserProfile } from '@/services/firebase/auth';
+import { requiresEmailVerification } from '@/services/firebase/socialAuth';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 
@@ -61,7 +62,7 @@ export default function Index() {
 
     // Every account must have a verified email — including existing ones —
     // before reaching onboarding or the main app.
-    if (firebaseUser && !firebaseUser.emailVerified) {
+    if (firebaseUser && requiresEmailVerification(firebaseUser)) {
       log('[Route] email not verified → verify-email', { uid });
       router.replace('/(auth)/verify-email');
       return;

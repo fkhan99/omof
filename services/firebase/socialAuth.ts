@@ -61,7 +61,11 @@ async function signInWithGoogleNative(): Promise<FirebaseUser> {
   await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
   const response = await GoogleSignin.signIn();
 
-  const idToken = response.data?.idToken;
+  if (response.type === 'cancelled') {
+    throw new Error('Google sign-in was cancelled.');
+  }
+
+  const idToken = response.data.idToken;
   if (!idToken) {
     throw new Error('Google sign-in did not return an ID token.');
   }
@@ -175,6 +179,10 @@ function isUserCancelledError(error: unknown): boolean {
       : null;
 
   if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return true;
+  }
+
+  if (code === 'ERR_REQUEST_CANCELED') {
     return true;
   }
 

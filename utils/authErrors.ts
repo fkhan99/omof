@@ -20,6 +20,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     'Could not send verification email for this site URL. Try again or contact support.',
   'auth/missing-continue-uri':
     'Could not send verification email. Try again or contact support.',
+  'auth/account-exists-with-different-credential':
+    'An account already exists with this email using a different sign-in method. Try that method instead.',
+  'auth/popup-closed-by-user': 'Sign-in was cancelled.',
+  'auth/cancelled-popup-request': 'Sign-in was cancelled.',
+  'auth/popup-blocked': 'Sign-in popup was blocked. Allow popups for this site and try again.',
   'auth/requires-recent-login':
     'For security, verify your password and try again.',
 };

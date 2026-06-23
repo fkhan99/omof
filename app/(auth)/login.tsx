@@ -5,9 +5,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@/utils/validation';
 import { signIn, loadAuthUserProfile, accountExistsForEmail } from '@/services/firebase/auth';
+import { requiresEmailVerification } from '@/services/firebase/socialAuth';
 import { isFirebaseConfigured } from '@/services/firebase/config';
 import { getAuthErrorCode } from '@/utils/authErrors';
 import { normalizeEmail } from '@/utils';
+import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 
 const NO_ACCOUNT_ERROR_CODES = new Set([
   'auth/user-not-found',
@@ -49,7 +51,7 @@ export default function LoginScreen() {
     try {
       const user = await signIn(data.email, data.password);
 
-      if (!user.emailVerified) {
+      if (requiresEmailVerification(user)) {
         router.replace('/(auth)/verify-email');
         return;
       }
@@ -95,6 +97,8 @@ export default function LoginScreen() {
         {!firebaseReady && <FirebaseSetupNotice />}
 
         <View style={styles.formCard}>
+        <SocialAuthButtons mode="login" disabled={!firebaseReady} />
+
         <Controller
           control={control}
           name="email"
