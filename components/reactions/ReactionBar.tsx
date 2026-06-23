@@ -61,20 +61,24 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: SPACING.sm,
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: colors.border,
       gap: SPACING.xs,
     },
     reactionActive: {
-      backgroundColor: colors.accentSoft,
+      backgroundColor: colors.selectedBackground,
+      borderColor: colors.selectedBorder,
+      borderWidth: 2,
     },
     label: {
       fontSize: FONT_SIZES.xs,
       fontWeight: '500',
-      color: colors.textSecondary,
+      color: colors.textMuted,
       textAlign: 'center',
     },
     labelActive: {
-      color: colors.primary,
-      fontWeight: '600',
+      color: colors.selected,
+      fontWeight: '700',
     },
   });
 }
