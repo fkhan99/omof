@@ -371,23 +371,32 @@ export async function createGrowthUpdate(
   }
 
   const db = getFirebaseDb();
-  const docRef = await addDoc(collection(db, 'posts'), {
-    authorId: author.id,
-    authorUsername: author.username,
-    authorDisplayName: author.displayName,
-    authorPhotoURL: author.photoURL,
-    mediaType: parent.mediaType,
-    imageURL: parent.imageURL,
-    videoURL: parent.videoURL,
-    caption,
-    moodTag: parent.moodTag,
-    postKind: 'growth_update' satisfies PostKind,
-    parentPostId,
-    parentCaption: parent.caption.length > 120 ? `${parent.caption.slice(0, 117)}...` : parent.caption,
-    reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
-    commentCount: 0,
-    createdAt: serverTimestamp(),
-  });
+  let docRef;
+  try {
+    docRef = await addDoc(collection(db, 'posts'), {
+      authorId: author.id,
+      authorUsername: author.username,
+      authorDisplayName: author.displayName,
+      authorPhotoURL: author.photoURL ?? null,
+      mediaType: parent.mediaType,
+      imageURL: parent.imageURL ?? null,
+      videoURL: parent.videoURL ?? null,
+      caption,
+      moodTag: parent.moodTag,
+      postKind: 'growth_update' satisfies PostKind,
+      parentPostId,
+      parentCaption: parent.caption.length > 120 ? `${parent.caption.slice(0, 117)}...` : parent.caption,
+      reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
+      commentCount: 0,
+      createdAt: serverTimestamp(),
+    });
+  } catch (error: unknown) {
+    const code = (error as { code?: string })?.code;
+    if (code === 'permission-denied') {
+      throw new Error('Unable to share your growth update. Verify your email address and try again.');
+    }
+    throw error;
+  }
 
   const snap = await getDoc(docRef);
   return mapPostDoc(snap.id, snap.data()!);

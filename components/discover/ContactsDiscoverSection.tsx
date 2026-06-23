@@ -59,28 +59,6 @@ export function ContactsDiscoverSection({
     searchMutation.mutate(emails);
   };
 
-  const handleImportResult = async (
-    result: Awaited<ReturnType<typeof importContactEmails>>,
-    openVCardPicker: () => void,
-  ) => {
-    if (result.errorCode === 'cancelled') return;
-
-    if (result.errorCode === 'unsupported' && Platform.OS === 'web') {
-      openVCardPicker();
-      return;
-    }
-
-    if (result.emails.length > 0) {
-      applyImportedEmails(result.emails);
-      return;
-    }
-
-    Alert.alert(
-      'Could not import contacts',
-      result.message ?? 'Try pasting email addresses manually.',
-    );
-  };
-
   const { openPicker: openVCardPicker, input: vCardInput } = useContactsFilePicker((text) => {
     void (async () => {
       setImporting(true);
@@ -104,7 +82,17 @@ export function ContactsDiscoverSection({
     setImporting(true);
     try {
       const result = await importContactEmails();
-      await handleImportResult(result, openVCardPicker);
+      if (result.errorCode === 'cancelled') return;
+
+      if (result.emails.length > 0) {
+        applyImportedEmails(result.emails);
+        return;
+      }
+
+      Alert.alert(
+        'Could not import contacts',
+        result.message ?? 'Try pasting email addresses manually.',
+      );
     } finally {
       setImporting(false);
     }
@@ -126,25 +114,25 @@ export function ContactsDiscoverSection({
       <Text style={styles.title}>{SHARED_EXPERIENCES.contactsTitle}</Text>
       <Text style={styles.hint}>{SHARED_EXPERIENCES.contactsHint}</Text>
 
-      <Button
-        title={SHARED_EXPERIENCES.contactsImport}
-        variant="secondary"
-        size="sm"
-        onPress={() => void handleImportContacts()}
-        loading={importing || searchMutation.isPending}
-        style={styles.importButton}
-      />
-
       {Platform.OS === 'web' ? (
         <Button
           title="Import contacts file (.vcf)"
           variant="secondary"
           size="sm"
           onPress={openVCardPicker}
-          disabled={importing || searchMutation.isPending}
+          loading={importing || searchMutation.isPending}
           style={styles.importButton}
         />
-      ) : null}
+      ) : (
+        <Button
+          title={SHARED_EXPERIENCES.contactsImport}
+          variant="secondary"
+          size="sm"
+          onPress={() => void handleImportContacts()}
+          loading={importing || searchMutation.isPending}
+          style={styles.importButton}
+        />
+      )}
 
       <Input
         label={SHARED_EXPERIENCES.contactsPasteLabel}

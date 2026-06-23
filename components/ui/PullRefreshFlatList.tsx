@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
   FlatList,
   FlatListProps,
@@ -22,10 +22,30 @@ type PullRefreshFlatListProps<T> = FlatListProps<T> & {
   onRefresh: () => void | Promise<void>;
 };
 
+function renderListHeader(
+  pullHeader: ReactNode,
+  ListHeaderComponent?: FlatListProps<unknown>['ListHeaderComponent'],
+): ReactElement | null {
+  const existing =
+    typeof ListHeaderComponent === 'function'
+      ? <ListHeaderComponent />
+      : ListHeaderComponent ?? null;
+
+  if (!pullHeader && !existing) return null;
+
+  return (
+    <>
+      {pullHeader}
+      {existing}
+    </>
+  );
+}
+
 export function PullRefreshFlatList<T>({
   refreshing,
   onRefresh,
   onScroll,
+  ListHeaderComponent,
   ...rest
 }: PullRefreshFlatListProps<T>) {
   const { colors } = useTheme();
@@ -136,16 +156,27 @@ export function PullRefreshFlatList<T>({
       ? Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
       : 0;
 
-  return (
-    <View style={styles.wrapper}>
-      {Platform.OS === 'web' && indicatorHeight > 0 ? (
+  const pullHeader = useMemo(
+    () =>
+      Platform.OS === 'web' && indicatorHeight > 0 ? (
         <View style={[styles.refreshBar, { height: indicatorHeight }]}>
           <RefreshGear spinning={refreshing} pullProgress={pullProgress} compact />
         </View>
-      ) : null}
+      ) : null,
+    [indicatorHeight, pullProgress, refreshing],
+  );
+
+  const combinedListHeader = useCallback(
+    () => renderListHeader(pullHeader, ListHeaderComponent),
+    [ListHeaderComponent, pullHeader],
+  );
+
+  return (
+    <View style={styles.wrapper}>
       <FlatList
         {...rest}
         style={[styles.list, rest.style]}
+        ListHeaderComponent={combinedListHeader}
         {...webPullHandlers}
         onScroll={handleScroll}
         scrollEventThrottle={16}

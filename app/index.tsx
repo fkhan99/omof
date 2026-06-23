@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import { loadAuthUserProfile } from '@/services/firebase/auth';
@@ -80,12 +81,12 @@ export default function Index() {
   }, [firebaseUser, profile, isInitialized, profileError, profileLoadComplete, router]);
 
   if (!isInitialized) {
-    return <LoadingState message="Starting OMOF..." />;
+    return Platform.OS === 'web' ? <View style={{ flex: 1 }} /> : <LoadingState message="Starting OMOF..." />;
   }
 
   if (firebaseUser && profileError && !profile) {
     if (retrying) {
-      return <LoadingState message="Loading your profile..." />;
+      return Platform.OS === 'web' ? <View style={{ flex: 1 }} /> : <LoadingState message="Loading your profile..." />;
     }
     return (
       <ErrorState
@@ -96,8 +97,8 @@ export default function Index() {
   }
 
   if (firebaseUser && !profile && !profileLoadComplete) {
-    return <LoadingState message="Loading your profile..." />;
+    return Platform.OS === 'web' ? <View style={{ flex: 1 }} /> : <LoadingState message="Loading your profile..." />;
   }
 
-  return <LoadingState message="Starting OMOF..." />;
+  return Platform.OS === 'web' ? <View style={{ flex: 1 }} /> : <LoadingState message="Starting OMOF..." />;
 }

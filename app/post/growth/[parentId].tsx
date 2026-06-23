@@ -43,7 +43,9 @@ export default function GrowthUpdateScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const profile = useAuthStore((s) => s.profile);
+  const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const [crisisVisible, setCrisisVisible] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data: parentPost, isLoading, error, refetch } = useQuery({
     queryKey: ['post', parentId],
@@ -61,10 +63,15 @@ export default function GrowthUpdateScreen() {
   });
 
   const mutation = useMutation({
-    mutationFn: (caption: string) => {
-      if (!profile || !parentId) {
+    mutationFn: async (caption: string) => {
+      const authUid = firebaseUser?.uid ?? profile?.id;
+      if (!authUid || !parentId) {
         throw new Error('Your profile is still loading. Please try again.');
       }
+      if (!profile) {
+        throw new Error('Your profile is still loading. Please try again.');
+      }
+
       return createGrowthUpdate(
         {
           id: profile.id,
@@ -77,22 +84,24 @@ export default function GrowthUpdateScreen() {
       );
     },
     onSuccess: (post) => {
+      setSubmitError(null);
       queryClient.invalidateQueries({ queryKey: ['myPosts'] });
       queryClient.invalidateQueries({ queryKey: ['authorPosts'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['sharedExperiences'] });
+      queryClient.invalidateQueries({ queryKey: ['post', parentId] });
       router.replace(`/post/${post.id}`);
     },
     onError: (err) => {
-      Alert.alert(
-        'Could not share update',
-        err instanceof Error ? err.message : 'Please try again.',
-      );
+      const message = err instanceof Error ? err.message : 'Please try again.';
+      setSubmitError(message);
+      Alert.alert('Could not share update', message);
     },
   });
 
   const onSubmit = (data: GrowthFormData) => {
-    if (!profile) {
+    setSubmitError(null);
+    if (!profile || !firebaseUser) {
       Alert.alert('Please wait', 'Your profile is still loading. Try again in a moment.');
       return;
     }
@@ -111,6 +120,10 @@ export default function GrowthUpdateScreen() {
     mutation.mutate(data.caption.trim());
   };
 
+  const handleSharePress = () => {
+    void handleSubmit(onSubmit)();
+  };
+
   if (!parentId) {
     return <ErrorState message="Original moment not found." />;
   }
@@ -120,7 +133,7 @@ export default function GrowthUpdateScreen() {
     return <ErrorState message="Original moment not found." onRetry={() => refetch()} />;
   }
 
-  if (profile?.id !== parentPost.authorId) {
+  if (profile?.id !== parentPost.authorId && firebaseUser?.uid !== parentPost.authorId) {
     return <ErrorState message="You can only add growth updates to your own moments." />;
   }
 
@@ -154,11 +167,12 @@ export default function GrowthUpdateScreen() {
 
         <Button
           title="Share growth update"
-          onPress={handleSubmit(onSubmit)}
+          onPress={handleSharePress}
           loading={isSubmitting || mutation.isPending}
-          disabled={!profile}
+          disabled={!profile || !firebaseUser}
           style={styles.submit}
         />
+        {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
       </ScrollView>
 
       <CrisisSupportModal
@@ -192,6 +206,11 @@ function createStyles(colors: ThemeColors) {
     },
     submit: {
       marginTop: SPACING.sm,
+    },
+    submitError: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.danger,
+      textAlign: 'center',
     },
   });
 }
