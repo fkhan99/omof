@@ -1,12 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import {
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   View,
   Text,
   Alert,
-  RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

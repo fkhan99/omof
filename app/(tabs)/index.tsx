@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { StyleSheet } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { getFeedPosts } from '@/services/firebase/posts';
@@ -9,18 +9,16 @@ import { PostCard } from '@/components/posts/PostCard';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { RefreshGear } from '@/components/ui/RefreshGear';
+import { PullRefreshFlatList } from '@/components/ui/PullRefreshFlatList';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { FEED } from '@/constants/copy';
 import { PostWithPromotion } from '@/types';
 import { POSTS_PAGE_SIZE, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useTheme } from '@/hooks/useTheme';
 
 export default function FeedScreen() {
   const styles = useThemedStyles(createStyles);
-  const { colors } = useTheme();
   const profile = useAuthStore((s) => s.profile);
-  const [refreshing, setRefreshing] = useState(false);
 
   const { data: followingIds = [], isSuccess: followingIdsReady } = useQuery({
     queryKey: ['followingIds', profile?.id],
@@ -78,10 +76,9 @@ export default function FeedScreen() {
   );
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
     await refetch();
-    setRefreshing(false);
   }, [refetch]);
+  const { refreshing, onRefresh: handleRefresh } = usePullToRefresh(onRefresh);
 
   const renderItem = useCallback(
     ({ item }: { item: PostWithPromotion }) => <PostCard post={item} />,
@@ -97,20 +94,13 @@ export default function FeedScreen() {
   }
 
   return (
-    <FlatList
+    <PullRefreshFlatList
       data={displayItems}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       contentContainerStyle={displayItems.length === 0 ? styles.emptyList : styles.list}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
-      }
-      ListHeaderComponent={<RefreshGear visible={refreshing} />}
+      refreshing={refreshing}
+      onRefresh={handleRefresh}
       ListEmptyComponent={
         <EmptyState
           icon="people-outline"

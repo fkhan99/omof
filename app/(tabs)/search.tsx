@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, Text, RefreshControl } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, FlatList, StyleSheet, Alert, Text } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { searchUsers, getUsersByLocation } from '@/services/firebase/users';
 import { getPostsByMoodTag } from '@/services/firebase/posts';
@@ -28,13 +28,12 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { SHARED_EXPERIENCES } from '@/constants/copy';
 import { SPACING, FONT_SIZES, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { useTheme } from '@/hooks/useTheme';
-import { RefreshGear } from '@/components/ui/RefreshGear';
+import { PullRefreshFlatList } from '@/components/ui/PullRefreshFlatList';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MoodTag, User } from '@/types';
 
 export default function SearchScreen() {
   const styles = useThemedStyles(createStyles);
-  const { colors } = useTheme();
   const profile = useAuthStore((s) => s.profile);
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const queryClient = useQueryClient();
@@ -42,7 +41,6 @@ export default function SearchScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMood, setSelectedMood] = useState<MoodTag | 'all' | 'growth'>('all');
   const [userToUnfollow, setUserToUnfollow] = useState<User | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const { data: followingIds = [] } = useQuery({
     queryKey: ['followingIds', authUid],
@@ -205,11 +203,10 @@ export default function SearchScreen() {
     </View>
   );
 
-  const onRefreshDiscover = async () => {
-    setRefreshing(true);
+  const onRefreshDiscover = useCallback(async () => {
     await refetchShared();
-    setRefreshing(false);
-  };
+  }, [refetchShared]);
+  const { refreshing, onRefresh: handleRefreshDiscover } = usePullToRefresh(onRefreshDiscover);
 
   return (
     <View style={styles.container}>
