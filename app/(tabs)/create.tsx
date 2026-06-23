@@ -337,7 +337,7 @@ export default function CreatePostScreen() {
       </View>
 
       <Text style={styles.label}>
-        How are you feeling?<Text style={styles.required}> *</Text>
+        How are you feeling?<Text style={styles.required}>*</Text>
       </Text>
       <View style={styles.moodGrid}>
         {MOOD_TAGS.map((mood) => (
