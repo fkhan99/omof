@@ -238,7 +238,7 @@ service cloud.firestore {
         && request.resource.data.reporterId == request.auth.uid
         && reportId == request.resource.data.targetId + '_' + request.auth.uid
         && request.resource.data.targetType in ['post', 'comment']
-        && request.resource.data.reason in ['obscenity', 'harassment', 'hate_speech', 'spam', 'inappropriate_content', 'self_harm', 'other']
+        && request.resource.data.reason in ['obscenity', 'harassment', 'hate_speech', 'spam', 'inappropriate_content', 'self_harm', 'not_in_omof_style', 'other']
         && (!('details' in request.resource.data) || request.resource.data.details.size() <= 1000);
       allow delete: if isAuthenticated() && resource.data.reporterId == request.auth.uid;
       allow update: if false;

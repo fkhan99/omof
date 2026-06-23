@@ -32,6 +32,7 @@ export const REPORT_REASONS = [
   'spam',
   'inappropriate_content',
   'self_harm',
+  'not_in_omof_style',
   'other',
 ] as const;
 
