@@ -34,6 +34,7 @@ import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
 import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
+import { markVerificationEmailSent } from '@/utils/verificationEmailSendState';
 import { updateFcmToken } from './pushToken';
 
 async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {

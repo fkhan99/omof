@@ -8,7 +8,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/user-not-found': 'No account found with this email. Please sign up first.',
   'auth/wrong-password': 'Incorrect email or password.',
   'auth/invalid-credential': 'Incorrect email or password.',
-  'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+  'auth/too-many-requests':
+    'Too many verification emails were sent recently. Check your inbox for an earlier message, or wait about 30 minutes before trying again.',
   'auth/weak-password': 'Password must be at least 6 characters.',
   'auth/invalid-action-code':
     'That verification link is invalid or already used. Resend a new verification email.',
