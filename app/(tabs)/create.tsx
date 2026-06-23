@@ -527,16 +527,17 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     moodChipSelected: {
-      backgroundColor: colors.accentSoft,
-      borderColor: colors.primary,
+      backgroundColor: colors.selectedBackground,
+      borderColor: colors.selectedBorder,
+      borderWidth: 2,
     },
     moodText: {
       fontSize: FONT_SIZES.sm,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     moodTextSelected: {
-      color: colors.primary,
-      fontWeight: '600',
+      color: colors.selected,
+      fontWeight: '700',
     },
     charCount: {
       fontSize: FONT_SIZES.xs,

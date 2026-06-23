@@ -63,7 +63,7 @@ function createStyles(colors: ThemeColors) {
     },
     intro: {
       fontSize: FONT_SIZES.md,
-      color: colors.textSecondary,
+      color: colors.text,
       lineHeight: 22,
       marginBottom: SPACING.lg,
     },
@@ -79,7 +79,7 @@ function createStyles(colors: ThemeColors) {
     sectionBody: {
       fontSize: FONT_SIZES.md,
       color: colors.textSecondary,
-      lineHeight: 22,
+      lineHeight: 24,
     },
   });
 }

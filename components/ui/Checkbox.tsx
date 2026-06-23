@@ -27,7 +27,7 @@ export function Checkbox({ checked, onToggle, label, error }: CheckboxProps) {
         <Ionicons
           name={checked ? 'checkbox' : 'square-outline'}
           size={22}
-          color={checked ? colors.primary : colors.textMuted}
+          color={checked ? colors.link : colors.textMuted}
         />
         <View style={styles.label}>{typeof label === 'string' ? <Text style={styles.labelText}>{label}</Text> : label}</View>
       </TouchableOpacity>

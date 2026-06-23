@@ -397,9 +397,10 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: SPACING.sm,
     },
     signInText: {
-      color: colors.primary,
+      color: colors.link,
       fontSize: FONT_SIZES.md,
-      fontWeight: '600',
+      fontWeight: '700',
+      textDecorationLine: 'underline',
     },
     removeSignInSection: {
       marginTop: SPACING.md,

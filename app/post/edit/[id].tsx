@@ -235,16 +235,17 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
     },
     moodChipSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.accentSoft,
+      borderColor: colors.selectedBorder,
+      backgroundColor: colors.selectedBackground,
+      borderWidth: 2,
     },
     moodChipText: {
       fontSize: FONT_SIZES.sm,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     moodChipTextSelected: {
-      color: colors.primary,
-      fontWeight: '600',
+      color: colors.selected,
+      fontWeight: '700',
     },
     error: {
       color: colors.danger,

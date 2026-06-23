@@ -294,7 +294,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: SPACING.sm,
     },
     success: {
-      color: colors.primary,
+      color: colors.success,
       fontSize: FONT_SIZES.sm,
       textAlign: 'center',
     },

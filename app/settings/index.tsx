@@ -54,7 +54,7 @@ function ThemeOption({ label, description, selected, onPress }: ThemeOptionProps
         <Text style={styles.optionLabel}>{label}</Text>
         {description ? <Text style={styles.optionDescription}>{description}</Text> : null}
       </View>
-      {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.primary} /> : null}
+      {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.selected} /> : null}
     </TouchableOpacity>
   );
 }
@@ -326,7 +326,9 @@ function createThemeOptionStyles(colors: ThemeColors) {
       gap: SPACING.md,
     },
     optionSelected: {
-      backgroundColor: colors.accentSoft + '44',
+      backgroundColor: colors.selectedBackground,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.selectedBorder,
     },
     optionContent: {
       flex: 1,

@@ -139,8 +139,9 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     reasonSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.accentSoft,
+      borderColor: colors.selectedBorder,
+      backgroundColor: colors.selectedBackground,
+      borderWidth: 2,
     },
     reasonText: {
       fontSize: FONT_SIZES.md,

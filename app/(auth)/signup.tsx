@@ -252,9 +252,10 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.md,
     },
     linkText: {
-      color: colors.primary,
+      color: colors.link,
       fontSize: FONT_SIZES.sm,
-      fontWeight: '600',
+      fontWeight: '700',
+      textDecorationLine: 'underline',
     },
   });
 }

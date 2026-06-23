@@ -69,8 +69,8 @@ function createStyles(colors: ThemeColors) {
     },
     intro: {
       fontSize: FONT_SIZES.md,
-      color: colors.textSecondary,
-      lineHeight: 22,
+      color: colors.text,
+      lineHeight: 24,
       marginBottom: SPACING.xl,
     },
     sectionTitle: {

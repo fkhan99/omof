@@ -234,9 +234,10 @@ function createStyles(colors: ThemeColors) {
       marginTop: SPACING.md,
     },
     linkText: {
-      color: colors.primary,
+      color: colors.link,
       fontSize: FONT_SIZES.md,
-      fontWeight: '500',
+      fontWeight: '700',
+      textDecorationLine: 'underline',
     },
     footer: {
       flexDirection: 'row',

@@ -205,16 +205,18 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
     },
     optionSelected: {
-      borderColor: colors.primary,
-      backgroundColor: colors.accentSoft,
+      borderColor: colors.selectedBorder,
+      backgroundColor: colors.selectedBackground,
+      borderWidth: 2,
     },
     optionText: {
       fontSize: FONT_SIZES.sm,
-      color: colors.textSecondary,
+      color: colors.textMuted,
       fontWeight: '600',
     },
     optionTextSelected: {
-      color: colors.primary,
+      color: colors.selected,
+      fontWeight: '700',
     },
     creditsNote: {
       fontSize: FONT_SIZES.sm,

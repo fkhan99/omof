@@ -46,7 +46,7 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.white : colors.primary} />
+        <ActivityIndicator color={variant === 'primary' ? colors.onPrimary : colors.primary} />
       ) : (
         <Text style={[styles.text, styles[`text_${variant}`], styles[`textSize_${size}`]]}>
           {title}
@@ -102,7 +102,7 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
     },
     text_primary: {
-      color: colors.white,
+      color: colors.onPrimary,
     },
     text_secondary: {
       color: colors.text,
@@ -111,7 +111,7 @@ function createStyles(colors: ThemeColors) {
       color: colors.white,
     },
     text_ghost: {
-      color: colors.primary,
+      color: colors.link,
     },
     textSize_sm: {
       fontSize: FONT_SIZES.sm,
