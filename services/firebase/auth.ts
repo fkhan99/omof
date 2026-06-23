@@ -29,6 +29,7 @@ import {
 } from './config';
 import { mapUserDoc, getDefaultUserFields } from './mappers';
 import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
+import { DEFAULT_USER_STATS } from '@/constants/gamification';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
@@ -158,10 +159,9 @@ export async function reloadCurrentUser(): Promise<FirebaseUser | null> {
   if (!user) return null;
 
   await reload(user);
-  // Force-refresh the ID token so the `email_verified` claim Firestore rules
-  // read reflects a just-completed verification (otherwise content writes are
-  // rejected until the token refreshes on its own).
-  if (auth.currentUser?.emailVerified) {
+  // Force-refresh the ID token so Firestore sees the latest auth claims
+  // (e.g. email_verified after inbox link or admin verify script).
+  if (auth.currentUser) {
     try {
       await auth.currentUser.getIdToken(true);
     } catch {
@@ -301,6 +301,60 @@ async function loadCreatedUserProfile(userId: string): Promise<User | null> {
   return getUserProfile(userId);
 }
 
+function buildUserProfileFromCreate(
+  userId: string,
+  resolvedEmail: string,
+  data: {
+    username: string;
+    displayName: string;
+    bio?: string;
+    photoURL?: string | null;
+  },
+  hasCompliance: boolean,
+): User {
+  const now = new Date();
+  return {
+    id: userId,
+    email: resolvedEmail,
+    username: data.username,
+    displayName: data.displayName,
+    bio: data.bio ?? '',
+    photoURL: data.photoURL ?? null,
+    followerCount: 0,
+    followingCount: 0,
+    fcmToken: null,
+    isPrivate: false,
+    onboardingComplete: true,
+    termsAcceptedAt: hasCompliance ? now : null,
+    privacyPolicyVersion: hasCompliance ? PRIVACY_POLICY_VERSION : null,
+    termsVersion: hasCompliance ? TERMS_VERSION : null,
+    ageConfirmedAt: hasCompliance ? now : null,
+    plan: 'free',
+    promotionCredits: 0,
+    stats: { ...DEFAULT_USER_STATS },
+    badges: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function getFirestoreWriteErrorMessage(error: unknown): string {
+  if (error instanceof FirebaseError) {
+    if (error.code === 'permission-denied') {
+      return 'Could not save your profile. Sign out, sign back in, then try again.';
+    }
+    if (error.code === 'unavailable') {
+      return 'Network error while saving your profile. Check your connection and try again.';
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return 'Failed to create user profile';
+}
+
 /** Live profile updates (stats, badges, counts) while signed in. */
 export function subscribeToUserProfile(
   userId: string,
@@ -350,12 +404,9 @@ export async function createUserProfile(
   assertFirebaseConfigured();
   const db = getFirebaseDb();
 
-  // Refresh the auth token so Firestore sees a verified email right after
-  // the inbox link is clicked (otherwise the first write can fail).
-  try {
-    await reloadCurrentUser();
-  } catch (error) {
-    console.warn('[Auth] createUserProfile token refresh failed', error);
+  const sessionUser = await reloadCurrentUser();
+  if (!sessionUser || sessionUser.uid !== userId) {
+    throw new Error('Your sign-in session expired. Please sign in again.');
   }
 
   const existingSnap = await getDoc(doc(db, 'users', userId));
@@ -369,45 +420,53 @@ export async function createUserProfile(
   const hasCompliance = data.compliance?.acceptedTerms && data.compliance?.confirmedAge;
   const resolvedEmail =
     email ||
-    getFirebaseAuth().currentUser?.email ||
-    getFirebaseAuth().currentUser?.providerData?.[0]?.email ||
+    sessionUser.email ||
+    sessionUser.providerData?.[0]?.email ||
     '';
 
-  await runTransaction(db, async (transaction) => {
-    const usernameRef = doc(db, 'usernames', usernameLower);
-    const usernameSnap = await transaction.get(usernameRef);
-    if (usernameSnap.exists()) {
-      throw new Error('Username is already taken');
-    }
+  try {
+    await runTransaction(db, async (transaction) => {
+      const usernameRef = doc(db, 'usernames', usernameLower);
+      const usernameSnap = await transaction.get(usernameRef);
+      if (usernameSnap.exists()) {
+        throw new Error('Username is already taken');
+      }
 
-    const userRef = doc(db, 'users', userId);
-    transaction.set(usernameRef, { userId });
-    transaction.set(userRef, {
-      email: resolvedEmail,
-      username: data.username,
-      usernameLower,
-      displayName: data.displayName,
-      displayNameLower: data.displayName.toLowerCase(),
-      bio: data.bio ?? '',
-      photoURL: data.photoURL ?? null,
-      followerCount: 0,
-      followingCount: 0,
-      fcmToken: null,
-      isPrivate: false,
-      onboardingComplete: true,
-      termsAcceptedAt: hasCompliance ? now : null,
-      privacyPolicyVersion: hasCompliance ? PRIVACY_POLICY_VERSION : null,
-      termsVersion: hasCompliance ? TERMS_VERSION : null,
-      ageConfirmedAt: hasCompliance ? now : null,
-      ...getDefaultUserFields(),
-      createdAt: now,
-      updatedAt: now,
+      const userRef = doc(db, 'users', userId);
+      transaction.set(usernameRef, { userId });
+      transaction.set(userRef, {
+        email: resolvedEmail,
+        username: data.username,
+        usernameLower,
+        displayName: data.displayName,
+        displayNameLower: data.displayName.toLowerCase(),
+        bio: data.bio ?? '',
+        photoURL: data.photoURL ?? null,
+        followerCount: 0,
+        followingCount: 0,
+        fcmToken: null,
+        isPrivate: false,
+        onboardingComplete: true,
+        termsAcceptedAt: hasCompliance ? now : null,
+        privacyPolicyVersion: hasCompliance ? PRIVACY_POLICY_VERSION : null,
+        termsVersion: hasCompliance ? TERMS_VERSION : null,
+        ageConfirmedAt: hasCompliance ? now : null,
+        ...getDefaultUserFields(),
+        createdAt: now,
+        updatedAt: now,
+      });
     });
-  });
+  } catch (error) {
+    throw new Error(getFirestoreWriteErrorMessage(error));
+  }
 
   const user = await loadCreatedUserProfile(userId);
-  if (!user) throw new Error('Failed to create user profile');
-  return user;
+  if (user) return user;
+
+  console.warn('[Auth] createUserProfile using local payload after successful write', {
+    uid: userId,
+  });
+  return buildUserProfileFromCreate(userId, resolvedEmail, data, hasCompliance);
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {

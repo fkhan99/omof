@@ -13,7 +13,13 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { onboardingSchema, OnboardingFormData, validateUsername } from '@/utils/validation';
 import { pickProfilePhotoFromLibrary } from '@/utils/pickProfilePhoto';
-import { createUserProfile, isUsernameAvailable, loadAuthUserProfile, logOut } from '@/services/firebase/auth';
+import {
+  createUserProfile,
+  isUsernameAvailable,
+  loadAuthUserProfile,
+  logOut,
+  reloadCurrentUser,
+} from '@/services/firebase/auth';
 import { deleteAuthOnly } from '@/services/firebase/accountDeletion';
 import { uploadProfilePhoto } from '@/services/firebase/users';
 import { useAuthStore } from '@/store/authStore';
@@ -27,8 +33,15 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 export default function OnboardingScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { firebaseUser, setProfile, reset, pendingSignupCompliance, isInitialized, isLoading } =
-    useAuthStore();
+  const {
+    firebaseUser,
+    setFirebaseUser,
+    setProfile,
+    reset,
+    pendingSignupCompliance,
+    isInitialized,
+    isLoading,
+  } = useAuthStore();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRemoveSignIn, setShowRemoveSignIn] = useState(false);
@@ -148,7 +161,15 @@ export default function OnboardingScreen() {
     setError(null);
 
     try {
-      const existing = await loadAuthUserProfile(firebaseUser.uid);
+      const refreshed = await reloadCurrentUser();
+      if (!refreshed) {
+        setError('Your session expired. Please sign in again.');
+        router.replace('/(auth)/login');
+        return;
+      }
+      setFirebaseUser(refreshed);
+
+      const existing = await loadAuthUserProfile(refreshed.uid);
       if (existing) {
         console.log('[Onboarding] profile already exists on submit — skipping create', {
           uid: firebaseUser.uid,
@@ -170,8 +191,8 @@ export default function OnboardingScreen() {
       }
 
       const profile = await createUserProfile(
-        firebaseUser.uid,
-        firebaseUser.email ?? '',
+        refreshed.uid,
+        refreshed.email ?? '',
         {
           username: data.username,
           displayName: data.displayName,
