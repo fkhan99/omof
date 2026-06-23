@@ -270,7 +270,9 @@ function buildUserProfileFromCreate(
   resolvedEmail: string,
   data: {
     username: string;
+    fullName: string;
     displayName: string;
+    location: string;
     bio?: string;
     photoURL?: string | null;
   },
@@ -281,9 +283,11 @@ function buildUserProfileFromCreate(
     id: userId,
     email: resolvedEmail,
     username: data.username,
+    fullName: data.fullName.trim(),
     displayName: data.displayName,
     bio: data.bio ?? '',
     photoURL: data.photoURL ?? null,
+    location: data.location.trim(),
     followerCount: 0,
     followingCount: 0,
     fcmToken: null,
@@ -359,7 +363,9 @@ export async function createUserProfile(
   email: string,
   data: {
     username: string;
+    fullName: string;
     displayName: string;
+    location: string;
     bio?: string;
     photoURL?: string | null;
     compliance?: { acceptedTerms: boolean; confirmedAge: boolean };
@@ -380,6 +386,8 @@ export async function createUserProfile(
   }
 
   const usernameLower = data.username.toLowerCase();
+  const fullNameLower = data.fullName.trim().toLowerCase();
+  const locationLower = data.location.trim().toLowerCase();
   const now = serverTimestamp();
   const hasCompliance = data.compliance?.acceptedTerms && data.compliance?.confirmedAge;
   const resolvedEmail =
@@ -402,8 +410,12 @@ export async function createUserProfile(
         email: resolvedEmail,
         username: data.username,
         usernameLower,
+        fullName: data.fullName.trim(),
+        fullNameLower,
         displayName: data.displayName,
         displayNameLower: data.displayName.toLowerCase(),
+        location: data.location.trim(),
+        locationLower,
         bio: data.bio ?? '',
         photoURL: data.photoURL ?? null,
         followerCount: 0,

@@ -23,6 +23,14 @@ export const loginSchema = z.object({
 
 export const signupSchema = z
   .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(3, 'Enter your full name')
+      .max(80, 'Full name is too long')
+      .refine((value) => /\S+\s+\S+/.test(value), {
+        message: 'Enter your first and last name',
+      }),
     email: emailSchema,
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
@@ -48,10 +56,23 @@ export const onboardingSchema = z.object({
     .min(USERNAME_MIN_LENGTH, `Username must be at least ${USERNAME_MIN_LENGTH} characters`)
     .max(USERNAME_MAX_LENGTH, `Username must be at most ${USERNAME_MAX_LENGTH} characters`)
     .regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers, and underscores allowed'),
+  fullName: z
+    .string()
+    .trim()
+    .min(3, 'Enter your full name')
+    .max(80, 'Full name is too long')
+    .refine((value) => /\S+\s+\S+/.test(value), {
+      message: 'Enter your first and last name',
+    }),
   displayName: z
     .string()
     .min(1, 'Display name is required')
     .max(DISPLAY_NAME_MAX_LENGTH, `Display name must be at most ${DISPLAY_NAME_MAX_LENGTH} characters`),
+  location: z
+    .string()
+    .trim()
+    .min(2, 'Enter your city or area')
+    .max(80, 'Location is too long'),
   bio: z.string().max(BIO_MAX_LENGTH, `Bio must be at most ${BIO_MAX_LENGTH} characters`).optional(),
 });
 

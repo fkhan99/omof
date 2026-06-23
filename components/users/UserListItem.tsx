@@ -44,7 +44,10 @@ function UserListItemComponent({
       >
         <Avatar uri={user.photoURL} name={user.displayName} size={48} showRing />
         <View style={styles.info}>
-          <Text style={styles.displayName}>{user.displayName}</Text>
+          <Text style={styles.displayName}>{user.fullName || user.displayName}</Text>
+          {user.fullName && user.displayName !== user.fullName ? (
+            <Text style={styles.alias}>Goes by {user.displayName}</Text>
+          ) : null}
           <Text style={styles.username}>@{user.username}</Text>
           {user.bio ? (
             <Text style={styles.bio} numberOfLines={1}>{user.bio}</Text>
@@ -92,6 +95,11 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.sm,
       fontWeight: '700',
       color: colors.text,
+    },
+    alias: {
+      fontSize: FONT_SIZES.xs,
+      color: colors.textSecondary,
+      marginTop: 1,
     },
     username: {
       fontSize: FONT_SIZES.xs,

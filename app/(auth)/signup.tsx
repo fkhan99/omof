@@ -23,13 +23,14 @@ export default function SignupScreen() {
     email?: string;
     reason?: string;
   }>();
-  const { setPendingSignupCompliance } = useAuthStore();
+  const { setPendingSignupCompliance, setPendingSignupFullName } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const showNoAccountPrompt = reason === 'no_account';
 
   const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
+      fullName: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -54,6 +55,7 @@ export default function SignupScreen() {
         acceptedTerms: data.acceptedTerms,
         confirmedAge: data.confirmedAge,
       });
+      setPendingSignupFullName(data.fullName.trim());
       const user = await signUp(data.email, data.password);
       if (requiresEmailVerification(user)) {
         router.replace('/(auth)/verify-email');
@@ -62,6 +64,7 @@ export default function SignupScreen() {
       }
     } catch (err) {
       setPendingSignupCompliance(null);
+      setPendingSignupFullName(null);
       setError(err instanceof Error ? err.message : 'Failed to create account');
     }
   };
@@ -87,6 +90,22 @@ export default function SignupScreen() {
         <SocialAuthButtons
           mode="signup"
           compliance={{ acceptedTerms, confirmedAge }}
+        />
+
+        <Controller
+          control={control}
+          name="fullName"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Full Name"
+              placeholder="First and last name"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.fullName?.message}
+              autoCapitalize="words"
+            />
+          )}
         />
 
         <Controller

@@ -63,7 +63,7 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId)
         && (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'displayNameLower', 'bio', 'photoURL', 'isPrivate', 'fcmToken', 'updatedAt'])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'displayNameLower', 'fullName', 'fullNameLower', 'bio', 'photoURL', 'location', 'locationLower', 'isPrivate', 'fcmToken', 'updatedAt'])
           || isOwnerStatsUpdate(userId)
           || isPromotionCreditDecrement(userId)
         );

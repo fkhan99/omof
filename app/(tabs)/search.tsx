@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, FlatList, StyleSheet, Alert, Text } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { searchUsers } from '@/services/firebase/users';
+import { searchUsers, getUsersByLocation } from '@/services/firebase/users';
 import { getPostsByMoodTag } from '@/services/firebase/posts';
 import { useAuthStore } from '@/store/authStore';
 import { getBlockedUserIds } from '@/services/firebase/safety';
@@ -51,6 +51,18 @@ export default function SearchScreen() {
     queryFn: () => getOutgoingFollowRequestIds(authUid!),
     enabled: !!authUid,
     staleTime: 0,
+  });
+
+  const locationLower = profile?.location?.trim().toLowerCase() ?? '';
+
+  const { data: nearbyUsers = [] } = useQuery({
+    queryKey: ['nearbyUsers', authUid, locationLower, followingIds.join(',')],
+    queryFn: async () => {
+      if (!profile || !locationLower) return [];
+      const blockedIds = await getBlockedUserIds(profile.id);
+      return getUsersByLocation(locationLower, profile.id, followingIds, blockedIds);
+    },
+    enabled: !!authUid && !!locationLower && searchTerm.length < 2,
   });
 
   const { data: users = [], isLoading } = useQuery({
@@ -155,6 +167,29 @@ export default function SearchScreen() {
         <Text style={styles.discoverTitle}>{SHARED_EXPERIENCES.title}</Text>
         <Text style={styles.discoverSubtitle}>{SHARED_EXPERIENCES.subtitle}</Text>
       </View>
+
+      {profile?.location ? (
+        <View style={styles.nearbySection}>
+          <Text style={styles.nearbyTitle}>{SHARED_EXPERIENCES.nearbyTitle}</Text>
+          <Text style={styles.nearbyLocation}>{profile.location}</Text>
+          {nearbyUsers.length === 0 ? (
+            <Text style={styles.nearbyEmpty}>{SHARED_EXPERIENCES.nearbyEmpty}</Text>
+          ) : (
+            nearbyUsers.map((user) => (
+              <UserListItem
+                key={user.id}
+                user={user}
+                showFollowButton
+                isFollowing={followingIds.includes(user.id)}
+                isRequested={requestedIds.includes(user.id)}
+                onFollow={() => handleFollowPress(user)}
+                onUnfollow={() => handleFollowPress(user)}
+              />
+            ))
+          )}
+        </View>
+      ) : null}
+
       <MoodFilterBar selectedMood={selectedMood} onSelect={setSelectedMood} />
     </View>
   );
@@ -183,6 +218,7 @@ export default function SearchScreen() {
             renderItem={({ item }) => <PostCard post={{ ...item, isPromoted: false }} variant="card" />}
             contentContainerStyle={styles.exploreList}
             keyboardShouldPersistTaps="handled"
+            extraData={`${followingIds.join(',')}-${requestedIds.join(',')}-${nearbyUsers.length}`}
             ListEmptyComponent={
               <EmptyState
                 icon="heart-outline"
@@ -211,7 +247,7 @@ export default function SearchScreen() {
             />
           )}
           keyboardShouldPersistTaps="handled"
-          extraData={`${followingIds.join(',')}-${requestedIds.join(',')}`}
+            extraData={`${followingIds.join(',')}-${requestedIds.join(',')}-${nearbyUsers.length}`}
         />
       )}
 
@@ -259,6 +295,31 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
       marginTop: 4,
+      lineHeight: 20,
+    },
+    nearbySection: {
+      marginBottom: SPACING.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    nearbyTitle: {
+      fontSize: FONT_SIZES.md,
+      fontWeight: '700',
+      color: colors.text,
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.sm,
+    },
+    nearbyLocation: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textSecondary,
+      paddingHorizontal: SPACING.md,
+      paddingBottom: SPACING.xs,
+    },
+    nearbyEmpty: {
+      fontSize: FONT_SIZES.sm,
+      color: colors.textMuted,
+      paddingHorizontal: SPACING.md,
+      paddingBottom: SPACING.md,
       lineHeight: 20,
     },
     exploreList: {

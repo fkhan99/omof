@@ -45,6 +45,7 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   spam: 'Spam',
   inappropriate_content: 'Inappropriate content',
   self_harm: 'Self-harm or dangerous content',
+  not_in_omof_style: 'Not in OMOF style',
   other: 'Other',
 };
 
@@ -96,9 +97,11 @@ export interface User {
   id: string;
   email: string;
   username: string;
+  fullName: string;
   displayName: string;
   bio: string;
   photoURL: string | null;
+  location: string;
   followerCount: number;
   followingCount: number;
   fcmToken: string | null;

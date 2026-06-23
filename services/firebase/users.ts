@@ -84,15 +84,54 @@ export async function searchUsers(searchTerm: string): Promise<User[]> {
     limit(SEARCH_RESULTS_LIMIT),
   );
 
-  const [usernameSnap, displayNameSnap] = await Promise.all([
+  const fullNameQuery = query(
+    collection(db, 'users'),
+    where('fullNameLower', '>=', term),
+    where('fullNameLower', '<=', term + '\uf8ff'),
+    limit(SEARCH_RESULTS_LIMIT),
+  );
+
+  const [usernameSnap, displayNameSnap, fullNameSnap] = await Promise.all([
     getDocs(usernameQuery),
     getDocs(displayNameQuery),
+    getDocs(fullNameQuery),
   ]);
 
   const usersMap = new Map<string, User>();
-  [...usernameSnap.docs, ...displayNameSnap.docs].forEach((docSnap) => {
+  [...usernameSnap.docs, ...displayNameSnap.docs, ...fullNameSnap.docs].forEach((docSnap) => {
     usersMap.set(docSnap.id, mapUserDoc(docSnap.id, docSnap.data()));
   });
 
   return Array.from(usersMap.values());
+}
+
+export async function getUsersByLocation(
+  locationLower: string,
+  viewerId: string,
+  followingIds: string[],
+  blockedIds: string[],
+): Promise<User[]> {
+  if (!locationLower.trim()) return [];
+
+  const db = getFirebaseDb();
+  const q = query(
+    collection(db, 'users'),
+    where('locationLower', '==', locationLower.trim().toLowerCase()),
+    limit(50),
+  );
+  const snap = await getDocs(q);
+
+  const followingSet = new Set(followingIds);
+  const blockedSet = new Set(blockedIds);
+
+  const users: User[] = [];
+  for (const docSnap of snap.docs) {
+    if (docSnap.id === viewerId) continue;
+    if (blockedSet.has(docSnap.id)) continue;
+    const user = mapUserDoc(docSnap.id, docSnap.data());
+    if (user.isPrivate && !followingSet.has(user.id)) continue;
+    users.push(user);
+  }
+
+  return users.slice(0, 20);
 }

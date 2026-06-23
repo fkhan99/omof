@@ -59,7 +59,9 @@ export const SHARED_EXPERIENCES = {
   emptyMessage: 'Be the first to share something real in this mood.',
   spotlightTitle: 'Community spotlight',
   spotlightSubtitle: 'Promoted posts from the community',
-  searchPlaceholder: 'Search people',
+  searchPlaceholder: 'Search by name or username',
+  nearbyTitle: 'People in your area',
+  nearbyEmpty: 'No one else in your area yet. Invite friends to join OMOF.',
   growthFilter: 'Growth updates',
   allMoods: 'All',
 } as const;

@@ -11,6 +11,7 @@ interface AuthState {
   firebaseUser: FirebaseUser | null;
   profile: User | null;
   pendingSignupCompliance: SignupCompliance | null;
+  pendingSignupFullName: string | null;
   isLoading: boolean;
   isInitialized: boolean;
   /**
@@ -26,6 +27,7 @@ interface AuthState {
   setProfileError: (hasError: boolean) => void;
   setPendingWelcome: (pendingWelcome: boolean) => void;
   setPendingSignupCompliance: (compliance: SignupCompliance | null) => void;
+  setPendingSignupFullName: (fullName: string | null) => void;
   setLoading: (loading: boolean) => void;
   setInitialized: (initialized: boolean) => void;
   reset: () => void;
@@ -35,6 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   firebaseUser: null,
   profile: null,
   pendingSignupCompliance: null,
+  pendingSignupFullName: null,
   isLoading: true,
   isInitialized: false,
   profileError: false,
@@ -44,6 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setProfileError: (profileError) => set({ profileError }),
   setPendingWelcome: (pendingWelcome) => set({ pendingWelcome }),
   setPendingSignupCompliance: (pendingSignupCompliance) => set({ pendingSignupCompliance }),
+  setPendingSignupFullName: (pendingSignupFullName) => set({ pendingSignupFullName }),
   setLoading: (isLoading) => set({ isLoading }),
   setInitialized: (isInitialized) => set({ isInitialized }),
   reset: () =>
@@ -51,6 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       firebaseUser: null,
       profile: null,
       pendingSignupCompliance: null,
+      pendingSignupFullName: null,
       isLoading: false,
       isInitialized: true,
       profileError: false,

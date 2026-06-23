@@ -1,6 +1,7 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { PostWithPromotion } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { MoodTagBadge } from '@/components/ui/MoodTagBadge';
@@ -9,10 +10,13 @@ import { PromotedLabel } from '@/components/posts/PromotedLabel';
 import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
 import { ReactionBar } from '@/components/reactions/ReactionBar';
 import { PostComments } from '@/components/comments/PostComments';
+import { OptionsMenu } from '@/components/ui/OptionsMenu';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useTheme } from '@/hooks/useTheme';
 import { usePostReaction } from '@/hooks/usePostReaction';
 import { usePostLiveCounts } from '@/hooks/usePostLiveCounts';
+import { useAuthStore } from '@/store/authStore';
 import { formatRelativeTime, formatReactionCount } from '@/utils';
 import { trackPromotionClick, trackPromotionImpression } from '@/services/firebase/promotions';
 
@@ -24,7 +28,11 @@ interface PostCardProps {
 function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
+  const { colors } = useTheme();
+  const authUid = useAuthStore((s) => s.firebaseUser?.uid);
   const isFeed = variant === 'feed';
+  const isOwnPost = authUid === post.authorId;
+  const [menuVisible, setMenuVisible] = useState(false);
   const impressionTracked = useRef(false);
   const { userReaction, react } = usePostReaction(post.id);
   usePostLiveCounts(post.id);
@@ -49,6 +57,14 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
     }
     router.push(`/user/${post.authorUsername}`);
   };
+
+  const handleReportPost = () => {
+    router.push({
+      pathname: '/report',
+      params: { targetType: 'post', targetId: post.id },
+    });
+  };
+
   const totalReactions =
     post.reactionCounts.relate +
     post.reactionCounts.been_there +
@@ -56,19 +72,32 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
 
   return (
     <View style={[styles.card, isFeed ? styles.cardFeed : styles.cardRounded]}>
-      <TouchableOpacity
-        style={styles.header}
-        onPress={openProfile}
-        accessibilityRole="button"
-        accessibilityLabel={`View profile of ${post.authorDisplayName}`}
-      >
-        <Avatar uri={post.authorPhotoURL} name={post.authorDisplayName} size={40} showRing />
-        <View style={styles.headerText}>
-          <Text style={styles.displayName}>{post.authorDisplayName}</Text>
-          <Text style={styles.meta}>@{post.authorUsername}</Text>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerMain}
+          onPress={openProfile}
+          accessibilityRole="button"
+          accessibilityLabel={`View profile of ${post.authorDisplayName}`}
+        >
+          <Avatar uri={post.authorPhotoURL} name={post.authorDisplayName} size={40} showRing />
+          <View style={styles.headerText}>
+            <Text style={styles.displayName}>{post.authorDisplayName}</Text>
+            <Text style={styles.meta}>@{post.authorUsername}</Text>
+          </View>
+        </TouchableOpacity>
+        <View style={styles.headerAside}>
+          <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={isOwnPost ? 'Post options' : 'Report post'}
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
-      </TouchableOpacity>
+      </View>
 
       <PostMedia post={post} mode="feed" onPress={openPost} />
 
@@ -90,14 +119,23 @@ function PostCardComponent({ post, variant = 'feed' }: PostCardProps) {
 
         <ReactionBar userReaction={userReaction} onReact={react} />
 
-        {isFeed ? (
-          <PostComments
-            postId={post.id}
-            commentCount={post.commentCount}
-            variant="feed"
-          />
-        ) : null}
+        <PostComments
+          postId={post.id}
+          commentCount={post.commentCount}
+          variant="feed"
+        />
       </View>
+
+      <OptionsMenu
+        visible={menuVisible}
+        title={isOwnPost ? 'Post options' : undefined}
+        onClose={() => setMenuVisible(false)}
+        options={
+          isOwnPost
+            ? [{ label: 'View post', onPress: openPost }]
+            : [{ label: 'Report post', destructive: true, onPress: handleReportPost }]
+        }
+      />
     </View>
   );
 }
@@ -119,55 +157,64 @@ function createStyles(colors: ThemeColors) {
       borderRadius: BORDER_RADIUS.lg,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.border,
+      marginHorizontal: SPACING.md,
       marginBottom: SPACING.md,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm + 2,
+      padding: SPACING.md,
+      paddingBottom: SPACING.sm,
+    },
+    headerMain: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    headerAside: {
+      alignItems: 'flex-end',
+      gap: SPACING.xs,
     },
     headerText: {
       marginLeft: SPACING.sm,
       flex: 1,
     },
     displayName: {
-      fontSize: FONT_SIZES.sm,
-      fontWeight: '700',
+      fontSize: FONT_SIZES.md,
+      fontWeight: '600',
       color: colors.text,
     },
     meta: {
-      fontSize: FONT_SIZES.xs,
+      fontSize: FONT_SIZES.sm,
       color: colors.textMuted,
-      marginTop: 1,
     },
     time: {
       fontSize: FONT_SIZES.xs,
       color: colors.textMuted,
     },
+    menuButton: {
+      padding: SPACING.xs,
+    },
     body: {
       paddingHorizontal: SPACING.md,
       paddingBottom: SPACING.md,
-      paddingTop: SPACING.sm,
-      gap: SPACING.xs,
     },
     moodRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      marginBottom: SPACING.sm,
     },
     reactionCount: {
       fontSize: FONT_SIZES.sm,
-      fontWeight: '700',
-      color: colors.text,
+      color: colors.textSecondary,
+      marginBottom: SPACING.xs,
     },
     caption: {
-      fontSize: FONT_SIZES.sm,
+      fontSize: FONT_SIZES.md,
       color: colors.text,
-      lineHeight: 20,
+      lineHeight: 22,
+      marginBottom: SPACING.sm,
     },
     captionUser: {
-      fontWeight: '700',
-      color: colors.text,
+      fontWeight: '600',
     },
   });
 }

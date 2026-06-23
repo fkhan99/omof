@@ -435,6 +435,7 @@ export async function getPostsByMoodTag(
   }
 
   items = await filterPostsForViewer(items, viewerId, followingIds, blockedIds);
+  items = items.filter((post) => post.authorId !== viewerId);
   items = items.slice(0, pageSize);
 
   const lastVisibleDoc = snap.docs[snap.docs.length - 1] ?? null;

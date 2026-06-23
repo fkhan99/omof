@@ -39,8 +39,9 @@ export default function OnboardingScreen() {
     setFirebaseUser,
     setProfile,
     setPendingWelcome,
-    reset,
+    reset: resetAuth,
     pendingSignupCompliance,
+    pendingSignupFullName,
     isInitialized,
     isLoading,
   } = useAuthStore();
@@ -50,10 +51,16 @@ export default function OnboardingScreen() {
   const [removePassword, setRemovePassword] = useState('');
   const [removingSignIn, setRemovingSignIn] = useState(false);
 
-  const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<OnboardingFormData>({
+  const { control, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
-    defaultValues: { username: '', displayName: '', bio: '' },
+    defaultValues: { username: '', fullName: '', displayName: '', location: '', bio: '' },
   });
+
+  useEffect(() => {
+    if (pendingSignupFullName) {
+      reset((values) => ({ ...values, fullName: pendingSignupFullName }));
+    }
+  }, [pendingSignupFullName, reset]);
 
   const displayName = watch('displayName');
   const username = watch('username');
@@ -199,7 +206,9 @@ export default function OnboardingScreen() {
         refreshed.email ?? '',
         {
           username: data.username,
+          fullName: data.fullName,
           displayName: data.displayName,
+          location: data.location,
           bio: data.bio,
           photoURL,
           compliance: pendingSignupCompliance ?? undefined,
@@ -266,6 +275,22 @@ export default function OnboardingScreen() {
 
         <Controller
           control={control}
+          name="fullName"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="Full Name"
+              placeholder="First and last name"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.fullName?.message}
+              autoCapitalize="words"
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
           name="displayName"
           render={({ field: { onChange, onBlur, value } }) => (
             <Input
@@ -275,6 +300,22 @@ export default function OnboardingScreen() {
               onChangeText={onChange}
               onBlur={onBlur}
               error={errors.displayName?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="location"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              label="City or area"
+              placeholder="Where you're based"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              error={errors.location?.message}
+              autoCapitalize="words"
             />
           )}
         />

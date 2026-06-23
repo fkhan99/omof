@@ -5,16 +5,14 @@ const PROFILE_PHOTO_PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   aspect: [1, 1],
   quality: 1,
+  allowsEditing: true,
   ...(Platform.OS === 'ios'
     ? {
-        allowsEditing: false,
         preferredAssetRepresentationMode:
           ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
         shouldDownloadFromNetwork: true,
       }
-    : {
-        allowsEditing: true,
-      }),
+    : {}),
 };
 
 export async function pickProfilePhotoFromLibrary(): Promise<string | null> {
