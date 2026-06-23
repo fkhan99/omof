@@ -27,6 +27,7 @@ export default function Root({ children }: { children: ReactNode }) {
         {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         <style dangerouslySetInnerHTML={{ __html: bootSplash }} />
+        <style dangerouslySetInnerHTML={{ __html: refreshGearKeyframes }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
       <body>
@@ -72,5 +73,11 @@ const bootSplash = `
   animation: omof-boot-spin 0.9s linear infinite;
 }
 @keyframes omof-boot-spin {
+  to { transform: rotate(360deg); }
+}`;
+
+const refreshGearKeyframes = `
+@keyframes refreshGearSpin {
+  from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }`;

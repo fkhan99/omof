@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
   FlatList,
   FlatListProps,
@@ -23,22 +23,13 @@ type PullRefreshFlatListProps<T> = FlatListProps<T> & {
 };
 
 function renderListHeader(
-  pullHeader: ReactNode,
   ListHeaderComponent?: FlatListProps<unknown>['ListHeaderComponent'],
 ): ReactElement | null {
-  const existing =
-    typeof ListHeaderComponent === 'function'
-      ? <ListHeaderComponent />
-      : ListHeaderComponent ?? null;
+  if (!ListHeaderComponent) return null;
 
-  if (!pullHeader && !existing) return null;
-
-  return (
-    <>
-      {pullHeader}
-      {existing}
-    </>
-  );
+  return typeof ListHeaderComponent === 'function'
+    ? <ListHeaderComponent />
+    : ListHeaderComponent;
 }
 
 export function PullRefreshFlatList<T>({
@@ -56,15 +47,19 @@ export function PullRefreshFlatList<T>({
   const refreshingRef = useRef(refreshing);
   const onRefreshRef = useRef(onRefresh);
   const [pullDistance, setPullDistance] = useState(0);
+  const [pendingRefresh, setPendingRefresh] = useState(false);
   refreshingRef.current = refreshing;
   onRefreshRef.current = onRefresh;
 
+  const isRefreshing = refreshing || pendingRefresh;
+
   const resetPullState = useCallback(() => {
+    if (isRefreshing) return;
     touchStartY.current = null;
     isDragging.current = false;
     pullDistanceRef.current = 0;
     setPullDistance(0);
-  }, []);
+  }, [isRefreshing]);
 
   const setPullDistanceSafe = useCallback((distance: number) => {
     pullDistanceRef.current = distance;
@@ -73,30 +68,40 @@ export function PullRefreshFlatList<T>({
 
   useEffect(() => {
     if (!refreshing) {
-      resetPullState();
+      setPendingRefresh(false);
+      touchStartY.current = null;
+      isDragging.current = false;
+      pullDistanceRef.current = 0;
+      setPullDistance(0);
     }
-  }, [refreshing, resetPullState]);
+  }, [refreshing]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = event.nativeEvent.contentOffset.y;
       scrollY.current = y;
 
-      if (y > 1 && (pullDistanceRef.current > 0 || isDragging.current)) {
-        resetPullState();
+      if (!isRefreshing && y > 1 && (pullDistanceRef.current > 0 || isDragging.current)) {
+        touchStartY.current = null;
+        isDragging.current = false;
+        pullDistanceRef.current = 0;
+        setPullDistance(0);
       }
 
       onScroll?.(event);
     },
-    [onScroll, resetPullState],
+    [isRefreshing, onScroll],
   );
 
   const updatePullDistance = useCallback(
     (pageY: number) => {
-      if (refreshingRef.current || touchStartY.current == null || !isDragging.current) return;
+      if (isRefreshing || touchStartY.current == null || !isDragging.current) return;
 
       if (scrollY.current > 1) {
-        resetPullState();
+        touchStartY.current = null;
+        isDragging.current = false;
+        pullDistanceRef.current = 0;
+        setPullDistance(0);
         return;
       }
 
@@ -107,36 +112,36 @@ export function PullRefreshFlatList<T>({
         setPullDistanceSafe(0);
       }
     },
-    [resetPullState, setPullDistanceSafe],
+    [isRefreshing, setPullDistanceSafe],
   );
 
   const beginDrag = useCallback(
     (pageY: number) => {
-      if (refreshingRef.current || scrollY.current > 1) return;
+      if (isRefreshing || scrollY.current > 1) return;
       touchStartY.current = pageY;
       isDragging.current = true;
     },
-    [],
+    [isRefreshing],
   );
 
   const endDrag = useCallback(() => {
     if (!isDragging.current) return;
 
     const shouldRefresh =
-      pullDistanceRef.current >= PULL_THRESHOLD && !refreshingRef.current;
-
-    if (shouldRefresh) {
-      void onRefreshRef.current();
-    } else {
-      resetPullState();
-      return;
-    }
+      pullDistanceRef.current >= PULL_THRESHOLD && !refreshingRef.current && !pendingRefresh;
 
     touchStartY.current = null;
     isDragging.current = false;
-    pullDistanceRef.current = 0;
-    setPullDistance(0);
-  }, [resetPullState]);
+
+    if (shouldRefresh) {
+      setPendingRefresh(true);
+      setPullDistanceSafe(0);
+      void onRefreshRef.current();
+      return;
+    }
+
+    resetPullState();
+  }, [pendingRefresh, resetPullState, setPullDistanceSafe]);
 
   const webPullHandlers =
     Platform.OS === 'web'
@@ -151,39 +156,40 @@ export function PullRefreshFlatList<T>({
             endDrag();
           },
           onTouchCancel: () => {
-            resetPullState();
+            if (!isRefreshing) {
+              resetPullState();
+            }
           },
         }
       : {};
 
-  const pullProgress = refreshing ? 1 : Math.min(1, pullDistance / PULL_THRESHOLD);
-  const indicatorHeight = refreshing
+  const showRefreshBar =
+    Platform.OS === 'web' && (isRefreshing || pullDistance > 8);
+
+  const indicatorHeight = isRefreshing
     ? REFRESH_BAR_HEIGHT
     : pullDistance > 8
       ? Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
       : 0;
 
-  const pullHeader = useMemo(
-    () =>
-      Platform.OS === 'web' && indicatorHeight > 0 ? (
-        <View style={[styles.refreshBar, { height: indicatorHeight }]}>
-          <RefreshGear spinning={refreshing} pullProgress={pullProgress} compact />
-        </View>
-      ) : null,
-    [indicatorHeight, pullProgress, refreshing],
-  );
+  const pullProgress = isRefreshing ? 1 : Math.min(1, pullDistance / PULL_THRESHOLD);
 
   const combinedListHeader = useCallback(
-    () => renderListHeader(pullHeader, ListHeaderComponent),
-    [ListHeaderComponent, pullHeader],
+    () => renderListHeader(ListHeaderComponent),
+    [ListHeaderComponent],
   );
 
   return (
     <View style={styles.wrapper}>
+      {showRefreshBar ? (
+        <View style={[styles.refreshBar, { height: indicatorHeight }]}>
+          <RefreshGear spinning={isRefreshing} pullProgress={pullProgress} compact />
+        </View>
+      ) : null}
       <FlatList
         {...rest}
         style={[styles.list, rest.style]}
-        ListHeaderComponent={combinedListHeader}
+        ListHeaderComponent={ListHeaderComponent ? combinedListHeader : undefined}
         {...webPullHandlers}
         onScroll={handleScroll}
         scrollEventThrottle={16}

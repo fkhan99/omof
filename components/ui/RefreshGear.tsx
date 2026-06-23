@@ -24,7 +24,7 @@ function RefreshGearComponent({
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
-    if (!spinning) {
+    if (!spinning || Platform.OS === 'web') {
       animationRef.current?.stop();
       animationRef.current = null;
       spin.stopAnimation();
@@ -68,9 +68,15 @@ function RefreshGearComponent({
       accessibilityLabel={spinning ? 'Refreshing' : 'Pull to refresh'}
     >
       {spinning ? (
-        <Animated.View style={[styles.iconWrap, Platform.OS === 'web' && styles.webSpin, { transform: [{ rotate: spinRotate }] }]}>
-          <Ionicons name="sync" size={22} color={colors.primary} />
-        </Animated.View>
+        Platform.OS === 'web' ? (
+          <View style={[styles.iconWrap, styles.webSpin]}>
+            <Ionicons name="sync" size={22} color={colors.primary} />
+          </View>
+        ) : (
+          <Animated.View style={[styles.iconWrap, { transform: [{ rotate: spinRotate }] }]}>
+            <Ionicons name="sync" size={22} color={colors.primary} />
+          </Animated.View>
+        )
       ) : (
         <View style={[styles.iconWrap, { transform: [{ rotate: pullRotate }] }]}>
           <Ionicons name="sync" size={22} color={colors.primary} />
