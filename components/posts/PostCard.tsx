@@ -7,6 +7,7 @@ import { MoodTagBadge } from '@/components/ui/MoodTagBadge';
 import { PostMedia } from '@/components/posts/PostMedia';
 import { PromotedLabel } from '@/components/posts/PromotedLabel';
 import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
+import { ReactionBar } from '@/components/reactions/ReactionBar';
 import { PostComments } from '@/components/comments/PostComments';
 import { FONT_SIZES, SPACING, BORDER_RADIUS, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';

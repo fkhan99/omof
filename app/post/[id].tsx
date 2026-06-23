@@ -29,6 +29,7 @@ import { formatRelativeTime, formatReactionCount } from '@/utils';
 import { GrowthUpdateCard } from '@/components/posts/GrowthUpdateCard';
 import { POSTS } from '@/constants/copy';
 import { Button } from '@/components/ui/Button';
+import { OptionsMenu } from '@/components/ui/OptionsMenu';
 import { confirmAction } from '@/utils/confirm';
 import { Ionicons } from '@expo/vector-icons';
 

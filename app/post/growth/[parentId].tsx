@@ -143,7 +143,11 @@ export default function GrowthUpdateScreen() {
         />
       </ScrollView>
 
-      <CrisisSupportModal visible={crisisVisible} onDismiss={() => setCrisisVisible(false)} />
+      <CrisisSupportModal
+        visible={crisisVisible}
+        onDismiss={() => setCrisisVisible(false)}
+        onEdit={() => setCrisisVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -1,4 +1,5 @@
 import { Post, PostWithPromotion } from '@/types';
+import { FEED } from '@/constants/copy';
 
 export type FeedListItem =
   | { type: 'header'; id: string; title: string; subtitle?: string }
@@ -19,8 +20,8 @@ export function buildFeedList(
     items.push({
       type: 'header',
       id: 'header-spotlight',
-      title: 'Community spotlight',
-      subtitle: 'Optional promoted posts — your circle feed below stays chronological.',
+      title: FEED.spotlightTitle,
+      subtitle: FEED.spotlightSubtitle,
     });
     for (const post of promotedPosts) {
       items.push({ type: 'post', id: `promoted-${post.id}`, post: { ...post, isPromoted: true } });
@@ -31,7 +32,7 @@ export function buildFeedList(
     items.push({
       type: 'header',
       id: 'header-connections',
-      title: 'From your connections',
+      title: FEED.connectionsTitle,
     });
     for (const post of regular) {
       items.push({ type: 'post', id: post.id, post: { ...post, isPromoted: false } });

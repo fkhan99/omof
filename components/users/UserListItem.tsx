@@ -5,6 +5,7 @@ import { User } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CONNECTIONS } from '@/constants/copy';
+import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
 interface UserListItemProps {
