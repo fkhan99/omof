@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { scheduleWelcome } from '@/utils/welcomeState';
 
 export default function OnboardingScreen() {
   const styles = useThemedStyles(createStyles);
@@ -203,6 +204,7 @@ export default function OnboardingScreen() {
       );
 
       setProfile(profile);
+      await scheduleWelcome(refreshed.uid);
       router.replace('/(tabs)');
     } catch (err) {
       const existingAfterError = await loadAuthUserProfile(firebaseUser.uid);

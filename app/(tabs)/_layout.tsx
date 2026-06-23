@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform, StyleSheet } from 'react-native';
@@ -8,6 +8,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { TabBarIconWithBadge } from '@/components/navigation/TabBarIconWithBadge';
 import { OmofWordmark } from '@/components/branding/OmofWordmark';
 import { ProfileHeaderActions } from '@/components/profile/ProfileHeaderActions';
+import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
+import { isWelcomePending, markWelcomeSeen } from '@/utils/welcomeState';
 
 type TabIconName = keyof typeof Ionicons.glyphMap;
 
@@ -24,8 +26,35 @@ export default function TabLayout() {
   const { colors } = useTheme();
   const router = useRouter();
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
+  const profile = useAuthStore((s) => s.profile);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  const dismissWelcome = useCallback(async () => {
+    const uid = firebaseUser?.uid;
+    setShowWelcome(false);
+    if (uid) {
+      await markWelcomeSeen(uid);
+    }
+  }, [firebaseUser?.uid]);
+
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid || !profile) {
+      setShowWelcome(false);
+      return;
+    }
+
+    let cancelled = false;
+    void isWelcomePending(uid).then((pending) => {
+      if (!cancelled) setShowWelcome(pending);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [firebaseUser?.uid, profile?.id]);
 
   // Guard against a lost or revoked session (e.g. account deleted on another
   // device) leaving the user stranded on an authenticated tab.
@@ -36,8 +65,9 @@ export default function TabLayout() {
   }, [isInitialized, isLoading, firebaseUser, router]);
 
   return (
-    <Tabs
-      screenOptions={{
+    <>
+      <Tabs
+        screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
@@ -66,8 +96,8 @@ export default function TabLayout() {
         headerShadowVisible: false,
         headerRight: () => <OmofWordmark />,
         sceneStyle: { backgroundColor: colors.background },
-      }}
-    >
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -134,7 +164,9 @@ export default function TabLayout() {
             />
           ),
         }}
-      />
-    </Tabs>
+        />
+      </Tabs>
+      <WelcomeModal visible={showWelcome} onDismiss={() => void dismissWelcome()} />
+    </>
   );
 }
