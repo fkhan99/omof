@@ -104,6 +104,7 @@ export async function sendVerificationEmail(): Promise<void> {
     const functions = getFunctions(getFirebaseApp());
     const requestVerificationEmail = httpsCallable(functions, 'requestVerificationEmail');
     await requestVerificationEmail();
+    await markVerificationEmailSent(user.uid);
     return;
   } catch (error) {
     const code =
@@ -113,6 +114,12 @@ export async function sendVerificationEmail(): Promise<void> {
       typeof (error as { code?: unknown }).code === 'string'
         ? (error as { code: string }).code
         : null;
+
+    if (code === 'functions/resource-exhausted') {
+      throw new Error(
+        getFirebaseAuthErrorMessage(error, 'Too many verification emails were sent recently.'),
+      );
+    }
 
     if (code === 'functions/failed-precondition') {
       // SMTP not configured on Cloud Functions — fall back to Firebase Auth mail.
