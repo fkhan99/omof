@@ -33,10 +33,15 @@ import { DEFAULT_USER_STATS } from '@/constants/gamification';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
+import { VERIFICATION_TOO_MANY_REQUESTS_MESSAGE } from '@/constants/emailVerification';
 import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
-import { markVerificationEmailSent } from '@/utils/verificationEmailSendState';
+import {
+  assertVerificationResendAllowed,
+  markVerificationEmailSent,
+} from '@/utils/verificationEmailSendState';
 import { scheduleWelcome } from '@/utils/welcomeState';
 import { useAuthStore } from '@/store/authStore';
+import { requiresEmailVerification } from '@/services/firebase/socialAuth';
 import { updateFcmToken } from './pushToken';
 
 async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {
@@ -83,16 +88,39 @@ export async function signUp(email: string, password: string): Promise<FirebaseU
 
   try {
     const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-    return credential.user;
+    const user = credential.user;
+
+    // Single client-side verification send — only here, right after account creation.
+    if (requiresEmailVerification(user)) {
+      try {
+        await deliverVerificationEmail(user);
+        await markVerificationEmailSent(user.uid);
+      } catch (error) {
+        throw new Error(
+          getFirebaseAuthErrorMessage(
+            error,
+            'Account created but the verification email could not be sent. Try resending from the next screen.',
+          ),
+        );
+      }
+    }
+
+    return user;
   } catch (error) {
+    if (error instanceof Error && error.message.includes('verification email')) {
+      throw error;
+    }
     throw new Error(
       getFirebaseAuthErrorMessage(error, 'Failed to create account. Please try again.'),
     );
   }
 }
 
-/** Sends (or resends) a verification email to the currently signed-in user. */
-export async function sendVerificationEmail(): Promise<void> {
+/**
+ * Manual resend from the verify-email screen only. Uses Cloud Functions SMTP —
+ * does not call sendEmailVerification() (reserved for the one-time signup send).
+ */
+export async function resendVerificationEmail(): Promise<void> {
   assertFirebaseConfigured();
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
@@ -101,13 +129,14 @@ export async function sendVerificationEmail(): Promise<void> {
     throw new Error('You must be signed in to verify your email.');
   }
 
+  await assertVerificationResendAllowed(user.uid);
+
   try {
     const { getFunctions, httpsCallable } = await import('firebase/functions');
     const functions = getFunctions(getFirebaseApp());
     const requestVerificationEmail = httpsCallable(functions, 'requestVerificationEmail');
     await requestVerificationEmail();
     await markVerificationEmailSent(user.uid);
-    return;
   } catch (error) {
     const code =
       typeof error === 'object' &&
@@ -118,44 +147,22 @@ export async function sendVerificationEmail(): Promise<void> {
         : null;
 
     if (code === 'functions/resource-exhausted') {
-      throw new Error(
-        getFirebaseAuthErrorMessage(error, 'Too many verification emails were sent recently.'),
-      );
+      throw new Error(VERIFICATION_TOO_MANY_REQUESTS_MESSAGE);
     }
 
     if (code === 'functions/failed-precondition') {
-      // SMTP not configured on Cloud Functions — fall back to Firebase Auth mail.
-      try {
-        await deliverVerificationEmail(user);
-        await markVerificationEmailSent(user.uid);
-        return;
-      } catch (clientError) {
-        throw new Error(
-          getFirebaseAuthErrorMessage(
-            clientError,
-            'Failed to send verification email. Ask the OMOF team to finish email setup, or try again later.',
-          ),
-        );
-      }
+      throw new Error(
+        'Verification email is not configured on the server yet. Please try again later or contact support.',
+      );
     }
 
-    if (code === 'functions/unavailable' || code === 'functions/internal') {
-      try {
-        await deliverVerificationEmail(user);
-        await markVerificationEmailSent(user.uid);
-        return;
-      } catch (clientError) {
-        throw new Error(
-          getFirebaseAuthErrorMessage(
-            clientError,
-            'Failed to send verification email. Please try again.',
-          ),
-        );
-      }
+    const authCode = getAuthErrorCode(error);
+    if (authCode === 'auth/too-many-requests') {
+      throw new Error(VERIFICATION_TOO_MANY_REQUESTS_MESSAGE);
     }
 
     throw new Error(
-      getFirebaseAuthErrorMessage(error, 'Failed to send verification email. Please try again.'),
+      getFirebaseAuthErrorMessage(error, 'Failed to resend verification email. Please try again.'),
     );
   }
 }

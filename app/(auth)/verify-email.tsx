@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import {
   logOut,
   reloadCurrentUser,
-  sendVerificationEmail,
+  resendVerificationEmail,
   loadAuthUserProfile,
 } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
@@ -21,15 +21,17 @@ import {
   VERIFICATION_SENDER_EMAIL,
 } from '@/constants/email';
 import {
+  VERIFICATION_EMAIL_SENT_MESSAGE,
+  VERIFICATION_RESEND_COOLDOWN_SECONDS,
+} from '@/constants/emailVerification';
+import {
   getVerificationEmailSentAt,
   resendCooldownRemainingSeconds,
-  shouldAutoSendVerificationEmail,
 } from '@/utils/verificationEmailSendState';
 import { Button } from '@/components/ui/Button';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 
-const RESEND_COOLDOWN_SECONDS = 30;
 const POLL_INTERVAL_MS = 4000;
 
 export default function VerifyEmailScreen() {
@@ -39,16 +41,12 @@ export default function VerifyEmailScreen() {
   const email = firebaseUser?.email ?? 'your email';
 
   const [checking, setChecking] = useState(false);
-  const [initialSending, setInitialSending] = useState(true);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isSwitchingEmailRef = useRef(false);
 
-  // If there is no signed-in user (e.g. opened directly), go back to login —
-  // unless the user intentionally signed out to pick a different email, or
-  // an inbox verification link is being applied on this page.
   useEffect(() => {
     if (
       Platform.OS === 'web' &&
@@ -62,7 +60,6 @@ export default function VerifyEmailScreen() {
     }
   }, [firebaseUser, router]);
 
-  // Inbox link with oobCode (legacy /verify-email URLs).
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const search = window.location.search;
@@ -86,44 +83,22 @@ export default function VerifyEmailScreen() {
     })();
   }, [router, setFirebaseUser]);
 
-  // Send once after signup — not on every refresh or return to this screen.
+  // Restore resend cooldown from signup send — never auto-send on mount or refresh.
   useEffect(() => {
     const uid = firebaseUser?.uid;
     if (!uid) return;
 
-    let cancelled = false;
-
-    void (async () => {
-      const eligible = await shouldAutoSendVerificationEmail(uid);
-      if (cancelled) return;
-
-      if (!eligible) {
-        const sentAt = await getVerificationEmailSentAt(uid);
+    void getVerificationEmailSentAt(uid).then((sentAt) => {
+      setCooldown(resendCooldownRemainingSeconds(sentAt, VERIFICATION_RESEND_COOLDOWN_SECONDS));
+      if (sentAt !== null) {
+        setMessage(VERIFICATION_EMAIL_SENT_MESSAGE);
+      } else {
         setMessage(
-          `We already sent a verification link to ${firebaseUser.email ?? 'your email'}. Check your inbox, or tap Resend when the timer ends.`,
+          'Check your inbox for the verification email from when you signed up. You can resend below if needed.',
         );
-        setCooldown(resendCooldownRemainingSeconds(sentAt, RESEND_COOLDOWN_SECONDS));
-        setInitialSending(false);
-        return;
       }
-
-      try {
-        await sendVerificationEmail();
-        if (cancelled) return;
-        setMessage(`Verification email sent to ${firebaseUser.email ?? 'your email'}.`);
-        setCooldown(RESEND_COOLDOWN_SECONDS);
-      } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Failed to send verification email.');
-      } finally {
-        if (!cancelled) setInitialSending(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [firebaseUser]);
+    });
+  }, [firebaseUser?.uid]);
 
   const proceedIfVerified = useCallback(async (): Promise<boolean> => {
     const refreshed = await reloadCurrentUser();
@@ -136,7 +111,6 @@ export default function VerifyEmailScreen() {
     return false;
   }, [router, setFirebaseUser]);
 
-  // Poll for verification and re-check when the app returns to foreground.
   useEffect(() => {
     let cancelled = false;
 
@@ -173,7 +147,6 @@ export default function VerifyEmailScreen() {
     };
   }, [proceedIfVerified]);
 
-  // Resend cooldown timer.
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
@@ -183,7 +156,6 @@ export default function VerifyEmailScreen() {
   const handleCheck = async () => {
     setChecking(true);
     setError(null);
-    setMessage(null);
     try {
       const verified = await proceedIfVerified();
       if (!verified) {
@@ -197,13 +169,14 @@ export default function VerifyEmailScreen() {
   };
 
   const handleResend = async () => {
+    if (cooldown > 0) return;
+
     setResending(true);
     setError(null);
-    setMessage(null);
     try {
-      await sendVerificationEmail();
-      setMessage(`Verification email sent to ${email}.`);
-      setCooldown(RESEND_COOLDOWN_SECONDS);
+      await resendVerificationEmail();
+      setMessage(VERIFICATION_EMAIL_SENT_MESSAGE);
+      setCooldown(VERIFICATION_RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resend verification email.');
     } finally {
@@ -242,8 +215,7 @@ export default function VerifyEmailScreen() {
       <View style={styles.content}>
         <Text style={styles.logo} accessibilityRole="header">Verify your email</Text>
         <Text style={styles.subtitle}>
-          {initialSending ? 'Sending a verification link to' : 'Check your inbox at'}
-          {'\n'}
+          Check your inbox at{'\n'}
           <Text style={styles.email}>{email}</Text>
         </Text>
         <Text style={styles.body}>
@@ -254,10 +226,6 @@ export default function VerifyEmailScreen() {
           This screen updates automatically once you're verified.
         </Text>
 
-        {initialSending ? (
-          <Text style={styles.body}>Sending verification email…</Text>
-        ) : null}
-
         {message ? <Text style={styles.success} accessibilityRole="alert">{message}</Text> : null}
         {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
 
@@ -265,7 +233,6 @@ export default function VerifyEmailScreen() {
           title="I've verified — continue"
           onPress={handleCheck}
           loading={checking}
-          disabled={initialSending}
           style={styles.primaryButton}
         />
 
@@ -273,7 +240,7 @@ export default function VerifyEmailScreen() {
           title={cooldown > 0 ? `Resend email (${cooldown}s)` : 'Resend email'}
           onPress={handleResend}
           loading={resending}
-          disabled={initialSending || cooldown > 0 || resending}
+          disabled={cooldown > 0 || resending}
           variant="secondary"
           style={styles.secondaryButton}
         />

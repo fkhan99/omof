@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, SignupFormData } from '@/utils/validation';
 import { signUp } from '@/services/firebase/auth';
 import { useAuthStore } from '@/store/authStore';
+import { isEmailVerificationRequired } from '@/constants/emailVerification';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -54,7 +55,11 @@ export default function SignupScreen() {
         confirmedAge: data.confirmedAge,
       });
       await signUp(data.email, data.password);
-      router.replace('/(auth)/verify-email');
+      if (isEmailVerificationRequired()) {
+        router.replace('/(auth)/verify-email');
+      } else {
+        router.replace('/');
+      }
     } catch (err) {
       setPendingSignupCompliance(null);
       setError(err instanceof Error ? err.message : 'Failed to create account');
