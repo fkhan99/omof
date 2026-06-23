@@ -111,12 +111,6 @@ export function SocialAuthButtons({ mode, disabled = false, compliance = null }:
 
   return (
     <View style={styles.container}>
-      <View style={styles.dividerRow}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
       {showGoogle ? (
         Platform.OS === 'web' ? (
           <GoogleSignInButton
@@ -150,6 +144,12 @@ export function SocialAuthButtons({ mode, disabled = false, compliance = null }:
       ) : null}
 
       {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
+
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>or</Text>
+        <View style={styles.dividerLine} />
+      </View>
     </View>
   );
 }
