@@ -276,6 +276,30 @@ export async function getUserProfile(userId: string): Promise<User | null> {
   return mapUserDoc(snap.id, snap.data());
 }
 
+/** Read a profile immediately after create — web cache can lag behind the write. */
+async function loadCreatedUserProfile(userId: string): Promise<User | null> {
+  const db = getFirebaseDb();
+  const userRef = doc(db, 'users', userId);
+  const retryDelaysMs = [0, 200, 500, 1000];
+
+  for (const delay of retryDelaysMs) {
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    try {
+      const snap = await getDocFromServer(userRef);
+      if (snap.exists()) {
+        return mapUserDoc(snap.id, snap.data()!);
+      }
+    } catch (error) {
+      console.warn('[Auth] loadCreatedUserProfile server read failed', error);
+    }
+  }
+
+  return getUserProfile(userId);
+}
+
 /** Live profile updates (stats, badges, counts) while signed in. */
 export function subscribeToUserProfile(
   userId: string,
@@ -325,6 +349,14 @@ export async function createUserProfile(
   assertFirebaseConfigured();
   const db = getFirebaseDb();
 
+  // Refresh the auth token so Firestore sees a verified email right after
+  // the inbox link is clicked (otherwise the first write can fail).
+  try {
+    await reloadCurrentUser();
+  } catch (error) {
+    console.warn('[Auth] createUserProfile token refresh failed', error);
+  }
+
   const existingSnap = await getDoc(doc(db, 'users', userId));
   if (existingSnap.exists()) {
     console.log('[Auth] createUserProfile skipped — users/{uid} already exists', { uid: userId });
@@ -334,6 +366,11 @@ export async function createUserProfile(
   const usernameLower = data.username.toLowerCase();
   const now = serverTimestamp();
   const hasCompliance = data.compliance?.acceptedTerms && data.compliance?.confirmedAge;
+  const resolvedEmail =
+    email ||
+    getFirebaseAuth().currentUser?.email ||
+    getFirebaseAuth().currentUser?.providerData?.[0]?.email ||
+    '';
 
   await runTransaction(db, async (transaction) => {
     const usernameRef = doc(db, 'usernames', usernameLower);
@@ -345,7 +382,7 @@ export async function createUserProfile(
     const userRef = doc(db, 'users', userId);
     transaction.set(usernameRef, { userId });
     transaction.set(userRef, {
-      email,
+      email: resolvedEmail,
       username: data.username,
       usernameLower,
       displayName: data.displayName,
@@ -367,7 +404,7 @@ export async function createUserProfile(
     });
   });
 
-  const user = await getUserProfile(userId);
+  const user = await loadCreatedUserProfile(userId);
   if (!user) throw new Error('Failed to create user profile');
   return user;
 }

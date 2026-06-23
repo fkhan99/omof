@@ -169,17 +169,27 @@ export default function OnboardingScreen() {
         photoURL = await uploadProfilePhoto(firebaseUser.uid, photoUri);
       }
 
-      const profile = await createUserProfile(firebaseUser.uid, firebaseUser.email!, {
-        username: data.username,
-        displayName: data.displayName,
-        bio: data.bio,
-        photoURL,
-        compliance: pendingSignupCompliance ?? undefined,
-      });
+      const profile = await createUserProfile(
+        firebaseUser.uid,
+        firebaseUser.email ?? '',
+        {
+          username: data.username,
+          displayName: data.displayName,
+          bio: data.bio,
+          photoURL,
+          compliance: pendingSignupCompliance ?? undefined,
+        },
+      );
 
       setProfile(profile);
       router.replace('/(tabs)');
     } catch (err) {
+      const existingAfterError = await loadAuthUserProfile(firebaseUser.uid);
+      if (existingAfterError) {
+        setProfile(existingAfterError);
+        router.replace('/(tabs)');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to complete onboarding');
     }
   };
