@@ -371,11 +371,8 @@ export async function createGrowthUpdate(
     throw new Error('Original moment not found.');
   }
 
-  if (!MOOD_TAGS.includes(parent.moodTag)) {
-    throw new Error(
-      'This moment uses an outdated mood tag. Edit the original moment, pick a mood, then try again.',
-    );
-  }
+  const moodTag = MOOD_TAGS.includes(parent.moodTag) ? parent.moodTag : 'Other';
+  const parentCaptionText = parent.caption ?? '';
 
   await refreshAuthTokenForFirestore();
 
@@ -391,10 +388,13 @@ export async function createGrowthUpdate(
       imageURL: parent.imageURL ?? null,
       videoURL: parent.videoURL ?? null,
       caption,
-      moodTag: parent.moodTag,
+      moodTag,
       postKind: 'growth_update' satisfies PostKind,
       parentPostId,
-      parentCaption: parent.caption.length > 120 ? `${parent.caption.slice(0, 117)}...` : parent.caption,
+      parentCaption:
+        parentCaptionText.length > 120
+          ? `${parentCaptionText.slice(0, 117)}...`
+          : parentCaptionText,
       reactionCounts: { relate: 0, been_there: 0, sending_support: 0 },
       commentCount: 0,
       createdAt: serverTimestamp(),
@@ -409,7 +409,7 @@ export async function createGrowthUpdate(
         );
       }
       throw new Error(
-        'Could not save your growth update. Try signing out and back in. If this keeps happening, the app rules may need updating.',
+        'Could not save your growth update. Try again in a moment, or edit the original moment and retry.',
       );
     }
     throw error;

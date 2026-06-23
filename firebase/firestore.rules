@@ -85,7 +85,10 @@ service cloud.firestore {
 
     function isOriginalMomentPost(postId) {
       let parentData = get(/databases/$(database)/documents/posts/$(postId)).data;
-      return parentData.postKind == 'moment' || parentData.postKind == null;
+      // Missing postKind = legacy moment. Explicit null also allowed. Do not use
+      // `field == null` alone — absent fields are undefined in rules, not null.
+      let kind = parentData.get('postKind', 'moment');
+      return kind == 'moment' || kind == null;
     }
 
     function isValidGrowthUpdateCreate() {
