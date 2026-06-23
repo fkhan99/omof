@@ -79,6 +79,11 @@ export default function SignupScreen() {
           </View>
         )}
 
+        <SocialAuthButtons
+          mode="signup"
+          compliance={{ acceptedTerms, confirmedAge }}
+        />
+
         <Controller
           control={control}
           name="email"
