@@ -5,7 +5,6 @@ import { useAuthStore } from '@/store/authStore';
 import {
   logOut,
   reloadCurrentUser,
-  resendVerificationEmail,
   loadAuthUserProfile,
 } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
@@ -174,6 +173,7 @@ export default function VerifyEmailScreen() {
     setResending(true);
     setError(null);
     try {
+      const { resendVerificationEmail } = await import('@/services/firebase/verificationEmailResend');
       await resendVerificationEmail();
       setMessage(VERIFICATION_EMAIL_SENT_MESSAGE);
       setCooldown(VERIFICATION_RESEND_COOLDOWN_SECONDS);

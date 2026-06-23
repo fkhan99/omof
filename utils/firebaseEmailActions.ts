@@ -1,28 +1,17 @@
 import { Platform } from 'react-native';
-import type { ActionCodeSettings } from 'firebase/auth';
 import { applyActionCode, checkActionCode } from 'firebase/auth';
 import { getFirebaseAuth, isFirebaseConfigured } from '@/services/firebase/config';
 import { loadAuthUserProfile, reloadCurrentUser } from '@/services/firebase/auth';
 import { normalizeEmail } from '@/utils';
 import type { useRouter } from 'expo-router';
+import {
+  getEmailVerificationActionSettings,
+  getEmailVerificationContinueUrl,
+} from '@/utils/emailVerificationSettings';
+
+export { getEmailVerificationActionSettings, getEmailVerificationContinueUrl };
 
 type VerificationRouter = ReturnType<typeof useRouter>;
-
-const HOSTED_ONBOARDING_URL = 'https://omof.net/onboarding';
-
-export function getEmailVerificationContinueUrl(): string {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.origin) {
-    return `${window.location.origin}/onboarding`;
-  }
-  return HOSTED_ONBOARDING_URL;
-}
-
-export function getEmailVerificationActionSettings(): ActionCodeSettings {
-  return {
-    url: getEmailVerificationContinueUrl(),
-    handleCodeInApp: true,
-  };
-}
 
 export interface EmailVerificationResult {
   verified: boolean;
