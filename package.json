@@ -26,7 +26,7 @@
     "firebase:purge-user": "npm run firebase:build:functions && node scripts/purge-user-data.mjs",
     "firebase:verify-email-help": "node scripts/email-verification-help.mjs",
     "firebase:configure-verification-smtp": "node scripts/configure-verification-smtp.mjs",
-    "web:export": "expo export --platform web --output-dir dist-web",
+    "web:export": "expo export --platform web --output-dir dist-web --clear",
     "web:deploy": "npm run web:export && node scripts/prepare-web-hosting.mjs && cd firebase && npx firebase-tools deploy --only hosting --project omof-eed24",
     "firebase:deploy:all": "npm run firebase:deploy:backend && npm run web:deploy",
     "firebase:deploy:media-rules": "cd firebase && npx firebase-tools deploy --only firestore:rules,storage --project omof-eed24",

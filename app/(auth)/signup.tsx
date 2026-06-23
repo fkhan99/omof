@@ -54,8 +54,8 @@ export default function SignupScreen() {
         acceptedTerms: data.acceptedTerms,
         confirmedAge: data.confirmedAge,
       });
-      await signUp(data.email, data.password);
-      if (isEmailVerificationRequired()) {
+      const user = await signUp(data.email, data.password);
+      if (requiresEmailVerification(user)) {
         router.replace('/(auth)/verify-email');
       } else {
         router.replace('/');
