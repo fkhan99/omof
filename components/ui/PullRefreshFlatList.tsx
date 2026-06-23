@@ -156,13 +156,11 @@ export function PullRefreshFlatList<T>({
         }
       : {};
 
-  const showIndicator = refreshing || (isDragging.current && pullDistance > 8);
   const pullProgress = refreshing ? 1 : Math.min(1, pullDistance / PULL_THRESHOLD);
-  const indicatorHeight =
-    refreshing || (pullDistance > 8 && isDragging.current)
-      ? refreshing
-        ? REFRESH_BAR_HEIGHT
-        : Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
+  const indicatorHeight = refreshing
+    ? REFRESH_BAR_HEIGHT
+    : pullDistance > 8
+      ? Math.min(REFRESH_BAR_HEIGHT, Math.max(SPACING.lg, pullDistance * 0.55))
       : 0;
 
   const pullHeader = useMemo(
