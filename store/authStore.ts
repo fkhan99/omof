@@ -38,9 +38,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   isInitialized: false,
   profileError: false,
+  pendingWelcome: false,
   setFirebaseUser: (firebaseUser) => set({ firebaseUser }),
   setProfile: (profile) => set({ profile, profileError: false }),
   setProfileError: (profileError) => set({ profileError }),
+  setPendingWelcome: (pendingWelcome) => set({ pendingWelcome }),
   setPendingSignupCompliance: (pendingSignupCompliance) => set({ pendingSignupCompliance }),
   setLoading: (isLoading) => set({ isLoading }),
   setInitialized: (isInitialized) => set({ isInitialized }),
@@ -52,5 +54,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       isLoading: false,
       isInitialized: true,
       profileError: false,
+      pendingWelcome: false,
     }),
 }));

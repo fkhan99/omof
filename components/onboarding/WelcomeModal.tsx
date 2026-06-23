@@ -51,6 +51,7 @@ export function WelcomeModal({ visible, onDismiss }: WelcomeModalProps) {
       animationType="fade"
       onRequestClose={onDismiss}
       accessibilityViewIsModal
+      statusBarTranslucent
     >
       <View style={styles.overlay}>
         <Pressable

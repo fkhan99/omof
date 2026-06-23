@@ -24,35 +24,8 @@ export default function TabLayout() {
   const { colors } = useTheme();
   const router = useRouter();
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
-  const profile = useAuthStore((s) => s.profile);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const isLoading = useAuthStore((s) => s.isLoading);
-  const [showWelcome, setShowWelcome] = useState(false);
-
-  const dismissWelcome = useCallback(async () => {
-    const uid = firebaseUser?.uid;
-    setShowWelcome(false);
-    if (uid) {
-      await markWelcomeSeen(uid);
-    }
-  }, [firebaseUser?.uid]);
-
-  useEffect(() => {
-    const uid = firebaseUser?.uid;
-    if (!uid || !profile) {
-      setShowWelcome(false);
-      return;
-    }
-
-    let cancelled = false;
-    void isWelcomePending(uid).then((pending) => {
-      if (!cancelled) setShowWelcome(pending);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [firebaseUser?.uid, profile?.id]);
 
   // Guard against a lost or revoked session (e.g. account deleted on another
   // device) leaving the user stranded on an authenticated tab.
@@ -63,8 +36,7 @@ export default function TabLayout() {
   }, [isInitialized, isLoading, firebaseUser, router]);
 
   return (
-    <>
-      <Tabs
+    <Tabs
         screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
@@ -162,9 +134,7 @@ export default function TabLayout() {
             />
           ),
         }}
-        />
-      </Tabs>
-      <WelcomeModal visible={showWelcome} onDismiss={() => void dismissWelcome()} />
-    </>
+      />
+    </Tabs>
   );
 }

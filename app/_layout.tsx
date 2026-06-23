@@ -55,6 +55,7 @@ function RootLayoutNav() {
         />
         <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
       </Stack>
+      <WelcomeModalHost />
     </>
   );
 }

@@ -38,6 +38,7 @@ export default function OnboardingScreen() {
     firebaseUser,
     setFirebaseUser,
     setProfile,
+    setPendingWelcome,
     reset,
     pendingSignupCompliance,
     isInitialized,
@@ -204,6 +205,7 @@ export default function OnboardingScreen() {
       );
 
       setProfile(profile);
+      setPendingWelcome(true);
       await scheduleWelcome(refreshed.uid);
       router.replace('/(tabs)');
     } catch (err) {
