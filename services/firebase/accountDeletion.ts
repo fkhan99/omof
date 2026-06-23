@@ -163,10 +163,7 @@ async function deleteAuthUserWithPassword(
 
 async function deleteAuthUserViaFunction(): Promise<boolean> {
   try {
-    const { getFunctions, httpsCallable } = await import('firebase/functions');
-    const functions = getFunctions(getFirebaseApp());
-    const deleteMyAuthUser = httpsCallable(functions, 'deleteMyAuthUser');
-    await deleteMyAuthUser({});
+    await deleteCurrentAuthUserViaFunction();
     return true;
   } catch (error) {
     console.warn('[compliance] admin auth delete fallback failed', error);
