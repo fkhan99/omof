@@ -256,6 +256,7 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.sm,
       fontWeight: '700',
       textDecorationLine: 'underline',
+      textDecorationColor: colors.link,
     },
   });
 }

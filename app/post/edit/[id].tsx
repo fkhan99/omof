@@ -241,7 +241,8 @@ function createStyles(colors: ThemeColors) {
     },
     moodChipText: {
       fontSize: FONT_SIZES.sm,
-      color: colors.textMuted,
+      color: colors.textSecondary,
+      fontWeight: '500',
     },
     moodChipTextSelected: {
       color: colors.selected,

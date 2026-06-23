@@ -533,7 +533,8 @@ function createStyles(colors: ThemeColors) {
     },
     moodText: {
       fontSize: FONT_SIZES.sm,
-      color: colors.textMuted,
+      color: colors.textSecondary,
+      fontWeight: '500',
     },
     moodTextSelected: {
       color: colors.selected,

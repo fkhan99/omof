@@ -211,8 +211,8 @@ function createStyles(colors: ThemeColors) {
     },
     optionText: {
       fontSize: FONT_SIZES.sm,
-      color: colors.textMuted,
-      fontWeight: '600',
+      color: colors.textSecondary,
+      fontWeight: '500',
     },
     optionTextSelected: {
       color: colors.selected,
