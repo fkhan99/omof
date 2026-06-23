@@ -19,8 +19,15 @@ import { editPostSchema, EditPostFormData } from '@/utils/validation';
 import { MOOD_TAGS, MoodTag } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { CrisisSupportModal } from '@/components/safety/CrisisSupportModal';
-import { containsCrisisLanguage } from '@/utils';
+import {
+  ModerationBlockedModal,
+  ModerationGrowthModal,
+  ModerationSupportModal,
+} from '@/components/moderation/ModerationModals';
+import {
+  applyReflectionToCaption,
+  evaluatePrePublish,
+} from '@/services/moderation/prePublish';
 import {
   FONT_SIZES,
   SPACING,
@@ -38,7 +45,11 @@ export default function EditPostScreen() {
   const router = useRouter();
   const { firebaseUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [showCrisisModal, setShowCrisisModal] = useState(false);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | undefined>();
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showGrowthModal, setShowGrowthModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<EditPostFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: post, isLoading, error: loadError, refetch } = useQuery({
@@ -82,23 +93,34 @@ export default function EditPostScreen() {
     },
   });
 
-  const handleCrisisEdit = () => {
-    setShowCrisisModal(false);
-  };
-
-  const handleCrisisDismiss = () => {
-    setShowCrisisModal(false);
+  const savePost = (data: EditPostFormData) => {
+    saveMutation.mutate(data);
   };
 
   const onSubmit = (data: EditPostFormData) => {
     if (!firebaseUser || !post || post.authorId !== firebaseUser.uid) return;
 
-    if (containsCrisisLanguage(data.caption)) {
-      setShowCrisisModal(true);
+    const evaluation = evaluatePrePublish(data.caption);
+    if (!evaluation.canPublish) {
+      if (evaluation.blockedMessage) {
+        setBlockedMessage(evaluation.blockedMessage);
+        setShowBlockedModal(true);
+        return;
+      }
+      if (evaluation.requiresSupportFlow) {
+        setPendingFormData(data);
+        setShowSupportModal(true);
+        return;
+      }
+      if (evaluation.requiresGrowthFlow) {
+        setPendingFormData(data);
+        setShowGrowthModal(true);
+        return;
+      }
       return;
     }
 
-    saveMutation.mutate(data);
+    savePost({ ...data, caption: evaluation.caption });
   };
 
   if (isLoading) return <LoadingState />;
@@ -175,10 +197,40 @@ export default function EditPostScreen() {
         style={styles.saveButton}
       />
 
-      <CrisisSupportModal
-        visible={showCrisisModal}
-        onEdit={handleCrisisEdit}
-        onDismiss={handleCrisisDismiss}
+      <ModerationBlockedModal
+        visible={showBlockedModal}
+        message={blockedMessage}
+        onClose={() => setShowBlockedModal(false)}
+      />
+      <ModerationSupportModal
+        visible={showSupportModal}
+        onEdit={() => {
+          setShowSupportModal(false);
+          setPendingFormData(null);
+        }}
+        onSubmitForReview={() => {
+          setShowSupportModal(false);
+          if (pendingFormData) {
+            savePost(pendingFormData);
+          }
+          setPendingFormData(null);
+        }}
+      />
+      <ModerationGrowthModal
+        visible={showGrowthModal}
+        onCancel={() => {
+          setShowGrowthModal(false);
+          setPendingFormData(null);
+        }}
+        onContinue={(reflection) => {
+          setShowGrowthModal(false);
+          if (!pendingFormData) return;
+          savePost({
+            ...pendingFormData,
+            caption: applyReflectionToCaption(pendingFormData.caption, reflection),
+          });
+          setPendingFormData(null);
+        }}
       />
     </ScrollView>
     </KeyboardAvoidingView>

@@ -25,8 +25,15 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { POSTS } from '@/constants/copy';
 import { CAPTION_MAX_LENGTH, FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { containsProfanity, containsCrisisLanguage } from '@/utils';
-import { CrisisSupportModal } from '@/components/safety/CrisisSupportModal';
+import {
+  ModerationBlockedModal,
+  ModerationGrowthModal,
+  ModerationSupportModal,
+} from '@/components/moderation/ModerationModals';
+import {
+  applyReflectionToCaption,
+  evaluatePrePublish,
+} from '@/services/moderation/prePublish';
 
 const growthSchema = z.object({
   caption: z
@@ -47,7 +54,11 @@ export default function GrowthUpdateScreen() {
   const profile = useAuthStore((s) => s.profile);
   const firebaseUser = useAuthStore((s) => s.firebaseUser);
   const setFirebaseUser = useAuthStore((s) => s.setFirebaseUser);
-  const [crisisVisible, setCrisisVisible] = useState(false);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | undefined>();
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showGrowthModal, setShowGrowthModal] = useState(false);
+  const [pendingCaption, setPendingCaption] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
@@ -120,30 +131,8 @@ export default function GrowthUpdateScreen() {
     }
   };
 
-  const onSubmit = async (data: GrowthFormData) => {
-    setSubmitError(null);
-    if (!profile || !firebaseUser) {
-      Alert.alert('Please wait', 'Your profile is still loading. Try again in a moment.');
-      return;
-    }
-    if (!parentId) {
-      Alert.alert('Missing post', 'Could not find the original moment.');
-      return;
-    }
-
-    const status = await getEmailVerificationStatus();
-    if (status.user) {
-      setFirebaseUser(status.user);
-    }
-
-    if (containsProfanity(data.caption)) {
-      Alert.alert('Please revise', 'Remove inappropriate language before sharing.');
-      return;
-    }
-    if (containsCrisisLanguage(data.caption)) {
-      setCrisisVisible(true);
-      return;
-    }
+  const shareGrowth = async (caption: string) => {
+    if (!profile || !firebaseUser || !parentId) return;
 
     setIsSharing(true);
     try {
@@ -155,7 +144,7 @@ export default function GrowthUpdateScreen() {
           photoURL: profile.photoURL,
         },
         parentId,
-        data.caption.trim(),
+        caption.trim(),
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['myPosts'] }),
@@ -172,6 +161,45 @@ export default function GrowthUpdateScreen() {
     } finally {
       setIsSharing(false);
     }
+  };
+
+  const onSubmit = async (data: GrowthFormData) => {
+    setSubmitError(null);
+    if (!profile || !firebaseUser) {
+      Alert.alert('Please wait', 'Your profile is still loading. Try again in a moment.');
+      return;
+    }
+    if (!parentId) {
+      Alert.alert('Missing post', 'Could not find the original moment.');
+      return;
+    }
+
+    const status = await getEmailVerificationStatus();
+    if (status.user) {
+      setFirebaseUser(status.user);
+    }
+
+    const evaluation = evaluatePrePublish(data.caption);
+    if (!evaluation.canPublish) {
+      if (evaluation.blockedMessage) {
+        setBlockedMessage(evaluation.blockedMessage);
+        setShowBlockedModal(true);
+        return;
+      }
+      if (evaluation.requiresSupportFlow) {
+        setPendingCaption(data.caption);
+        setShowSupportModal(true);
+        return;
+      }
+      if (evaluation.requiresGrowthFlow) {
+        setPendingCaption(data.caption);
+        setShowGrowthModal(true);
+        return;
+      }
+      return;
+    }
+
+    await shareGrowth(evaluation.caption);
   };
 
   const handleSharePress = () => {
@@ -252,10 +280,37 @@ export default function GrowthUpdateScreen() {
         {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
       </ScrollView>
 
-      <CrisisSupportModal
-        visible={crisisVisible}
-        onDismiss={() => setCrisisVisible(false)}
-        onEdit={() => setCrisisVisible(false)}
+      <ModerationBlockedModal
+        visible={showBlockedModal}
+        message={blockedMessage}
+        onClose={() => setShowBlockedModal(false)}
+      />
+      <ModerationSupportModal
+        visible={showSupportModal}
+        onEdit={() => {
+          setShowSupportModal(false);
+          setPendingCaption(null);
+        }}
+        onSubmitForReview={() => {
+          setShowSupportModal(false);
+          if (pendingCaption) {
+            void shareGrowth(pendingCaption);
+          }
+          setPendingCaption(null);
+        }}
+      />
+      <ModerationGrowthModal
+        visible={showGrowthModal}
+        onCancel={() => {
+          setShowGrowthModal(false);
+          setPendingCaption(null);
+        }}
+        onContinue={(reflection) => {
+          setShowGrowthModal(false);
+          if (!pendingCaption) return;
+          void shareGrowth(applyReflectionToCaption(pendingCaption, reflection));
+          setPendingCaption(null);
+        }}
       />
     </KeyboardAvoidingView>
   );

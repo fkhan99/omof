@@ -345,53 +345,6 @@ export const onFollowDeleted = functions.firestore
     await syncFollowCounts(follow.followerId, follow.followingId);
   });
 
-async function deleteDocsByQuery(
-  query: admin.firestore.Query,
-): Promise<void> {
-  const snap = await query.get();
-  const docs = snap.docs;
-
-  for (let i = 0; i < docs.length; i += 400) {
-    const batch = db.batch();
-    docs.slice(i, i + 400).forEach((docSnap) => batch.delete(docSnap.ref));
-    await batch.commit();
-  }
-}
-
-/**
- * Extract the bucket and object path from a Firebase download URL.
- * URLs look like: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<encodedPath>?alt=media&token=...
- */
-function parseStorageDownloadUrl(
-  url: string,
-): { bucket: string; path: string } | null {
-  if (typeof url !== 'string' || !url.includes('/o/')) return null;
-  try {
-    const bucketMatch = url.match(/\/b\/([^/]+)\/o\//);
-    const afterO = url.split('/o/')[1];
-    if (!bucketMatch || !afterO) return null;
-    const path = decodeURIComponent(afterO.split('?')[0]);
-    return { bucket: bucketMatch[1], path };
-  } catch {
-    return null;
-  }
-}
-
-/** Best-effort delete of a Storage object given its download URL. */
-async function deleteStorageFileFromUrl(url: string | null | undefined): Promise<void> {
-  if (!url) return;
-  const parsed = parseStorageDownloadUrl(url);
-  if (!parsed) return;
-
-  try {
-    await admin.storage().bucket(parsed.bucket).file(parsed.path).delete();
-    functions.logger.info('[moderation] deleted media', parsed);
-  } catch (error) {
-    // Object may not exist or already be gone — non-fatal.
-    functions.logger.warn('[moderation] media delete skipped', { ...parsed, error });
-  }
-}
-
 /**
  * Auto-moderation: when content accumulates flags from enough distinct users,
  * hide it and send to the admin review queue.

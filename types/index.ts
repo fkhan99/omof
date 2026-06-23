@@ -45,10 +45,10 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   obscenity: 'Obscene or explicit content',
   harassment: 'Harassment or bullying',
   hate_speech: 'Hate speech',
-  spam: 'Spam',
+  spam: 'Spam or scam',
   inappropriate_content: 'Inappropriate content',
-  self_harm: 'Self-harm or dangerous content',
-  not_in_omof_style: 'Not in OMOF style',
+  self_harm: 'Encourages self-harm',
+  not_in_omof_style: 'Not authentic / trolling',
   other: 'Other',
 };
 

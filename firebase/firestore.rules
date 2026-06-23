@@ -105,13 +105,36 @@ service cloud.firestore {
       return request.resource.data.postKind == 'growth_update';
     }
 
+    function isValidModerationStatus(status) {
+      return status in ['SAFE', 'SUPPORT_NEEDED', 'NEEDS_GROWTH', 'REVIEW'];
+    }
+
+    function isValidModerationCreate() {
+      let d = request.resource.data;
+      return isValidModerationStatus(d.moderationStatus)
+        && d.moderationReason is string
+        && d.moderationReason.size() <= 500
+        && d.moderationConfidence is number
+        && d.moderationConfidence >= 0
+        && d.moderationConfidence <= 1
+        && d.reviewRequired is bool
+        && d.isHidden is bool
+        && d.get('reportCount', 0) == 0
+        && (
+          (d.moderationStatus == 'REVIEW' && d.isHidden == true && d.reviewRequired == true)
+          || (d.moderationStatus in ['SAFE', 'NEEDS_GROWTH'] && d.isHidden == false && d.reviewRequired == false)
+          || (d.moderationStatus == 'SUPPORT_NEEDED' && d.isHidden == true && d.reviewRequired == true)
+        );
+    }
+
     function canCreatePost() {
       return request.resource.data.authorId == request.auth.uid
         && request.resource.data.caption.size() <= 280
         && isValidMoodTag(request.resource.data.moodTag)
         && (request.resource.data.postKind == null || isValidPostKind(request.resource.data.postKind))
         && isValidGrowthUpdateCreate()
-        && (isGrowthUpdateCreate() ? isAuthenticated() : isVerified());
+        && (isGrowthUpdateCreate() ? isAuthenticated() : isVerified())
+        && isValidModerationCreate();
     }
 
     function isGrowthFieldUpdate() {
@@ -147,7 +170,8 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isVerified()
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.text.size() <= 500;
+        && request.resource.data.text.size() <= 500
+        && isValidModerationCreate();
       allow delete: if isAuthenticated()
         && (
           resource.data.authorId == request.auth.uid

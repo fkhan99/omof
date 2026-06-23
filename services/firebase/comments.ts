@@ -75,6 +75,7 @@ export async function addComment(
     replyTo
     && replyTo.replyToUserId !== author.id
     && replyTo.replyToUserId !== post?.authorId
+    && !moderation.isHidden
   ) {
     await createNotification({
       recipientId: replyTo.replyToUserId,

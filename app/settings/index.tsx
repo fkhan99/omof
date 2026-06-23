@@ -196,6 +196,13 @@ export default function SettingsScreen() {
       </View>
 
       <Text style={styles.sectionTitle}>Safety & community</Text>
+      {profile?.isAdmin ? (
+        <SettingsItem
+          icon="shield-outline"
+          title="Moderation queue"
+          onPress={() => router.push('/admin/moderation')}
+        />
+      ) : null}
       <SettingsItem
         icon="document-text-outline"
         title="Community Guidelines"

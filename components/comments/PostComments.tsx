@@ -18,10 +18,19 @@ import { CommentItem } from '@/components/comments/CommentItem';
 import { Comment } from '@/types';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
-import { containsProfanity } from '@/utils';
 import { confirmAction } from '@/utils/confirm';
 import { RESPONSES } from '@/constants/copy';
 import { patchPostInCaches } from '@/lib/postQueryCache';
+import {
+  ModerationBlockedModal,
+  ModerationGrowthModal,
+  ModerationSupportModal,
+} from '@/components/moderation/ModerationModals';
+import {
+  applyReflectionToCaption,
+  evaluatePrePublish,
+} from '@/services/moderation/prePublish';
+import { MODERATION_COPY } from '@/constants/moderation';
 
 interface PostCommentsProps {
   postId: string;
@@ -401,6 +410,40 @@ export function PostComments({
           {commentError}
         </Text>
       ) : null}
+
+      <ModerationBlockedModal
+        visible={showBlockedModal}
+        message={blockedMessage}
+        onClose={() => setShowBlockedModal(false)}
+      />
+      <ModerationSupportModal
+        visible={showSupportModal}
+        onEdit={() => {
+          setShowSupportModal(false);
+          setPendingCommentText(null);
+        }}
+        onSubmitForReview={() => {
+          setShowSupportModal(false);
+          if (pendingCommentText) {
+            submitComment(pendingCommentText, { submitForReview: true });
+          }
+          setPendingCommentText(null);
+        }}
+      />
+      <ModerationGrowthModal
+        visible={showGrowthModal}
+        onCancel={() => {
+          setShowGrowthModal(false);
+          setPendingCommentText(null);
+        }}
+        onContinue={(reflection) => {
+          setShowGrowthModal(false);
+          if (!pendingCommentText) return;
+          const enriched = applyReflectionToCaption(pendingCommentText, reflection);
+          submitComment(enriched, { reflectionApplied: true });
+          setPendingCommentText(null);
+        }}
+      />
     </View>
   );
 }
