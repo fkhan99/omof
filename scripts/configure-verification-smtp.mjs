@@ -17,7 +17,7 @@
  * so the client-side fallback uses the same sender (not your personal Gmail).
  */
 
-import { spawnSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,19 +40,34 @@ if (!smtpPass) {
   process.exit(1);
 }
 
+/** Quote args so Windows cmd.exe does not treat `<` / `>` as redirection. */
+function shellArg(value) {
+  if (process.platform === 'win32') {
+    if (/[\s^&|<>"()]/.test(value)) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+  }
+
+  if (/[^\w@./:=+-]/.test(value)) {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+  }
+  return value;
+}
+
+function runFirebaseTools(...firebaseArgs) {
+  const cmd = ['npx', 'firebase-tools', ...firebaseArgs].map(shellArg).join(' ');
+  try {
+    execSync(cmd, { cwd: firebaseDir, stdio: 'inherit', shell: true });
+    return 0;
+  } catch (error) {
+    return error.status ?? 1;
+  }
+}
 
 console.log(`Setting verification SMTP for project ${projectId}…`);
 console.log(`  user: ${smtpUser}`);
 console.log(`  from: ${smtpFrom}`);
-
-function runFirebaseTools(...firebaseArgs) {
-  const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  return spawnSync(npx, ['firebase-tools', ...firebaseArgs], {
-    cwd: firebaseDir,
-    stdio: 'inherit',
-    shell: true,
-  });
-}
 
 // functions.config() is legacy but still used by verificationEmail.ts until migrated.
 console.log('Enabling legacy Runtime Config CLI (required until config migration)…');
@@ -62,11 +77,11 @@ const enableLegacy = runFirebaseTools(
   '--project',
   projectId,
 );
-if (enableLegacy.status !== 0 && enableLegacy.status !== null) {
-  process.exit(enableLegacy.status);
+if (enableLegacy !== 0) {
+  process.exit(enableLegacy);
 }
 
-const result = runFirebaseTools(
+const setConfig = runFirebaseTools(
   'functions:config:set',
   `omof.smtp_host=${smtpHost}`,
   `omof.smtp_port=${smtpPort}`,
@@ -77,8 +92,8 @@ const result = runFirebaseTools(
   projectId,
 );
 
-if (result.status !== 0) {
-  process.exit(result.status ?? 1);
+if (setConfig !== 0) {
+  process.exit(setConfig);
 }
 
 console.log('\nSMTP config saved.');
