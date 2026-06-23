@@ -20,6 +20,11 @@ import {
   FIREBASE_AUTH_FALLBACK_SENDER,
   VERIFICATION_SENDER_EMAIL,
 } from '@/constants/email';
+import {
+  getVerificationEmailSentAt,
+  resendCooldownRemainingSeconds,
+  shouldAutoSendVerificationEmail,
+} from '@/utils/verificationEmailSendState';
 import { Button } from '@/components/ui/Button';
 import { FONT_SIZES, SPACING, ThemeColors } from '@/constants/theme';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -39,7 +44,6 @@ export default function VerifyEmailScreen() {
   const [cooldown, setCooldown] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const autoSentRef = useRef(false);
   const isSwitchingEmailRef = useRef(false);
 
   // If there is no signed-in user (e.g. opened directly), go back to login —
@@ -82,22 +86,43 @@ export default function VerifyEmailScreen() {
     })();
   }, [router, setFirebaseUser]);
 
-  // Always send when this screen opens so success/error reflects a real attempt.
+  // Send once after signup — not on every refresh or return to this screen.
   useEffect(() => {
-    if (!firebaseUser || autoSentRef.current) return;
-    autoSentRef.current = true;
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
 
-    void sendVerificationEmail()
-      .then(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const eligible = await shouldAutoSendVerificationEmail(uid);
+      if (cancelled) return;
+
+      if (!eligible) {
+        const sentAt = await getVerificationEmailSentAt(uid);
+        setMessage(
+          `We already sent a verification link to ${firebaseUser.email ?? 'your email'}. Check your inbox, or tap Resend when the timer ends.`,
+        );
+        setCooldown(resendCooldownRemainingSeconds(sentAt, RESEND_COOLDOWN_SECONDS));
+        setInitialSending(false);
+        return;
+      }
+
+      try {
+        await sendVerificationEmail();
+        if (cancelled) return;
         setMessage(`Verification email sent to ${firebaseUser.email ?? 'your email'}.`);
         setCooldown(RESEND_COOLDOWN_SECONDS);
-      })
-      .catch((err) => {
+      } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to send verification email.');
-      })
-      .finally(() => {
-        setInitialSending(false);
-      });
+      } finally {
+        if (!cancelled) setInitialSending(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [firebaseUser]);
 
   const proceedIfVerified = useCallback(async (): Promise<boolean> => {
@@ -217,7 +242,8 @@ export default function VerifyEmailScreen() {
       <View style={styles.content}>
         <Text style={styles.logo} accessibilityRole="header">Verify your email</Text>
         <Text style={styles.subtitle}>
-          We sent a verification link to{'\n'}
+          {initialSending ? 'Sending a verification link to' : 'Check your inbox at'}
+          {'\n'}
           <Text style={styles.email}>{email}</Text>
         </Text>
         <Text style={styles.body}>

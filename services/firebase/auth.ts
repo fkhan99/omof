@@ -125,6 +125,7 @@ export async function sendVerificationEmail(): Promise<void> {
       // SMTP not configured on Cloud Functions — fall back to Firebase Auth mail.
       try {
         await deliverVerificationEmail(user);
+        await markVerificationEmailSent(user.uid);
         return;
       } catch (clientError) {
         throw new Error(
@@ -139,6 +140,7 @@ export async function sendVerificationEmail(): Promise<void> {
     if (code === 'functions/unavailable' || code === 'functions/internal') {
       try {
         await deliverVerificationEmail(user);
+        await markVerificationEmailSent(user.uid);
         return;
       } catch (clientError) {
         throw new Error(

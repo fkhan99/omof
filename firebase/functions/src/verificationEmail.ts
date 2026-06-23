@@ -78,10 +78,30 @@ export function createRequestVerificationEmailCallable() {
       );
     }
 
-    const link = await admin.auth().generateEmailVerificationLink(email, {
-      url: VERIFY_CONTINUE_URL,
-      handleCodeInApp: true,
-    });
+    let link: string;
+    try {
+      link = await admin.auth().generateEmailVerificationLink(email, {
+        url: VERIFY_CONTINUE_URL,
+        handleCodeInApp: true,
+      });
+    } catch (error: unknown) {
+      const authCode =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code?: unknown }).code === 'string'
+          ? (error as { code: string }).code
+          : null;
+
+      if (authCode === 'auth/too-many-requests') {
+        throw new functions.https.HttpsError(
+          'resource-exhausted',
+          'Too many verification emails were sent recently. Check your inbox or wait about 30 minutes.',
+        );
+      }
+
+      throw error;
+    }
 
     const transporter = nodemailer.createTransport({
       host: smtp.host,
