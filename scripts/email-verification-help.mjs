@@ -30,7 +30,7 @@ if (!emailArg || !emailArg.includes('@')) {
 
 const admin = require('firebase-admin');
 const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? 'omof-eed24';
-const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/verify-email';
+const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/onboarding';
 
 admin.initializeApp({
   projectId,
@@ -61,7 +61,7 @@ async function main() {
 
   const link = await admin.auth().generateEmailVerificationLink(emailArg, {
     url: VERIFY_CONTINUE_URL,
-    handleCodeInApp: false,
+    handleCodeInApp: true,
   });
 
   console.log('\nVerification link (share if Gmail never receives Firebase mail):\n');

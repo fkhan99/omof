@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 
-const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/verify-email';
+const VERIFY_CONTINUE_URL = 'https://omof-eed24.web.app/onboarding';
 
 interface SmtpConfig {
   host: string;
@@ -76,7 +76,7 @@ export function createRequestVerificationEmailCallable() {
 
     const link = await admin.auth().generateEmailVerificationLink(email, {
       url: VERIFY_CONTINUE_URL,
-      handleCodeInApp: false,
+      handleCodeInApp: true,
     });
 
     const transporter = nodemailer.createTransport({

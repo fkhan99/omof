@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginFormData } from '@/utils/validation';
@@ -26,14 +26,31 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 export default function LoginScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { email: emailParam, verified } = useLocalSearchParams<{
+    email?: string;
+    verified?: string;
+  }>();
   const [error, setError] = useState<string | null>(null);
+  const [verifiedNotice, setVerifiedNotice] = useState<string | null>(null);
 
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
   const firebaseReady = isFirebaseConfigured();
+
+  useEffect(() => {
+    if (typeof emailParam === 'string' && emailParam.trim()) {
+      setValue('email', emailParam.trim());
+    }
+  }, [emailParam, setValue]);
+
+  useEffect(() => {
+    if (verified === '1') {
+      setVerifiedNotice('Your email is verified. Sign in to finish creating your profile.');
+    }
+  }, [verified]);
 
   const redirectToSignup = (email: string) => {
     router.replace({
@@ -59,11 +76,11 @@ export default function LoginScreen() {
       const profile = await loadAuthUserProfile(user.uid);
 
       if (!profile) {
-        router.replace('/');
+        router.replace('/(onboarding)');
         return;
       }
 
-      router.replace('/');
+      router.replace('/(tabs)');
     } catch (err) {
       const code = getAuthErrorCode(err);
 
@@ -98,6 +115,10 @@ export default function LoginScreen() {
 
         <View style={styles.formCard}>
         <SocialAuthButtons mode="login" disabled={!firebaseReady} />
+
+        {verifiedNotice ? (
+          <Text style={styles.verifiedNotice} accessibilityRole="alert">{verifiedNotice}</Text>
+        ) : null}
 
         <Controller
           control={control}
@@ -200,6 +221,13 @@ function createStyles(colors: ThemeColors) {
       fontSize: FONT_SIZES.sm,
       marginBottom: SPACING.md,
       textAlign: 'center',
+    },
+    verifiedNotice: {
+      color: colors.primary,
+      fontSize: FONT_SIZES.sm,
+      marginBottom: SPACING.md,
+      textAlign: 'center',
+      lineHeight: 20,
     },
     link: {
       alignSelf: 'center',

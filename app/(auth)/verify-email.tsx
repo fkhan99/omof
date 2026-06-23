@@ -6,11 +6,14 @@ import {
   logOut,
   reloadCurrentUser,
   sendVerificationEmail,
+  loadAuthUserProfile,
 } from '@/services/firebase/auth';
 import { clearUserPostQueries } from '@/lib/queryClient';
 import { confirmAction } from '@/utils/confirm';
 import {
   completeEmailVerificationFromLink,
+  isEmailVerificationLink,
+  navigateAfterEmailVerification,
   stripEmailActionQueryFromUrl,
 } from '@/utils/firebaseEmailActions';
 import { Button } from '@/components/ui/Button';
@@ -36,26 +39,33 @@ export default function VerifyEmailScreen() {
   const isSwitchingEmailRef = useRef(false);
 
   // If there is no signed-in user (e.g. opened directly), go back to login —
-  // unless the user intentionally signed out to pick a different email.
+  // unless the user intentionally signed out to pick a different email, or
+  // an inbox verification link is being applied on this page.
   useEffect(() => {
+    if (
+      Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      isEmailVerificationLink(window.location.search)
+    ) {
+      return;
+    }
     if (!firebaseUser && !isSwitchingEmailRef.current) {
       router.replace('/(auth)/login');
     }
   }, [firebaseUser, router]);
 
-  // Complete verification when the inbox link opens this page with oobCode (web).
+  // Inbox link with oobCode (legacy /verify-email URLs).
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const search = window.location.search;
-    if (!search.includes('oobCode') || !search.includes('mode=verifyEmail')) return;
+    if (!isEmailVerificationLink(search)) return;
 
     void (async () => {
       try {
-        const refreshed = await completeEmailVerificationFromLink(search);
-        stripEmailActionQueryFromUrl();
-        if (refreshed?.emailVerified) {
-          setFirebaseUser(refreshed);
-          router.replace('/');
+        const result = await completeEmailVerificationFromLink(search);
+        stripEmailActionQueryFromUrl('/verify-email');
+        if (result?.verified) {
+          await navigateAfterEmailVerification(router, result, setFirebaseUser);
         }
       } catch (err) {
         setError(
@@ -63,7 +73,7 @@ export default function VerifyEmailScreen() {
             ? err.message
             : 'That verification link is invalid or expired. Resend a new email.',
         );
-        stripEmailActionQueryFromUrl();
+        stripEmailActionQueryFromUrl('/verify-email');
       }
     })();
   }, [router, setFirebaseUser]);
@@ -90,7 +100,8 @@ export default function VerifyEmailScreen() {
     const refreshed = await reloadCurrentUser();
     if (refreshed?.emailVerified) {
       setFirebaseUser(refreshed);
-      router.replace('/');
+      const profile = await loadAuthUserProfile(refreshed.uid);
+      router.replace(profile ? '/(tabs)' : '/(onboarding)');
       return true;
     }
     return false;
@@ -206,10 +217,10 @@ export default function VerifyEmailScreen() {
           <Text style={styles.email}>{email}</Text>
         </Text>
         <Text style={styles.body}>
-          Open the email and tap the link to confirm it's really you. Check your spam,
-          promotions, and All Mail — the sender is usually{' '}
-          <Text style={styles.email}>noreply@omof-eed24.firebaseapp.com</Text>.
-          Search your inbox for "omof-eed24" if you don't see it within a few minutes.
+          Open the email and tap the link — you'll go straight to profile setup once
+          verified. Check your spam, promotions, and All Mail — the sender is usually{' '}
+          <Text style={styles.email}>khafa776@gmail.com</Text> if SMTP is configured,
+          or <Text style={styles.email}>noreply@omof-eed24.firebaseapp.com</Text> otherwise.
           This screen updates automatically once you're verified.
         </Text>
 

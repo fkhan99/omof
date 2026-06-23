@@ -30,13 +30,24 @@ import { PRIVACY_POLICY_VERSION, TERMS_VERSION } from '@/constants/legal';
 import { User } from '@/types';
 import { normalizeEmail } from '@/utils';
 import { getFirebaseAuthErrorMessage, getAuthErrorCode } from '@/utils/authErrors';
+import { getEmailVerificationActionSettings } from '@/utils/firebaseEmailActions';
 import { updateFcmToken } from './pushToken';
 
 async function deliverVerificationEmail(user: FirebaseUser): Promise<void> {
-  // Use Firebase's default verification email (firebaseapp.com link). Custom
-  // continue URLs often fail silently in Gmail when the domain isn't authorized
-  // or hurts deliverability from Firebase's shared sender.
-  await sendEmailVerification(user);
+  try {
+    await sendEmailVerification(user, getEmailVerificationActionSettings());
+  } catch (error) {
+    const code = getAuthErrorCode(error);
+    if (
+      code === 'auth/unauthorized-continue-uri' ||
+      code === 'auth/invalid-continue-uri' ||
+      code === 'auth/missing-continue-uri'
+    ) {
+      await sendEmailVerification(user);
+      return;
+    }
+    throw error;
+  }
 }
 
 function assertFirebaseConfigured(): void {
