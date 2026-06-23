@@ -169,11 +169,6 @@ export default function SignupScreen() {
         {error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
 
         <Button title="Create Account" onPress={handleSubmit(onSubmit)} loading={isSubmitting} />
-
-        <SocialAuthButtons
-          mode="signup"
-          compliance={{ acceptedTerms, confirmedAge }}
-        />
         </View>
 
         <View style={styles.footer}>

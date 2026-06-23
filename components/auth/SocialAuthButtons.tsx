@@ -163,7 +163,8 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.sm,
-      marginVertical: SPACING.sm,
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.xs,
     },
     dividerLine: {
       flex: 1,
