@@ -85,6 +85,8 @@ export function mapPostDoc(id: string, data: DocumentData): Post {
     postKind: (data.postKind as Post['postKind']) ?? 'moment',
     parentPostId: data.parentPostId ?? null,
     parentCaption: data.parentCaption ?? null,
+    growthCaption: data.growthCaption ?? null,
+    growthUpdatedAt: data.growthUpdatedAt ? timestampToDate(data.growthUpdatedAt) : null,
     reactionCounts: data.reactionCounts ?? {
       relate: 0,
       been_there: 0,

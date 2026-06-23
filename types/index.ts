@@ -135,6 +135,9 @@ export interface Post {
   postKind: PostKind;
   parentPostId: string | null;
   parentCaption: string | null;
+  /** Follow-up reflection stored on the same post as the original moment. */
+  growthCaption: string | null;
+  growthUpdatedAt: Date | null;
   reactionCounts: Record<ReactionType, number>;
   commentCount: number;
   createdAt: Date;

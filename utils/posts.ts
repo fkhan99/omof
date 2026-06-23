@@ -4,6 +4,19 @@ export function isVideoPost(post: Post): boolean {
   return post.mediaType === 'video' && !!post.videoURL;
 }
 
+/** @deprecated Separate growth_update child posts — hidden from feeds/grids. */
+export function isStandaloneGrowthPost(post: Post): boolean {
+  return post.postKind === 'growth_update' && !!post.parentPostId;
+}
+
+export function hasGrowthUpdate(post: Post): boolean {
+  return Boolean(post.growthCaption?.trim());
+}
+
+export function filterPrimaryPosts(posts: Post[]): Post[] {
+  return posts.filter((post) => !isStandaloneGrowthPost(post));
+}
+
 export function getPostPreviewURL(post: Post): string {
   return post.imageURL;
 }
