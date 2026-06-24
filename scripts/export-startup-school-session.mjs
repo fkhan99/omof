@@ -125,6 +125,14 @@ Each TURN shows:
 
 The conversation is chronological. Later turns assume earlier work (same repo).
 
+SESSION HIGHLIGHTS (if reviewing selectively)
+---------------------------------------------
+  Turn 1    — Greenfield MVP spec: product vision, stack, phased build plan
+  Turn 230  — Vision gap analysis: audit existing app, evolve without rebuild
+  Turn 240  — Feature batch: connect-back, replies, activity fixes, growth updates
+  Turn 256  — Moderation system: full product + engineering spec (proudest arc)
+  Turns 256–268 — Moderation implementation, deploy, admin queue, verification
+
 `;
 
 const turns = parseTranscript(transcriptPath);
